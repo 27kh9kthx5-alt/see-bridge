@@ -350,7 +350,7 @@ function inbox(){
 }
 function listView(kind){
   var f=feed().filter(function(x){ return x.kind===kind; });
-  var extra = kind==='pto' && issuer() ? '<div class="quick"><button type="button" data-go="ptoadmin">'+svg('chev','#0a5bd3')+'<span>Open PTO admin (issue, adjust, history)</span></button></div>'
+  var extra = kind==='pto' && ptoAdminOK() ? '<div class="quick"><button type="button" data-go="ptoadmin">'+svg('chev','#0a5bd3')+'<span>'+ptoAdminLabel()+'</span></button></div>'
     : kind==='onboard' ? '<div class="quick"><button type="button" data-go="onboardform">'+svg('plus','#0a5bd3')+'<span>Fill out an On Board form</span></button></div>' : '';
   return '<button type="button" class="back" data-go="home">'+svg('back')+'Home</button><div class="top"><h1>'+(KIND[kind].full||KIND[kind].name)+'</h1></div>'+centerSeg()+extra+listHtml(f, kind==='onboard'?'No On Board forms in the last year.':'Nothing from the last 45 days.');
 }
@@ -440,6 +440,7 @@ function openEmbed(which){
   if(box.getAttribute('data-ready')) return;
   box.setAttribute('data-ready','1');
   box.innerHTML='<div class="embed-top"><button type="button" class="back" data-go="home">'+svg('back')+'Home</button><b>'+name+'</b><span style="width:60px"></span></div><div class="embed-body"><div class="empty" style="margin:16px"><span class="spin"></span> Loading…</div></div>';
+  if(which==='pto'){ try{ if(me&&me.session) localStorage.setItem('seeBridgeSession', me.session); else localStorage.removeItem('seeBridgeSession'); }catch(e){} }
   if(which==='hiring'){ try{ localStorage.setItem('seeHiringPass', JSON.stringify({ p:me.pass||(S.data&&S.data.hiringPass)||'', until:Date.now()+90*864e5 })); }catch(e){} }
   loadScript('https://instant-frkdkdsktiwn-bdejonge-1408.wix-site-host.com/'+tag+'.js').then(function(){
     var body=box.querySelector('.embed-body');
@@ -501,7 +502,9 @@ function userEdit(){
   else if(u.username!==S.data.username) h+='<p class="help" style="margin-top:22px"><button type="button" class="link" data-uremove="1" style="color:#b3261e">Remove this user</button></p>';
   return h;
 }
-function issuer(){ return S.data && (S.data.owner || (!S.data.account && S.data.role==='ALL') || S.data.office); }
+function issuer(){ return S.data && (S.data.owner || (!S.data.account && S.data.role==='ALL')); }
+function ptoAdminOK(){ return S.data && ((S.data.account && can('pto')) || (!S.data.account && S.data.role==='ALL')); }
+function ptoAdminLabel(){ return issuer() ? 'Open PTO admin (issue, adjust, history)' : isOffice() ? 'Open PTO admin (approve, history, resend emails)' : 'Team PTO: history & resend emails'; }
 
 // ---------- sign in ----------
 function device(){ var u=navigator.userAgent; return /iPhone/.test(u)?'iPhone':/iPad/.test(u)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)?'iPad':/Android/.test(u)?'Android':/Mac/.test(u)?'Mac':/Windows/.test(u)?'Windows PC':'Browser'; }
@@ -600,7 +603,7 @@ document.addEventListener('click',function(e){
     return;
   }
   if(t.hasAttribute('data-push')){ var a=t.getAttribute('data-push'); if(a==='on') pushOn(); else if(a==='later'){ try{ localStorage.setItem('seeBridgeLater','1'); }catch(e){} PUSH.ask=false; render(); } else if(a==='off'){ try{ localStorage.setItem('seeBridgeLater','1'); }catch(e){} pushOff(); } else { t.disabled=true; post({action:'test', token:me.token}).then(function(r){ t.disabled=false; toast(r.ok?r.message:(r.error||'That didn’t work.')); }); } return; }
-  if(t.hasAttribute('data-logout')){ if(!confirm('Log out of SEE Bridge on this device?')) return; var who=me&&(me.user||''), wasPass=me&&!me.session; pushOff(true).then(function(){ return me&&me.session?post({action:'signout'}):null; }).then(function(){ try{ localStorage.removeItem('seeHiringPass'); }catch(e){} save(null); S.data=null; S.users=null; showLogin('', who, wasPass?'pass':''); }); return; }
+  if(t.hasAttribute('data-logout')){ if(!confirm('Log out of SEE Bridge on this device?')) return; var who=me&&(me.user||''), wasPass=me&&!me.session; pushOff(true).then(function(){ return me&&me.session?post({action:'signout'}):null; }).then(function(){ try{ localStorage.removeItem('seeHiringPass'); localStorage.removeItem('seeBridgeSession'); }catch(e){} save(null); S.data=null; S.users=null; showLogin('', who, wasPass?'pass':''); }); return; }
   if(t.hasAttribute('data-auth')){ var am=t.getAttribute('data-auth'), wn=($('lu-name')||$('fg-name')||{}).value||''; if(am==='forgot') showForgot(wn); else if(am==='pass') showLogin('', '', 'pass'); else showLogin('', wn); return; }
   if(t.hasAttribute('data-uedit')){
     var uid=t.getAttribute('data-uedit');
