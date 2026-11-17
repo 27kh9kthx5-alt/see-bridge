@@ -292,7 +292,7 @@ function home(){
   var grid=function(tiles){ return '<div class="grid">'+tiles.map(function(t){ return '<button type="button" class="tile" data-tile="'+t[0]+'"><span class="row">'+ico(t[0])+(t[1]?'<span class="cnt">'+t[1]+'</span>':'')+'</span><span><div class="n">'+KIND[t[0]].name+'</div><div class="l">'+esc(t[2])+'</div></span></button>'; }).join('')+'</div>'; };
   team=team.filter(function(t){ return can(t[0]); }); fam=fam.filter(function(t){ return can(t[0]); });
   if(PUSH.ask) h+='<div class="ask"><span class="ico" style="background:var(--blue)">'+svg('bell','#fff')+'</span><div class="grow"><b>Alerts for this phone</b>One tap to turn on.</div><button type="button" class="pill go" data-push="on">Turn on</button><button type="button" class="link" data-push="later" aria-label="Not now">Not now</button></div>';
-  var quick=(issuer()&&can('pto')?'<button type="button" data-go="ptoadmin">'+svg('plus','#0a5bd3')+'<span>Issue PTO</span></button>':'')+(can('hiring')?'<button type="button" data-go="hiring">'+svg('plus','#0a5bd3')+'<span>Post a job</span></button>':'');
+  var quick=(issuer()&&can('pto')?'<button type="button" data-go="ptoadmin">'+svg('plus','#0a5bd3')+'<span>Issue PTO</span></button>':'')+(can('hiring')?'<button type="button" data-go="hiring-jobs">'+svg('plus','#0a5bd3')+'<span>Post a job</span></button>':'');
   if(team.length) h+='<h2 class="sec">Team members</h2>'+grid(team);
   if(quick) h+='<div class="quick">'+quick+'</div>';
   if(fam.length) h+='<h2 class="sec">Families</h2>'+grid(fam);
@@ -581,6 +581,10 @@ document.addEventListener('click',function(e){
   if(t.hasAttribute('data-tab')){ setView(t.getAttribute('data-tab')); if(t.getAttribute('data-tab')!=='settings') refresh(true); return; }
   if(t.hasAttribute('data-read')) markRead([t.getAttribute('data-read')]);
   var go=t.getAttribute('data-go');
+  if(go==='hiring-jobs'){ try{ localStorage.setItem('seeHiringTab','jobs'); }catch(e){} setView('hiring');
+    var hel=document.querySelector('#embed-hiring see-hiring'), hr=hel&&hel.shadowRoot, hb=hr&&hr.querySelector('.hb-tabs [data-tab="jobs"]');
+    if(hb && hb.offsetParent){ hb.click(); try{ localStorage.removeItem('seeHiringTab'); }catch(e){} }
+    return; }
   if(go){ if(go==='needs'){ S.filter='needs'; setView('inbox'); } else setView(go); return; }
   if(t.hasAttribute('data-tile')){ var k=t.getAttribute('data-tile'); if(k==='hiring') setView('hiring'); else setView('list',k); markRead(feed().filter(function(x){ return x.kind===k && x.unread && !x.needs && (!x.link || k==='onboard') && x.kind!=='pto'; }).map(function(x){ return x.id; })); return; }
   if(t.hasAttribute('data-center')){ S.center=t.getAttribute('data-center'); render(); return; }
