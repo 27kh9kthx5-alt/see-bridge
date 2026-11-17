@@ -131,6 +131,14 @@ nav .badge{top:-2px;right:14px}
 .seg button[data-center=all][aria-pressed=true]{background:#7B3FE4}
 .seg button[data-center=BV][aria-pressed=true]{background:#40B549}
 .sect{display:flex;align-items:center;gap:10px;width:100%;margin-top:18px;padding:14px 16px;border:0;border-radius:14px;background:var(--card);color:var(--ink);font:inherit;font-size:16px;font-weight:600;text-align:left;cursor:pointer}
+.mini{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border:0;border-bottom:1px solid var(--line);background:none;font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.mini:last-child{border-bottom:0}
+.mini .okb{width:24px;height:24px;border-radius:50%;background:#1f9d47;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mini .okb svg{width:14px;height:14px}
+.mini .mn{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini .md{font-size:13px;color:var(--sub);white-space:nowrap}
+.mini>svg{width:16px;height:16px;color:var(--faint);flex-shrink:0}
+.minic{display:block;margin:-4px 0 8px 64px;background:none;border:0;color:var(--blue);font:inherit;font-size:14px;cursor:pointer}
 .sect .grow{flex:1;min-width:0}
 .sect b{display:inline-block;min-width:22px;margin-left:6px;padding:1px 7px;border-radius:999px;background:#ececf0;font-size:13px;text-align:center}
 .sect small{display:block;font-size:13px;font-weight:400;color:var(--sub);margin-top:2px}
@@ -183,7 +191,7 @@ var GROUPS = { team:['pto','hiring','onboard','term'], families:['enroll','carep
 var PREF_TEAM = [['pto','PTO requests','pto'],['pto_ok','PTO approved (heads-up)','pto'],['hiring_new','New applicants','hiring'],['hiring_iv','Interviews & offers','hiring'],['onboard','Team member on board','onboard'],['term','Termination of employment','term']];
 var PREF_FAM = [['enroll','Enrollment packets','enroll'],['careplan','Care plans','careplan'],['vacation','Family vacations','vacation'],['termcare','Termination of care','termcare']];
 
-var S = { sect:{}, arq:'', view:'home', filter:'all', center:'all', list:null, data:null, prefs:null, busy:false, open:{} };
+var S = { mini:{}, sect:{}, arq:'', view:'home', filter:'all', center:'all', list:null, data:null, prefs:null, busy:false, open:{} };
 var me = load();
 
 function $(id){ return document.getElementById(id); }
@@ -377,10 +385,21 @@ function listView(kind){
   f.forEach(function(x){ if(x.steps && !x.done) open.push(x); else (now-doneAt(x) <= 30*864e5 ? done : arch).push(x); });
   var h=head+listHtml(open, 'Nothing open right now. 🎉');
   var sk=kind+':done', ak=kind+':arch';
+  if(kind==='onboard'){
+    // Finished in the last 30 days: one compact row each (tap to expand). Older: folded into Completed.
+    if(done.length) h+='<div class="grp">Recently finished</div><div class="card">'+done.map(function(x){ return S.mini[x.id] ? itemHtml(x)+'<button type="button" class="link minic" data-mini="'+esc(x.id)+'">Show less</button>' : miniRow(x); }).join('')+'</div>';
+    if(arch.length) h+='<button type="button" class="sect" data-sect="'+ak+'" aria-expanded="'+!!S.sect[ak]+'"><span class="grow">Completed <b>'+arch.length+'</b><small>Finished more than 30 days ago</small></span>'+svg('chev')+'</button>'+
+      (S.sect[ak]?'<input type="search" class="arq" id="ar-q" placeholder="Search completed" value="'+esc(S.arq||'')+'" aria-label="Search completed"><div id="ar-list">'+archList(arch)+'</div>':'');
+    return h;
+  }
   if(done.length) h+='<button type="button" class="sect" data-sect="'+sk+'" aria-expanded="'+!!S.sect[sk]+'"><span class="grow">Completed <b>'+done.length+'</b><small>Finished in the last 30 days</small></span>'+svg('chev')+'</button>'+(S.sect[sk]?listHtml(done,''):'');
   if(arch.length) h+='<button type="button" class="sect" data-sect="'+ak+'" aria-expanded="'+!!S.sect[ak]+'"><span class="grow">Archive <b>'+arch.length+'</b><small>Finished more than 30 days ago</small></span>'+svg('chev')+'</button>'+
     (S.sect[ak]?'<input type="search" class="arq" id="ar-q" placeholder="Search the archive" value="'+esc(S.arq||'')+'" aria-label="Search the archive"><div id="ar-list">'+archList(arch)+'</div>':'');
   return h;
+}
+function miniRow(x){
+  var name=String(x.title||'').replace(/^On board · /,''), d=(String(x.sub||'').match(/Starts [^·]+/)||[''])[0].trim();
+  return '<button type="button" class="mini" data-mini="'+esc(x.id)+'" aria-expanded="false"><span class="okb" aria-label="Done">'+svg('check','#fff')+'</span><span class="mn">'+esc(name)+'</span><span class="md">'+esc(d)+'</span>'+svg('chev')+'</button>';
 }
 function doneAt(x){ var m=0; Object.keys(x.checks||{}).forEach(function(k){ var a=Date.parse(x.checks[k].at); if(a>m) m=a; }); return m || Date.parse(x.at); }
 function archList(arch){ var q=String(S.arq||'').trim().toLowerCase(); var l=q?arch.filter(function(x){ return (x.title+' '+x.sub).toLowerCase().indexOf(q)>=0; }):arch; return listHtml(l, q?'No matches.':''); }
@@ -649,6 +668,7 @@ document.addEventListener('click',function(e){
   }
   if(t.hasAttribute('data-push')){ var a=t.getAttribute('data-push'); if(a==='on') pushOn(); else if(a==='later'){ try{ localStorage.setItem('seeBridgeLater','1'); }catch(e){} PUSH.ask=false; render(); } else if(a==='off'){ try{ localStorage.setItem('seeBridgeLater','1'); }catch(e){} pushOff(); } else { t.disabled=true; post({action:'test', token:me.token}).then(function(r){ t.disabled=false; toast(r.ok?r.message:(r.error||'That didn’t work.')); }); } return; }
   if(t.hasAttribute('data-logout')){ if(!confirm('Log out of SEE Bridge on this device?')) return; var who=me&&(me.user||''), wasPass=me&&!me.session; pushOff(true).then(function(){ return me&&me.session?post({action:'signout'}):null; }).then(function(){ try{ localStorage.removeItem('seeHiringPass'); localStorage.removeItem('seeBridgeSession'); }catch(e){} save(null); S.data=null; S.users=null; showLogin('', who, wasPass?'pass':''); }); return; }
+  if(t.hasAttribute('data-mini')){ var mid=t.getAttribute('data-mini'); S.mini[mid]=!S.mini[mid]; render(); return; }
   if(t.hasAttribute('data-sect')){ var sk2=t.getAttribute('data-sect'); S.sect[sk2]=!S.sect[sk2]; render(); return; }
   if(t.hasAttribute('data-auth')){ var am=t.getAttribute('data-auth'), wn=($('lu-name')||$('fg-name')||{}).value||''; if(am==='forgot') showForgot(wn); else if(am==='pass') showLogin('', '', 'pass'); else showLogin('', wn); return; }
   if(t.hasAttribute('data-uedit')){
