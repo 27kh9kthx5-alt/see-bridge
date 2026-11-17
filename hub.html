@@ -393,8 +393,7 @@ function overtimeMgrView(o){
     var hasDays=ppl.some(function(p){ return Array.isArray(p.days) && p.days.length; });
     var dayOf=function(p,d){ return (p.days||[]).find(function(x){ return x && x.day===d; }); };
     var cols=['Mon','Tue','Wed','Thu','Fri'];
-    if(hasDays) ['Sat','Sun'].forEach(function(d){ if(ppl.some(function(p){ var x=dayOf(p,d); return x && ((x.actual||0)>0 || (x.scheduled||0)>0); })) cols.push(d); });
-    else cols=[];
+    if(!hasDays) cols=[]; // both centers are closed Saturday and Sunday
     var cell=function(p,d){ var x=dayOf(p,d);
       if(!x) return '<td class="d"><span class="no">–</span></td>';
       if(typeof x.actual==='number') return '<td class="d"><b>'+hrs1(x.actual)+'</b></td>';
