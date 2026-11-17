@@ -505,6 +505,18 @@ function userEdit(){
   else if(u.username!==S.data.username) h+='<p class="help" style="margin-top:22px"><button type="button" class="link" data-uremove="1" style="color:#b3261e">Remove this user</button></p>';
   return h;
 }
+// Open the hiring hub on the same center you're looking at in the Bridge (and, for Post a job, the Post a Job tab).
+function openHiring(tab){
+  var view = S.data && S.data.role==='ALL' ? (S.center==='all'?'ALL':S.center) : '';
+  try{ if(view) localStorage.setItem('seeHiringView', view); if(tab) localStorage.setItem('seeHiringTab', tab); }catch(e){}
+  setView('hiring');
+  var hel=document.querySelector('#embed-hiring see-hiring'), hr=hel&&hel.shadowRoot, ready=hr&&hr.querySelector('.hb-tabs'), shown=ready&&ready.offsetParent;
+  if(shown){ // already open and signed in: switch it directly
+    var vb=view&&hr.querySelector('#hb-view [data-view="'+view+'"]'); if(vb && vb.offsetParent) vb.click();
+    var tb=tab&&hr.querySelector('.hb-tabs [data-tab="'+tab+'"]'); if(tb) tb.click();
+    try{ localStorage.removeItem('seeHiringView'); localStorage.removeItem('seeHiringTab'); }catch(e){}
+  }
+}
 function issuer(){ return S.data && (S.data.owner || (!S.data.account && S.data.role==='ALL')); }
 function ptoAdminOK(){ return S.data && ((S.data.account && can('pto')) || (!S.data.account && S.data.role==='ALL')); }
 function ptoAdminLabel(){ return issuer() ? 'Open PTO admin (issue, adjust, history)' : isOffice() ? 'Open PTO admin (approve, history, resend emails)' : 'Team PTO: history & resend emails'; }
@@ -584,12 +596,10 @@ document.addEventListener('click',function(e){
   if(t.hasAttribute('data-tab')){ setView(t.getAttribute('data-tab')); if(t.getAttribute('data-tab')!=='settings') refresh(true); return; }
   if(t.hasAttribute('data-read')) markRead([t.getAttribute('data-read')]);
   var go=t.getAttribute('data-go');
-  if(go==='hiring-jobs'){ try{ localStorage.setItem('seeHiringTab','jobs'); }catch(e){} setView('hiring');
-    var hel=document.querySelector('#embed-hiring see-hiring'), hr=hel&&hel.shadowRoot, hb=hr&&hr.querySelector('.hb-tabs [data-tab="jobs"]');
-    if(hb && hb.offsetParent){ hb.click(); try{ localStorage.removeItem('seeHiringTab'); }catch(e){} }
-    return; }
+  if(go==='hiring-jobs'){ openHiring('jobs'); return; }
+  if(go==='hiring'){ openHiring(''); return; }
   if(go){ if(go==='needs'){ S.filter='needs'; setView('inbox'); } else setView(go); return; }
-  if(t.hasAttribute('data-tile')){ var k=t.getAttribute('data-tile'); if(k==='hiring') setView('hiring'); else setView('list',k); markRead(feed().filter(function(x){ return x.kind===k && x.unread && !x.needs && (!x.link || k==='onboard') && x.kind!=='pto'; }).map(function(x){ return x.id; })); return; }
+  if(t.hasAttribute('data-tile')){ var k=t.getAttribute('data-tile'); if(k==='hiring') openHiring(''); else setView('list',k); markRead(feed().filter(function(x){ return x.kind===k && x.unread && !x.needs && (!x.link || k==='onboard') && x.kind!=='pto'; }).map(function(x){ return x.id; })); return; }
   if(t.hasAttribute('data-center')){ S.center=t.getAttribute('data-center'); render(); return; }
   if(t.hasAttribute('data-filter')){ S.filter=t.getAttribute('data-filter'); render(); return; }
   if(t.hasAttribute('data-readall')){ post({action:'read',all:true}).then(function(r){ if(apply(r)) render(); }); (S.data.feed||[]).forEach(function(x){ x.unread=false; }); apply(S.data); render(); return; }
