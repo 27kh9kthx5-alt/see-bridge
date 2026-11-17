@@ -126,6 +126,17 @@ nav .badge{top:-2px;right:14px}
 .ask{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:16px;padding:14px;margin-top:12px}
 .ask .grow{flex:1;min-width:0;font-size:14px;color:var(--sub)}
 .ask .grow b{display:block;font-size:15px;color:var(--ink)}
+.uform{display:flex;flex-direction:column;gap:12px;padding:16px}
+.uform label{font-size:14px;font-weight:600;display:flex;flex-direction:column;gap:6px}
+.uform input{min-height:44px;border:1px solid #d2d2d7;border-radius:12px;padding:0 12px;font-size:16px;background:#fff;font-family:inherit}
+.urow{width:100%;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.urow:last-child{border-bottom:0}
+.urow svg{width:18px;height:18px;color:var(--faint);flex-shrink:0}
+.top .pill{white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+.top .pill svg{width:16px;height:16px}
+.ubtns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.note{background:#fff8e6;color:#5c4400;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.45;margin:4px 0 14px}
+.login .link{background:none;border:0;color:var(--blue);font:inherit;font-size:15px;cursor:pointer;padding:6px}
 .spin{display:inline-block;width:18px;height:18px;border:2px solid #c7c7cc;border-top-color:var(--blue);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-4px}
 @keyframes sp{to{transform:rotate(360deg)}}
 </style>
@@ -158,7 +169,7 @@ var KIND = {
 };
 var FILTERS = [['all','All'],['needs','Needs me'],['team','Team members'],['families','Families']];
 var GROUPS = { team:['pto','hiring','onboard','term'], families:['enroll','careplan','vacation','termcare'] };
-var PREF_TEAM = [['pto','PTO requests','pto'],['hiring_new','New applicants','hiring'],['hiring_iv','Interviews & offers','hiring'],['onboard','Team member on board','onboard'],['term','Termination of employment','term']];
+var PREF_TEAM = [['pto','PTO requests','pto'],['pto_ok','PTO approved (heads-up)','pto'],['hiring_new','New applicants','hiring'],['hiring_iv','Interviews & offers','hiring'],['onboard','Team member on board','onboard'],['term','Termination of employment','term']];
 var PREF_FAM = [['enroll','Enrollment packets','enroll'],['careplan','Care plans','careplan'],['vacation','Family vacations','vacation'],['termcare','Termination of care','termcare']];
 
 var S = { view:'home', filter:'all', center:'all', list:null, data:null, prefs:null, busy:false, open:{} };
@@ -171,7 +182,7 @@ function ico(kind, sm){ return '<span class="ico'+(sm?' sm':'')+'" style="backgr
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; } }
 function save(v){ me=v; try{ if(v) localStorage.setItem(KEY,JSON.stringify(v)); else localStorage.removeItem(KEY); }catch(e){} }
 function post(o){
-  o.form='hub'; if(me){ o.pass=me.pass; o.name=me.name; }
+  o.form='hub'; if(me){ if(me.session) o.session=me.session; else { o.pass=me.pass; o.name=me.name; } }
   return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)})
     .then(function(r){ return r.json(); })
     .catch(function(){ return { ok:false, error:'Can’t reach SEE right now. Check your connection and try again.' }; });
@@ -183,7 +194,7 @@ function toast(msg){ var t=$('toast'); if(!t){ t=document.createElement('div'); 
 function feed(){ var f=(S.data&&S.data.feed)||[]; if(S.center==='all') return f; return f.filter(function(x){ return !x.center || x.center===S.center; }); }
 function inFilter(x,f){ if(f==='all') return true; if(f==='needs') return x.needs; if(GROUPS[f]) return GROUPS[f].indexOf(x.kind)>=0; return x.kind===f; }
 function apply(r){
-  if(r && r.locked){ save(null); S.data=null; showLogin(r.error); return false; }
+  if(r && r.locked){ var wp=me&&!me.session; save(null); S.data=null; S.users=null; showLogin(r.error,'',wp?'pass':''); return false; }
   if(!r || !r.ok){ toast((r&&r.error)||'Something went wrong.'); return false; }
   (r.feed||[]).forEach(function(x){ if(x.kind==='term' && x.id.indexOf('toc:')===0) x.kind='termcare'; });
   S.data=r; S.prefs=r.prefs;
@@ -230,7 +241,7 @@ function setView(v, arg){
   $('embed-pto').classList.toggle('hidden', v!=='ptoadmin');
   $('embed-onboard').classList.toggle('hidden', v!=='onboardform');
   $('view').classList.toggle('hidden', emb);
-  var tab = v==='list'||emb ? 'home' : v;
+  var tab = v==='list'||emb ? 'home' : (v==='users'||v==='useredit'||v==='password') ? 'settings' : v;
   Array.prototype.forEach.call(document.querySelectorAll('nav button'),function(b){ if(b.getAttribute('data-tab')===tab) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
   if(v==='hiring') openEmbed('hiring'); else if(v==='ptoadmin') openEmbed('pto'); else if(v==='onboardform') openEmbed('onboard'); else render();
   window.scrollTo(0,0);
@@ -242,6 +253,9 @@ function render(){
   else if(S.view==='inbox') v.innerHTML=inbox();
   else if(S.view==='list') v.innerHTML=listView(S.list);
   else if(S.view==='settings') v.innerHTML=settings();
+  else if(S.view==='users') v.innerHTML=usersView();
+  else if(S.view==='useredit') v.innerHTML=userEdit();
+  else if(S.view==='password') v.innerHTML=passwordView();
 }
 function centerSeg(){
   if(S.data.role!=='ALL') return '';
@@ -264,7 +278,7 @@ function home(){
   h+= needs.length ? '<button type="button" class="wait" data-go="needs"><span style="flex:1"><div class="k">Waiting on you</div><div class="b">'+plural(needs.length,'thing needs','things need')+' you</div><div class="s">'+esc(parts.join(' · '))+'</div></span>'+svg('chev','#fff')+'</button>'
     : '<div class="wait calm"><span><div class="k">Waiting on you</div><div class="b">Nothing right now</div></span></div>';
   var team=[
-    ['pto', ptoN, ptoN? plural(ptoN,'request','requests')+' to approve' : 'Nothing waiting'],
+    ['pto', ptoN, ptoN? plural(ptoN,'request','requests')+(isOffice()?' to approve':' waiting') : 'Nothing waiting'],
     ['hiring', unread('hiring'), [newApps?newApps+' new':'', ivN?ivN+' to confirm':''].filter(Boolean).join(' · ')||'All caught up'],
     ['onboard', unread('onboard'), openN('onboard')? openN('onboard')+' to enter' : unread('onboard')? plural(unread('onboard'),'new form','new forms') : 'New hires'],
     ['term', unread('term'), openN('term')? openN('term')+' open' : unread('term')? unread('term')+' new' : 'Termination of employment']
@@ -276,16 +290,18 @@ function home(){
     ['termcare', unread('termcare'), openN('termcare')? openN('termcare')+' open' : unread('termcare')? unread('termcare')+' new' : 'Termination of care']
   ];
   var grid=function(tiles){ return '<div class="grid">'+tiles.map(function(t){ return '<button type="button" class="tile" data-tile="'+t[0]+'"><span class="row">'+ico(t[0])+(t[1]?'<span class="cnt">'+t[1]+'</span>':'')+'</span><span><div class="n">'+KIND[t[0]].name+'</div><div class="l">'+esc(t[2])+'</div></span></button>'; }).join('')+'</div>'; };
+  team=team.filter(function(t){ return can(t[0]); }); fam=fam.filter(function(t){ return can(t[0]); });
   if(PUSH.ask) h+='<div class="ask"><span class="ico" style="background:var(--blue)">'+svg('bell','#fff')+'</span><div class="grow"><b>Alerts for this phone</b>One tap to turn on.</div><button type="button" class="pill go" data-push="on">Turn on</button><button type="button" class="link" data-push="later" aria-label="Not now">Not now</button></div>';
-  h+='<h2 class="sec">Team members</h2>'+grid(team);
-  h+='<div class="quick"><button type="button" data-go="ptoadmin">'+svg('plus','#0a5bd3')+'<span>Issue PTO</span></button><button type="button" data-go="hiring">'+svg('plus','#0a5bd3')+'<span>Post a job</span></button></div>';
-  h+='<h2 class="sec">Families</h2>'+grid(fam);
+  var quick=(issuer()&&can('pto')?'<button type="button" data-go="ptoadmin">'+svg('plus','#0a5bd3')+'<span>Issue PTO</span></button>':'')+(can('hiring')?'<button type="button" data-go="hiring">'+svg('plus','#0a5bd3')+'<span>Post a job</span></button>':'');
+  if(team.length) h+='<h2 class="sec">Team members</h2>'+grid(team);
+  if(quick) h+='<div class="quick">'+quick+'</div>';
+  if(fam.length) h+='<h2 class="sec">Families</h2>'+grid(fam);
   return h;
 }
 function shortDay(at){ return new Date(at).toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
 function isOpen(x){ return S.open[x.id]!==undefined ? S.open[x.id] : (S.view==='list' && !x.done); }
 function checklistHtml(x){
-  var defs=(S.data.checklists||{})[x.steps]||[], c=x.checks||{}, office=S.data.role==='ALL';
+  var defs=(S.data.checklists||{})[x.steps]||[], c=x.checks||{}, office=isOffice();
   var row=function(key,label,off){ var v=c[key], locked=off&&!office;
     return '<button type="button" class="ck'+(v?' on':'')+'" data-check="'+esc(key)+'" data-id="'+esc(x.id)+'" aria-pressed="'+(v?'true':'false')+'"'+(locked?' disabled':'')+'><span class="bx">'+(v?svg('check','#fff'):'')+'</span><span class="cl">'+esc(label)+(v?'<small>'+esc(v.by)+' · '+esc(shortDay(v.at))+'</small>':locked?'<small>Brent or Chelsea</small>':'')+'</span></button>'; };
   return '<div class="cks">'+defs.map(function(s){
@@ -334,7 +350,7 @@ function inbox(){
 }
 function listView(kind){
   var f=feed().filter(function(x){ return x.kind===kind; });
-  var extra = kind==='pto' ? '<div class="quick"><button type="button" data-go="ptoadmin">'+svg('chev','#0a5bd3')+'<span>Open PTO admin (issue, adjust, history)</span></button></div>'
+  var extra = kind==='pto' && issuer() ? '<div class="quick"><button type="button" data-go="ptoadmin">'+svg('chev','#0a5bd3')+'<span>Open PTO admin (issue, adjust, history)</span></button></div>'
     : kind==='onboard' ? '<div class="quick"><button type="button" data-go="onboardform">'+svg('plus','#0a5bd3')+'<span>Fill out an On Board form</span></button></div>' : '';
   return '<button type="button" class="back" data-go="home">'+svg('back')+'Home</button><div class="top"><h1>'+(KIND[kind].full||KIND[kind].name)+'</h1></div>'+centerSeg()+extra+listHtml(f, kind==='onboard'?'No On Board forms in the last year.':'Nothing from the last 45 days.');
 }
@@ -342,9 +358,11 @@ function sw(id, on, label){ return '<span class="sw"><input type="checkbox" id="
 function settings(){
   var p=S.prefs||{}, d=S.data;
   var h='<h1>Settings</h1>';
-  h+='<div class="grp">Signed in</div><div class="card"><div class="set"><span class="round" style="background:var(--ink);color:#fff;font-weight:700">'+esc((d.name||'?').charAt(0).toUpperCase())+'</span><div class="grow"><div style="font-weight:600">'+esc(d.name)+'</div><div class="sm">'+(d.role==='ALL'?'Both centers':esc(d.label))+'</div></div><button type="button" class="link" data-logout="1" style="color:#b3261e">Log out</button></div></div>';
+  h+='<div class="grp">Signed in</div><div class="card"><div class="set"><span class="round" style="background:var(--ink);color:#fff;font-weight:700">'+esc((d.name||'?').charAt(0).toUpperCase())+'</span><div class="grow"><div style="font-weight:600">'+esc(d.name)+'</div><div class="sm">'+esc([d.username, d.roleName, d.role==='ALL'?'Both centers':d.label].filter(Boolean).join(' · '))+'</div></div><button type="button" class="link" data-logout="1" style="color:#b3261e">Log out</button></div>'+
+    (d.account?'<button type="button" class="set urow" data-go="password"><span class="grow">Change password</span>'+svg('chev')+'</button>':'<div class="set"><div class="grow sm">Signed in with the shared passcode. Ask Brent for your own username.</div></div>')+'</div>';
+  if(d.owner) h+='<div class="grp">People</div><div class="card"><button type="button" class="set urow" data-go="users"><span class="grow">Users<div class="sm">Add people, roles, areas and password resets</div></span>'+svg('chev')+'</button></div>';
   h+='<div class="grp">Phone alerts on this device</div><div class="card"><div class="set"><div class="grow" id="push-state">'+pushStateHtml()+'</div></div></div>';
-  var rows=function(list){ return '<div class="card">'+list.map(function(r){ return '<div class="set"><span class="mark" style="background:var(--c-'+r[2]+')"></span><span class="grow">'+r[1]+'</span>'+sw('pf-'+r[0], p[r[0]]!==false, r[1])+'</div>'; }).join('')+'</div>'; };
+  var rows=function(list){ list=list.filter(function(r){ return can(r[2]) && (r[0]!=='pto'||isOffice()) && (r[0]!=='pto_ok'||!isOffice()); }); if(!list.length) return ''; return '<div class="card">'+list.map(function(r){ return '<div class="set"><span class="mark" style="background:var(--c-'+r[2]+')"></span><span class="grow">'+r[1]+'</span>'+sw('pf-'+r[0], p[r[0]]!==false, r[1])+'</div>'; }).join('')+'</div>'; };
   h+='<div class="grp">Alert me about team members</div>'+rows(PREF_TEAM)+'<div class="grp">Alert me about families</div>'+rows(PREF_FAM);
   h+='<div class="card" style="margin-top:12px"><div class="set"><div class="grow">Quiet nights &amp; weekends<div class="sm">No alerts 8 PM – 6 AM, Saturday or Sunday. They still show in the inbox.</div></div>'+sw('pf-quiet', p.quiet!==false, 'Quiet nights and weekends')+'</div></div>';
   h+='<p class="help">These switches are just for your phone alerts. The emails keep coming the same way they do now.</p>';
@@ -422,7 +440,7 @@ function openEmbed(which){
   if(box.getAttribute('data-ready')) return;
   box.setAttribute('data-ready','1');
   box.innerHTML='<div class="embed-top"><button type="button" class="back" data-go="home">'+svg('back')+'Home</button><b>'+name+'</b><span style="width:60px"></span></div><div class="embed-body"><div class="empty" style="margin:16px"><span class="spin"></span> Loading…</div></div>';
-  if(which==='hiring'){ try{ localStorage.setItem('seeHiringPass', JSON.stringify({ p:me.pass, until:Date.now()+90*864e5 })); }catch(e){} }
+  if(which==='hiring'){ try{ localStorage.setItem('seeHiringPass', JSON.stringify({ p:me.pass||(S.data&&S.data.hiringPass)||'', until:Date.now()+90*864e5 })); }catch(e){} }
   loadScript('https://instant-frkdkdsktiwn-bdejonge-1408.wix-site-host.com/'+tag+'.js').then(function(){
     var body=box.querySelector('.embed-body');
     body.innerHTML = '<'+tag+'></'+tag+'>';
@@ -432,31 +450,129 @@ function openEmbed(which){
   }).catch(function(){ box.removeAttribute('data-ready'); box.querySelector('.embed-body').innerHTML='<div class="empty" style="margin:16px">Couldn’t load. Check your connection.</div>'; });
 }
 
-// ---------- sign in ----------
-function showLogin(err, who){
-  $('nav').classList.add('hidden');
-  $('embed-hiring').innerHTML=''; $('embed-hiring').removeAttribute('data-ready');
-  $('embed-pto').innerHTML=''; $('embed-pto').removeAttribute('data-ready');
-  $('embed-onboard').innerHTML=''; $('embed-onboard').removeAttribute('data-ready');
-  $('wrap').classList.remove('wide'); $('embed-hiring').classList.add('hidden'); $('embed-pto').classList.add('hidden'); $('embed-onboard').classList.add('hidden'); $('view').classList.remove('hidden');
-  $('view').innerHTML='<div class="login"><img src="images/see-logo.png" alt="SEE"><h1>SEE Bridge</h1><p class="help" style="text-align:center">For SEE management. Use the same passcode as the hiring hub.</p>'+
-    '<form id="login-form" autocomplete="on"><label>Your first name<input id="lg-name" autocomplete="given-name" required maxlength="40" value="'+esc(who||(me&&me.name)||'')+'"></label><label>Passcode<input id="lg-pass" type="password" autocomplete="current-password" required maxlength="200"></label><div class="err" id="lg-err" role="alert">'+esc(err||'')+'</div><button class="btn" id="lg-btn" type="submit">Sign in</button></form></div>';
+// ---------- your password, and the Users screen (owner only) ----------
+var AREA_LIST=[['pto','PTO'],['hiring','Hiring'],['onboard','On Board'],['term','Termination of Employment'],['enroll','Enrollment'],['careplan','Care Plans'],['vacation','Family Vacations'],['termcare','Termination of Care']];
+var ROLE_LIST=[['owner','Owner'],['office','Office'],['manager','Center Manager']];
+var CNAME={SF:'Sioux Falls',BV:'Brandon'};
+function can(k){ return !S.data || !S.data.areas || S.data.areas[k]!==false; }
+function isOffice(){ return S.data && (S.data.office!==undefined ? S.data.office : S.data.role==='ALL'); }
+function passwordView(){
+  return '<button type="button" class="back" data-go="settings">'+svg('back')+'Settings</button><div class="top"><h1>Change password</h1></div>'+
+    '<form id="pw-form" class="card uform"><input type="text" autocomplete="username" value="'+esc(S.data.username||'')+'" readonly style="display:none">'+
+    '<label>Current password<input id="pw-0" type="password" autocomplete="current-password" required maxlength="200"></label>'+
+    '<label>New password<input id="pw-1" type="password" autocomplete="new-password" required minlength="8" maxlength="200"></label>'+
+    '<label>Type it again<input id="pw-2" type="password" autocomplete="new-password" required maxlength="200"></label>'+
+    '<div class="err" id="pw-err" role="alert"></div><button class="btn" id="pw-btn" type="submit">Change password</button></form>'+
+    '<p class="help">At least 8 characters. Your other devices will need to sign in again.</p>';
 }
+function loadUsers(extra){ return post({action:'users'}).then(function(r){ if(r.locked){ apply(r); return; } if(!r.ok){ toast(r.error||'Couldn’t load users.'); return; } S.users=r; render(); }); }
+function usersView(){
+  var back='<button type="button" class="back" data-go="settings">'+svg('back')+'Settings</button>';
+  if(!S.users){ loadUsers(); return back+'<div class="top"><h1>Users</h1></div><div class="empty"><span class="spin"></span> Loading…</div>'; }
+  var U=S.users;
+  var h=back+'<div class="top"><h1>Users</h1><button type="button" class="pill go" data-uedit="new">'+svg('plus')+' Add user</button></div>';
+  if(!S.data.account) h+='<div class="note">Start by adding <b>yourself</b> as the Owner. You’ll get an email to choose your password. Then sign in with your username and add everyone else.</div>';
+  h+= U.users.length ? '<div class="card">'+U.users.map(function(u){
+    var st = !u.active ? '<span class="tag bad">Off</span>' : !u.hasPassword ? '<span class="tag need">'+(u.invited?'Invite sent':'No password yet')+'</span>' : '';
+    var where = u.role==='manager' ? CNAME[u.center]||'' : 'Both centers';
+    return '<button type="button" class="set urow" data-uedit="'+esc(u.id)+'"><span class="round" style="background:'+(u.role==='owner'?'var(--ink)':u.role==='office'?'#0a5bd3':'#0e7490')+';color:#fff;font-weight:700">'+esc((u.name||'?').charAt(0).toUpperCase())+'</span><span class="grow"><span style="font-weight:600;display:block">'+esc(u.name)+'</span><span class="sm" style="display:block">'+esc(u.username)+' · '+esc((ROLE_LIST.find(function(r){ return r[0]===u.role; })||['',''])[1])+' · '+esc(where)+'</span></span>'+st+svg('chev')+'</button>'; }).join('')+'</div>'
+    : '<div class="empty">No users yet.</div>';
+  h+='<div class="grp">Shared passcodes</div><div class="card"><div class="set"><div class="grow">Allow passcode sign-in<div class="sm">The old shared passcodes + first name. Turn this off once everyone has signed in with their own account.</div></div>'+sw('pc-on', U.passcodesOn, 'Allow passcode sign-in')+'</div></div>';
+  return h;
+}
+function grabU(){ var u=S.uedit; if(!u) return; ['name','username','email'].forEach(function(k){ var el=$('u-'+k); if(el) u[k]=el.value; }); }
+function userEdit(){
+  var u=S.uedit, isNew=!u.id, mgr=u.role==='manager';
+  var h='<button type="button" class="back" data-go="users">'+svg('back')+'Users</button><div class="top"><h1>'+(isNew?'Add user':esc(u.name))+'</h1></div>';
+  h+='<div class="card uform"><label>Name<input id="u-name" autocomplete="off" maxlength="60" value="'+esc(u.name)+'" placeholder="First and last name"></label>'+
+    '<label>Username<input id="u-username" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="30" value="'+esc(u.username)+'" placeholder="e.g. chelsea"></label>'+
+    '<label>Email<input id="u-email" type="email" autocomplete="off" maxlength="120" value="'+esc(u.email)+'" placeholder="For invites and password resets"></label></div>';
+  h+='<div class="grp">Role</div><div class="seg" role="group" aria-label="Role">'+ROLE_LIST.map(function(r){ return '<button type="button" data-urole="'+r[0]+'" aria-pressed="'+(u.role===r[0])+'">'+r[1]+'</button>'; }).join('')+'</div>';
+  h+='<p class="help">'+(u.role==='owner'?'Everything at both centers, plus this Users screen.':u.role==='office'?'Everything at both centers, including the office-only checklist steps and PTO approvals.':'Their own center. Everything below that’s switched on, except the office-only steps.')+'</p>';
+  if(mgr) h+='<div class="grp">Center</div><div class="seg" role="group" aria-label="Center">'+[['SF','Sioux Falls'],['BV','Brandon']].map(function(c){ return '<button type="button" data-ucenter="'+c[0]+'" aria-pressed="'+(u.center===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>';
+  h+='<div class="grp">Areas they can see</div><div class="card">'+AREA_LIST.map(function(a){
+    var off = a[0]==='vacation' && mgr && u.center==='BV';
+    return '<div class="set"><span class="mark" style="background:var(--c-'+a[0]+')"></span><span class="grow">'+a[1]+(off?'<div class="sm">Sioux Falls only</div>':a[0]==='pto'&&mgr?'<div class="sm">See requests; approving stays with the office</div>':'')+'</span>'+(off?'':sw('ua-'+a[0], u.areas[a[0]]!==false, a[1]))+'</div>'; }).join('')+'</div>';
+  if(!isNew) h+='<div class="card" style="margin-top:12px"><div class="set"><div class="grow">Access<div class="sm">Switch off to block sign-in right away. Their history stays.</div></div>'+sw('u-active', u.active!==false, 'Access')+'</div></div>';
+  h+='<div class="err" id="u-err" role="alert" style="margin:12px 4px 0"></div><div class="ubtns"><button type="button" class="btn" data-usave="1">'+(isNew?'Add & send invite':'Save')+'</button>';
+  if(!isNew && u.active!==false) h+='<button type="button" class="btn soft" data-ulink="1">'+(u.hasPassword?'Email a reset link':'Send the invite again')+'</button>';
+  h+='</div>';
+  if(isNew) h+='<p class="help">They’ll get an email with their username and a link to choose their own password. You never see or set it.</p>';
+  else if(u.username!==S.data.username) h+='<p class="help" style="margin-top:22px"><button type="button" class="link" data-uremove="1" style="color:#b3261e">Remove this user</button></p>';
+  return h;
+}
+function issuer(){ return S.data && (S.data.owner || (!S.data.account && S.data.role==='ALL') || S.data.office); }
+
+// ---------- sign in ----------
+function device(){ var u=navigator.userAgent; return /iPhone/.test(u)?'iPhone':/iPad/.test(u)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)?'iPad':/Android/.test(u)?'Android':/Mac/.test(u)?'Mac':/Windows/.test(u)?'Windows PC':'Browser'; }
+function loginShell(inner){
+  $('nav').classList.add('hidden');
+  ['hiring','pto','onboard'].forEach(function(k){ var b=$('embed-'+k); b.innerHTML=''; b.removeAttribute('data-ready'); b.classList.add('hidden'); });
+  $('wrap').classList.remove('wide'); $('view').classList.remove('hidden');
+  $('view').innerHTML='<div class="login"><img src="images/see-logo.png" alt="SEE"><h1>SEE Bridge</h1>'+inner+'</div>';
+}
+function showLogin(err, who, mode){
+  if(mode==='pass'){
+    loginShell('<p class="help" style="text-align:center">Sign in with the shared passcode (until your own account is set up).</p>'+
+      '<form id="login-form" autocomplete="on"><label>Your first name<input id="lg-name" autocomplete="given-name" required maxlength="40" value="'+esc(who||'')+'"></label><label>Passcode<input id="lg-pass" type="password" autocomplete="current-password" required maxlength="200"></label><div class="err" id="lg-err" role="alert">'+esc(err||'')+'</div><button class="btn" id="lg-btn" type="submit">Sign in</button></form>'+
+      '<p class="help" style="text-align:center"><button type="button" class="link" data-auth="user">Sign in with your username instead</button></p>');
+    return;
+  }
+  loginShell('<p class="help" style="text-align:center">For SEE management.</p>'+
+    '<form id="login-user" autocomplete="on"><label>Username<input id="lu-name" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required maxlength="30" value="'+esc(who||'')+'"></label><label>Password<input id="lu-pass" type="password" autocomplete="current-password" required maxlength="200"></label><div class="err" id="lg-err" role="alert">'+esc(err||'')+'</div><button class="btn" id="lg-btn" type="submit">Sign in</button>'+
+    '<button type="button" class="link" data-auth="forgot" style="align-self:center">Forgot password?</button></form>'+
+    '<p class="help" style="text-align:center"><button type="button" class="link" data-auth="pass" style="font-size:14px;color:var(--sub)">Use the shared passcode instead</button></p>');
+}
+function showForgot(who){
+  loginShell('<p class="help" style="text-align:center">Enter your username and we’ll email you a link to choose a new password.</p>'+
+    '<form id="forgot-form"><label>Username<input id="fg-name" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required maxlength="30" value="'+esc(who||'')+'"></label><div class="err" id="lg-err" role="alert"></div><div class="help" id="fg-ok" style="margin:0"></div><button class="btn" id="lg-btn" type="submit">Email me a link</button></form>'+
+    '<p class="help" style="text-align:center"><button type="button" class="link" data-auth="user">Back to sign in</button></p>');
+}
+function showSetPw(token){
+  loginShell('<div class="empty"><span class="spin"></span> Checking your link…</div>');
+  post({action:'tokinfo', token:token}).then(function(r){
+    if(!r.ok){ loginShell('<p class="help" style="text-align:center">'+esc(r.error||'This link isn’t working.')+'</p><p class="help" style="text-align:center"><button type="button" class="link" data-auth="user">Go to sign in</button></p>'); return; }
+    var first=String(r.name||'').split(' ')[0];
+    loginShell('<p class="help" style="text-align:center">'+(r.kind==='invite'?'Welcome'+(first?', '+esc(first):'')+'! Choose a password to finish setting up your account.':'Choose a new password'+(first?', '+esc(first):'')+'.')+'</p>'+
+      '<form id="setpw-form" data-token="'+esc(token)+'"><input type="text" autocomplete="username" value="'+esc(r.username)+'" readonly style="display:none"><label>Username<input value="'+esc(r.username)+'" disabled></label>'+
+      '<label>New password<input id="sp-1" type="password" autocomplete="new-password" required minlength="8" maxlength="200"></label><label>Type it again<input id="sp-2" type="password" autocomplete="new-password" required maxlength="200"></label>'+
+      '<div class="help" style="margin:0">At least 8 characters. A short phrase is easy to remember and hard to guess.</div><div class="err" id="lg-err" role="alert"></div><button class="btn" id="lg-btn" type="submit">Save password</button></form>');
+  });
+}
+function busyBtn(on, label){ var b=$('lg-btn'); if(!b) return; b.disabled=on; if(label) b.textContent=label; }
 function signIn(name, pass){
-  var btn=$('lg-btn'); btn.disabled=true; btn.textContent='Checking…';
+  busyBtn(true,'Checking…');
   save({ name:name, pass:pass });
   post({action:'login'}).then(function(r){
-    if(!r.ok){ btn.disabled=false; btn.textContent='Sign in'; $('lg-err').textContent=r.error||'That didn’t work.'; if(r.locked) save(null); return; }
+    if(!r.ok){ busyBtn(false,'Sign in'); $('lg-err').textContent=r.error||'That didn’t work.'; if(r.locked) save(null); return; }
     me.name=r.name; save(me); start(r);
   });
 }
+function signInUser(username, password){
+  busyBtn(true,'Checking…'); save(null);
+  post({action:'signin', username:username, password:password, device:device()}).then(function(r){
+    if(!r.ok || !r.session){ busyBtn(false,'Sign in'); $('lg-err').textContent=r.error||'That didn’t work.'; return; }
+    save({ session:r.session, name:r.name, user:r.username }); start(r);
+  });
+}
 function start(r){
+  if(r.session && me){ me.session=r.session; delete me.pass; save(me); }
   apply(r); $('nav').classList.remove('hidden');
+  if(/^#setpw=/.test(location.hash)) history.replaceState(null,'',location.pathname);
   setView(location.hash==='#inbox'?'inbox':'home'); checkPush();
 }
 
 // ---------- events ----------
-document.addEventListener('submit',function(e){ if(e.target.id==='login-form'){ e.preventDefault(); signIn($('lg-name').value.trim(), $('lg-pass').value); } });
+document.addEventListener('submit',function(e){
+  var f=e.target, id=f.id; if(['login-form','login-user','forgot-form','setpw-form','pw-form'].indexOf(id)<0) return; e.preventDefault();
+  if(id==='login-form') return signIn($('lg-name').value.trim(), $('lg-pass').value);
+  if(id==='login-user') return signInUser($('lu-name').value.trim(), $('lu-pass').value);
+  if(id==='forgot-form'){ busyBtn(true,'Sending…'); post({action:'forgot', username:$('fg-name').value.trim()}).then(function(r){ busyBtn(false,'Email me a link'); if(r.ok) $('fg-ok').textContent=r.message; else $('lg-err').textContent=r.error||'That didn’t work.'; }); return; }
+  if(id==='setpw-form'){ var p1=$('sp-1').value, p2=$('sp-2').value; if(p1!==p2){ $('lg-err').textContent='Those two passwords don’t match.'; return; } busyBtn(true,'Saving…');
+    post({action:'setpw', token:f.getAttribute('data-token'), password:p1, device:device()}).then(function(r){ if(!r.ok||!r.session){ busyBtn(false,'Save password'); $('lg-err').textContent=r.error||'That didn’t work.'; return; } save({ session:r.session, name:r.name, user:r.username }); toast('Password saved. You’re signed in.'); start(r); }); return; }
+  if(id==='pw-form'){ var n1=$('pw-1').value; if(n1!==$('pw-2').value){ $('pw-err').textContent='Those two passwords don’t match.'; return; } var pb=$('pw-btn'); pb.disabled=true;
+    post({action:'changepw', old:$('pw-0').value, password:n1}).then(function(r){ pb.disabled=false; if(r.ok){ toast(r.message); setView('settings'); } else $('pw-err').textContent=r.error||'That didn’t work.'; }); return; }
+});
 document.addEventListener('click',function(e){
   var t=e.target.closest('button,a,.item'); if(!t) return;
   if(t.hasAttribute('data-tab')){ setView(t.getAttribute('data-tab')); if(t.getAttribute('data-tab')!=='settings') refresh(true); return; }
@@ -484,11 +600,36 @@ document.addEventListener('click',function(e){
     return;
   }
   if(t.hasAttribute('data-push')){ var a=t.getAttribute('data-push'); if(a==='on') pushOn(); else if(a==='later'){ try{ localStorage.setItem('seeBridgeLater','1'); }catch(e){} PUSH.ask=false; render(); } else if(a==='off'){ try{ localStorage.setItem('seeBridgeLater','1'); }catch(e){} pushOff(); } else { t.disabled=true; post({action:'test', token:me.token}).then(function(r){ t.disabled=false; toast(r.ok?r.message:(r.error||'That didn’t work.')); }); } return; }
-  if(t.hasAttribute('data-logout')){ if(!confirm('Log out of SEE Bridge on this device?')) return; var who=me&&me.name; pushOff(true).then(function(){ try{ localStorage.removeItem('seeHiringPass'); }catch(e){} save(null); S.data=null; showLogin('', who); }); return; }
+  if(t.hasAttribute('data-logout')){ if(!confirm('Log out of SEE Bridge on this device?')) return; var who=me&&(me.user||''), wasPass=me&&!me.session; pushOff(true).then(function(){ return me&&me.session?post({action:'signout'}):null; }).then(function(){ try{ localStorage.removeItem('seeHiringPass'); }catch(e){} save(null); S.data=null; S.users=null; showLogin('', who, wasPass?'pass':''); }); return; }
+  if(t.hasAttribute('data-auth')){ var am=t.getAttribute('data-auth'), wn=($('lu-name')||$('fg-name')||{}).value||''; if(am==='forgot') showForgot(wn); else if(am==='pass') showLogin('', '', 'pass'); else showLogin('', wn); return; }
+  if(t.hasAttribute('data-uedit')){
+    var uid=t.getAttribute('data-uedit');
+    if(uid==='new') S.uedit={ id:'', name:'', username:'', email:'', role:'manager', center:'SF', areas:{}, active:true };
+    else { var src=(S.users.users||[]).find(function(x){ return x.id===uid; }); if(!src) return; S.uedit=JSON.parse(JSON.stringify(src)); }
+    setView('useredit'); return;
+  }
+  if(t.hasAttribute('data-urole')){ grabU(); S.uedit.role=t.getAttribute('data-urole'); render(); return; }
+  if(t.hasAttribute('data-ucenter')){ grabU(); S.uedit.center=t.getAttribute('data-ucenter'); render(); return; }
+  if(t.hasAttribute('data-usave')){
+    grabU(); var su=S.uedit; t.disabled=true; t.textContent='Saving…';
+    post({action:'usersave', user:{ id:su.id, name:su.name, username:su.username, email:su.email, role:su.role, center:su.center, areas:su.areas, active:su.active!==false }}).then(function(r){
+      if(r.locked){ apply(r); return; }
+      if(!r.ok){ t.disabled=false; t.textContent=su.id?'Save':'Add & send invite'; $('u-err').textContent=r.error||'That didn’t work.'; return; }
+      S.users=r; toast(r.message||'Saved.'); setView('users');
+      if(su.username && S.data.username===String(su.username).toLowerCase()) refresh(true);
+    });
+    return;
+  }
+  if(t.hasAttribute('data-ulink')){ t.disabled=true; post({action:'userlink', id:S.uedit.id}).then(function(r){ t.disabled=false; if(r.ok){ S.users=r; toast(r.message); } else $('u-err').textContent=r.error||'That didn’t work.'; }); return; }
+  if(t.hasAttribute('data-uremove')){ if(!confirm('Remove '+S.uedit.name+'? They won’t be able to sign in. You can add them again later.')) return; post({action:'userremove', id:S.uedit.id}).then(function(r){ if(r.ok){ S.users=r; toast(r.message); setView('users'); } else $('u-err').textContent=r.error||'That didn’t work.'; }); return; }
   if(t.classList.contains('item')){ var iid=t.getAttribute('data-item'); var x=(S.data.feed||[]).find(function(y){ return y.id===iid; }); if(x && x.unread && (!x.needs || x.steps)){ markRead([iid]); t.classList.remove('new'); var dot=t.querySelector('.dot'); if(dot) dot.remove(); } }
 });
 document.addEventListener('change',function(e){
-  var t=e.target; if(!t.id || t.id.indexOf('pf-')!==0) return;
+  var t=e.target;
+  if(t.id==='pc-on'){ var want=t.checked; if(!want && !confirm('Turn off the shared passcodes? Everyone will need their own username to sign in.')){ t.checked=true; return; } post({action:'passcodes', on:want}).then(function(r){ if(r.ok){ S.users=r; toast(r.message); } else { toast(r.error||'That didn’t work.'); t.checked=!want; } }); return; }
+  if(t.id && t.id.indexOf('ua-')===0 && S.uedit){ S.uedit.areas=S.uedit.areas||{}; S.uedit.areas[t.id.slice(3)]=t.checked; return; }
+  if(t.id==='u-active' && S.uedit){ S.uedit.active=t.checked; return; }
+  if(!t.id || t.id.indexOf('pf-')!==0) return;
   var k=t.id.slice(3), o={}; o[k]=t.checked; S.prefs[k]=t.checked;
   post({action:'prefs', prefs:o}).then(function(r){ if(r.ok) S.prefs=r.prefs; else { toast(r.error||'Couldn’t save that.'); t.checked=!t.checked; } });
 });
@@ -497,7 +638,8 @@ setInterval(function(){ if(!document.hidden && me && S.data && S.view!=='setting
 if(navigator.serviceWorker) navigator.serviceWorker.addEventListener('message',function(e){ if(e.data && e.data.go==='inbox' && S.data){ refresh(true); setView('inbox'); } });
 
 // ---------- go ----------
-if(me && me.pass && me.name){
+if(/^#setpw=/.test(location.hash)){ save(null); showSetPw(location.hash.slice(7)); }
+else if(me && (me.session || (me.pass && me.name))){
   $('nav').classList.remove('hidden'); render();
   post({action:'login'}).then(function(r){ if(r.ok) start(r); else if(r.locked) showLogin(r.error); else { $('view').innerHTML='<div class="empty">'+esc(r.error||'Couldn’t load.')+'<br><br><button type="button" class="btn" onclick="location.reload()">Try again</button></div>'; } });
 } else showLogin();
