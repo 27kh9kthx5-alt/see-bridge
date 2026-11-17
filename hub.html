@@ -682,7 +682,7 @@ document.addEventListener('change',function(e){
   var k=t.id.slice(3), o={}; o[k]=t.checked; S.prefs[k]=t.checked;
   post({action:'prefs', prefs:o}).then(function(r){ if(r.ok) S.prefs=r.prefs; else { toast(r.error||'Couldn’t save that.'); t.checked=!t.checked; } });
 });
-document.addEventListener('input',function(e){ if(e.target.id!=='ar-q') return; S.arq=e.target.value; var f=feed().filter(function(x){ return x.kind===S.list; }), now=Date.now(); var arch=f.filter(function(x){ return !(x.steps && !x.done) && now-doneAt(x)>30*864e5; }); var box=$('ar-list'); if(box) box.innerHTML=archList(arch); });
+document.addEventListener('input',function(e){ if(e.target.id!=='ar-q') return; S.arq=e.target.value; var f=(S.list==='onboard'&&S.data.role==='ALL')?(S.data.feed||[]).filter(function(x){ return x.kind==='onboard' && (!x.center || x.center===obCenter()); }):feed().filter(function(x){ return x.kind===S.list; }), now=Date.now(); var arch=f.filter(function(x){ return !(x.steps && !x.done) && now-doneAt(x)>30*864e5; }); var box=$('ar-list'); if(box) box.innerHTML=archList(arch); });
 document.addEventListener('visibilitychange',function(){ if(!document.hidden && me && S.data) refresh(true); });
 setInterval(function(){ if(!document.hidden && me && S.data && S.view!=='settings') refresh(true); }, 60000);
 if(navigator.serviceWorker) navigator.serviceWorker.addEventListener('message',function(e){ if(e.data && e.data.go==='inbox' && S.data){ refresh(true); setView('inbox'); } });
