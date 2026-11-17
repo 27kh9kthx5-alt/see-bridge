@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SEE Bridge</title>
+<meta name="theme-color" content="#f2f2f7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SEE Bridge">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="hub-manifest.json">
+<link rel="apple-touch-icon" href="images/hub-icon-180.png">
+<link rel="icon" type="image/png" href="images/hub-icon-192.png">
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--sub:#5f5f66;--faint:#8e8e93;--line:#ececf0;--blue:#0a5bd3;--red:#d93025;--green:#15803d;
+  --c-pto:#0f7b6c;--c-hiring:#6b3fd4;--c-enroll:#0a5bd3;--c-careplan:#c2410c;--c-vacation:#15803d;--c-term:#55555c;--c-termcare:#55555c;--c-onboard:#0e7490}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,input{font:inherit;color:inherit}
+a{color:var(--blue);text-decoration:none}
+.hidden{display:none!important}
+#wrap{max-width:620px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 28px) 20px calc(env(safe-area-inset-bottom) + 96px)}
+#wrap.wide{max-width:none;padding:0 0 calc(env(safe-area-inset-bottom) + 84px)}
+.eyebrow{font-size:13px;font-weight:600;color:var(--sub);letter-spacing:.02em;text-transform:uppercase}
+h1{margin:2px 0 0;font-size:32px;font-weight:700;letter-spacing:-.02em}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.round{position:relative;width:44px;height:44px;border-radius:22px;border:0;background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.badge{position:absolute;top:2px;right:2px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.seg{display:flex;background:#e3e3e8;border-radius:10px;padding:2px;margin-top:16px}
+.seg button{flex:1;height:32px;border:0;border-radius:8px;background:transparent;font-size:13px;font-weight:500;color:#3a3a3f;cursor:pointer}
+.seg button[aria-pressed=true]{background:#fff;font-weight:600;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.wait{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#e5261b;color:#fff;border:0;border-radius:18px;padding:16px 18px;margin-top:16px;cursor:pointer}
+.wait.calm{background:var(--card);color:var(--ink);cursor:default}
+.wait .k{font-size:13px;color:#fff;font-weight:500}
+.wait.calm .k{color:var(--sub)}
+.wait .b{font-size:20px;font-weight:700;margin-top:4px}
+.wait .s{font-size:13px;color:#fff;margin-top:4px}
+.cks{display:flex;flex-direction:column;gap:2px;margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.ck{display:flex;align-items:flex-start;gap:10px;width:100%;border:0;background:none;text-align:left;padding:7px 0;cursor:pointer;min-height:40px}
+.ck:disabled{cursor:default;opacity:.6}
+.ck .bx{width:22px;height:22px;border-radius:7px;border:2px solid #b8b8bf;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.ck.on .bx{background:#1f9d47;border-color:#1f9d47}
+.ck .bx svg{width:14px;height:14px}
+.ck .cl{font-size:14px;color:var(--ink);display:flex;flex-direction:column}
+.ck.on .cl{color:var(--sub)}
+.ck .cl small{font-size:12px;color:var(--sub);margin-top:1px}
+.ckg{margin:4px 0}
+.ckh{display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:var(--ink);padding:6px 0 2px}
+.ckh span{font-weight:500;color:var(--sub)}
+.ckg .ck{padding-left:12px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+@media (min-width:560px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.sec{margin:26px 4px 0;font-size:20px;font-weight:700;letter-spacing:-.01em}
+.tile{background:var(--card);border:0;border-radius:18px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;min-height:128px;text-align:left;cursor:pointer}
+.tile .row{display:flex;justify-content:space-between;align-items:flex-start}
+.ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ico svg{width:20px;height:20px}
+.round svg,.wait svg,.quick svg{width:22px;height:22px;flex-shrink:0}
+.back svg{width:22px;height:22px}
+.ico.sm{width:34px;height:34px;border-radius:9px}
+.ico.sm svg{width:18px;height:18px}
+.cnt{min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:var(--red);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.tile .n{font-size:16px;font-weight:600}
+.tile .l{font-size:12px;color:var(--sub);margin-top:2px}
+.quick{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.quick button{flex:1;min-width:150px;display:flex;align-items:center;gap:10px;background:var(--card);border:0;border-radius:14px;padding:12px 14px;font-size:15px;font-weight:500;cursor:pointer;text-align:left;min-height:48px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chips button{height:32px;padding:0 14px;border:0;border-radius:16px;background:var(--card);font-size:13px;font-weight:500;cursor:pointer}
+.chips button[aria-pressed=true]{background:var(--ink);color:#fff;font-weight:600}
+.grp{font-size:13px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.02em;padding:18px 4px 8px}
+.card{background:var(--card);border-radius:16px;overflow:hidden}
+.item{display:flex;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.item:last-child{border-bottom:0}
+.item .mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.item .t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.item .tt{font-size:15px;font-weight:500;overflow-wrap:anywhere}
+.item.new .tt{font-weight:600}
+.item .tm{font-size:12px;color:var(--sub);flex-shrink:0}
+.item .sb{font-size:13px;color:#3a3a3f;overflow-wrap:anywhere}
+.item .nt{font-size:13px;color:var(--sub);font-style:italic;overflow-wrap:anywhere}
+.item .acts{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.pill{height:32px;padding:0 14px;border-radius:16px;border:0;background:#ececf0;color:var(--ink);font-size:13px;font-weight:600;display:inline-flex;align-items:center;cursor:pointer}
+.pill.go{background:var(--blue);color:#fff}
+.pill.no{background:#fde8e7;color:#b3261e}
+.tag{display:inline-block;font-size:12px;font-weight:600;border-radius:6px;padding:2px 7px;margin-right:6px;background:#ececf0;color:#3a3a3f}
+.tag.ok{background:#e3f4e8;color:#14692f}
+.tag.bad{background:#fde8e7;color:#b3261e}
+.tag.need{background:#fff1d6;color:#8a4b00}
+.dot{width:9px;height:9px;border-radius:5px;background:var(--blue);flex-shrink:0;margin-top:6px}
+.empty{background:var(--card);border-radius:16px;padding:28px 18px;text-align:center;color:var(--sub);font-size:15px;margin-top:14px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px}
+.link{border:0;background:none;color:var(--blue);font-size:15px;font-weight:500;cursor:pointer;padding:8px 4px;min-height:40px}
+.back{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:var(--blue);font-size:17px;cursor:pointer;padding:6px 0;min-height:44px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 92px);background:var(--ink);color:#fff;border-radius:14px;padding:12px 16px;font-size:14px;max-width:calc(100% - 32px);z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;background:rgba(255,255,255,.94);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:1px solid #d8d8dd;padding:6px 0 calc(env(safe-area-inset-bottom) + 6px);z-index:40}
+nav button{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;color:var(--sub);font-size:11px;font-weight:500;min-width:72px;min-height:48px;cursor:pointer}
+nav button[aria-current=page]{color:var(--blue);font-weight:600}
+nav svg{width:24px;height:24px}
+nav .badge{top:-2px;right:14px}
+.set{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.set:last-child{border-bottom:0}
+.set .grow{flex:1;min-width:0}
+.set .sm{font-size:13px;color:var(--sub);margin-top:2px}
+.sw{position:relative;width:51px;height:31px;flex-shrink:0}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:16px;background:#d4d4d9;transition:background .2s}
+.sw span::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:14px;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:transform .2s}
+.sw input:checked+span{background:#1f9d47}
+.sw input:checked+span::after{transform:translateX(20px)}
+.sw input:focus-visible+span{outline:2px solid var(--blue);outline-offset:2px}
+.mark{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.btn{min-height:44px;padding:0 18px;border:0;border-radius:12px;background:var(--blue);color:#fff;font-size:16px;font-weight:600;cursor:pointer}
+.btn.soft{background:#ececf0;color:var(--ink)}
+.btn:disabled{opacity:.55}
+.help{font-size:14px;color:var(--sub);line-height:1.45;margin:8px 4px 0}
+.login{max-width:380px;margin:8vh auto 0;text-align:center}
+.login img{height:56px;width:auto;margin-bottom:18px}
+.login form{background:var(--card);border-radius:20px;padding:22px;margin-top:22px;text-align:left;display:flex;flex-direction:column;gap:14px}
+.login label{font-size:14px;font-weight:600;display:flex;flex-direction:column;gap:6px}
+.login input{min-height:46px;border:1px solid #d2d2d7;border-radius:12px;padding:0 14px;font-size:17px;background:#fff}
+.err{color:#b3261e;font-size:14px;min-height:1em}
+.embed-top{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(242,242,247,.94);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);padding:calc(env(safe-area-inset-top) + 4px) 16px 4px;border-bottom:1px solid #e0e0e5}
+.embed-top b{font-size:17px}
+.ask{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:16px;padding:14px;margin-top:12px}
+.ask .grow{flex:1;min-width:0;font-size:14px;color:var(--sub)}
+.ask .grow b{display:block;font-size:15px;color:var(--ink)}
+.spin{display:inline-block;width:18px;height:18px;border:2px solid #c7c7cc;border-top-color:var(--blue);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-4px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="wrap"><div id="view"></div><div id="embed-hiring" class="hidden"></div><div id="embed-pto" class="hidden"></div><div id="embed-onboard" class="hidden"></div></div>
+<nav id="nav" class="hidden" aria-label="SEE Bridge">
+  <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>Home</button>
+  <button type="button" data-tab="inbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1Z"/></svg>Inbox<span id="nav-badge" class="badge hidden"></span></button>
+  <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Settings</button>
+</nav>
+<script>
+(function(){
+var API = window.SEE_FORM_ENDPOINT || 'https://www.see.school/_functions/seeForm';
+var KEY = 'seeHub';
+var ICON = {
+  pto:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  hiring:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
+  enroll:'<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  careplan:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11v6M9 14h6"/>',
+  vacation:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  onboard:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/>',
+  term:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
+  termcare:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
+  bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>', chev:'<path d="m9 18 6-6-6-6"/>', back:'<path d="m15 18-6-6 6-6"/>', plus:'<path d="M12 5v14M5 12h14"/>', refresh:'<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>'
+};
+var KIND = {
+  pto:{name:'PTO'}, hiring:{name:'Hiring'}, onboard:{name:'On Board'}, enroll:{name:'Enrollment'}, careplan:{name:'Care Plans'}, vacation:{name:'Family Vacations'}, term:{name:'Terminations',full:'Termination of Employment'}, termcare:{name:'Terminations',full:'Termination of Care'}
+};
+var FILTERS = [['all','All'],['needs','Needs me'],['team','Team members'],['families','Families']];
+var GROUPS = { team:['pto','hiring','onboard','term'], families:['enroll','careplan','vacation','termcare'] };
+var PREF_TEAM = [['pto','PTO requests','pto'],['hiring_new','New applicants','hiring'],['hiring_iv','Interviews & offers','hiring'],['onboard','Team member on board','onboard'],['term','Termination of employment','term']];
+var PREF_FAM = [['enroll','Enrollment packets','enroll'],['careplan','Care plans','careplan'],['vacation','Family vacations','vacation'],['termcare','Termination of care','termcare']];
+
+var S = { view:'home', filter:'all', center:'all', list:null, data:null, prefs:null, busy:false, open:{} };
+var me = load();
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function svg(name, color){ return '<svg viewBox="0 0 24 24" fill="none" stroke="'+(color||'currentColor')+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICON[name]+'</svg>'; }
+function ico(kind, sm){ return '<span class="ico'+(sm?' sm':'')+'" style="background:var(--c-'+kind+')">'+svg(kind,'#fff')+'</span>'; }
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ return null; } }
+function save(v){ me=v; try{ if(v) localStorage.setItem(KEY,JSON.stringify(v)); else localStorage.removeItem(KEY); }catch(e){} }
+function post(o){
+  o.form='hub'; if(me){ o.pass=me.pass; o.name=me.name; }
+  return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)})
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return { ok:false, error:'Can’t reach SEE right now. Check your connection and try again.' }; });
+}
+var toastT;
+function toast(msg){ var t=$('toast'); if(!t){ t=document.createElement('div'); t.id='toast'; t.className='toast'; t.setAttribute('role','status'); document.body.appendChild(t); } t.textContent=msg; t.classList.remove('hidden'); clearTimeout(toastT); toastT=setTimeout(function(){ t.classList.add('hidden'); },4200); }
+
+// ---------- data ----------
+function feed(){ var f=(S.data&&S.data.feed)||[]; if(S.center==='all') return f; return f.filter(function(x){ return !x.center || x.center===S.center; }); }
+function inFilter(x,f){ if(f==='all') return true; if(f==='needs') return x.needs; if(GROUPS[f]) return GROUPS[f].indexOf(x.kind)>=0; return x.kind===f; }
+function apply(r){
+  if(r && r.locked){ save(null); S.data=null; showLogin(r.error); return false; }
+  if(!r || !r.ok){ toast((r&&r.error)||'Something went wrong.'); return false; }
+  (r.feed||[]).forEach(function(x){ if(x.kind==='term' && x.id.indexOf('toc:')===0) x.kind='termcare'; });
+  S.data=r; S.prefs=r.prefs;
+  var n=(r.feed||[]).filter(function(x){ return x.unread||x.needs; }).length;
+  var b=$('nav-badge'); b.textContent=n>99?'99+':n; b.classList.toggle('hidden',!n);
+  try{ if(navigator.setAppBadge){ if(n) navigator.setAppBadge(n); else navigator.clearAppBadge(); } }catch(e){}
+  return true;
+}
+function refresh(quiet){
+  if(!me || S.busy) return Promise.resolve();
+  S.busy=true;
+  return post({action:'feed'}).then(function(r){ S.busy=false; if(apply(r) && (!quiet || ['home','inbox','list'].indexOf(S.view)>=0)) render(); });
+}
+function markRead(ids){
+  ids=ids.filter(function(id){ var x=(S.data.feed||[]).find(function(y){ return y.id===id; }); if(x&&x.unread){ x.unread=false; return true; } return false; });
+  if(!ids.length) return;
+  apply(S.data); post({action:'read',ids:ids}).then(function(r){ if(r&&r.ok) apply(r); });
+}
+
+// ---------- time labels ----------
+function dayKey(d){ return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate(); }
+function when(at){
+  var d=new Date(at), now=new Date();
+  if(dayKey(d)===dayKey(now)) return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  var y=new Date(now); y.setDate(y.getDate()-1);
+  if(dayKey(d)===dayKey(y)) return 'Yesterday';
+  if(now-d<6*864e5) return d.toLocaleDateString('en-US',{weekday:'short'});
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function group(at){
+  var d=new Date(at), now=new Date(), y=new Date(now); y.setDate(y.getDate()-1);
+  if(dayKey(d)===dayKey(now)) return 'Today';
+  if(dayKey(d)===dayKey(y)) return 'Yesterday';
+  if(now-d<7*864e5) return 'This week';
+  return 'Earlier';
+}
+
+// ---------- views ----------
+function setView(v, arg){
+  S.view=v; if(v==='list') S.list=arg;
+  var emb = v==='hiring'||v==='ptoadmin'||v==='onboardform';
+  $('wrap').classList.toggle('wide', emb);
+  $('embed-hiring').classList.toggle('hidden', v!=='hiring');
+  $('embed-pto').classList.toggle('hidden', v!=='ptoadmin');
+  $('embed-onboard').classList.toggle('hidden', v!=='onboardform');
+  $('view').classList.toggle('hidden', emb);
+  var tab = v==='list'||emb ? 'home' : v;
+  Array.prototype.forEach.call(document.querySelectorAll('nav button'),function(b){ if(b.getAttribute('data-tab')===tab) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+  if(v==='hiring') openEmbed('hiring'); else if(v==='ptoadmin') openEmbed('pto'); else if(v==='onboardform') openEmbed('onboard'); else render();
+  window.scrollTo(0,0);
+}
+function render(){
+  var v=$('view');
+  if(!S.data){ v.innerHTML='<div class="empty"><span class="spin"></span> Loading…</div>'; return; }
+  if(S.view==='home') v.innerHTML=home();
+  else if(S.view==='inbox') v.innerHTML=inbox();
+  else if(S.view==='list') v.innerHTML=listView(S.list);
+  else if(S.view==='settings') v.innerHTML=settings();
+}
+function centerSeg(){
+  if(S.data.role!=='ALL') return '';
+  return '<div class="seg" role="group" aria-label="Center">'+[['all','Both centers'],['SF','Sioux Falls'],['BV','Brandon']].map(function(c){ return '<button type="button" data-center="'+c[0]+'" aria-pressed="'+(S.center===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>';
+}
+function plural(n,a,b){ return n+' '+(n===1?a:b); }
+function home(){
+  var f=feed(), needs=f.filter(function(x){ return x.needs; });
+  var unread=function(k){ return f.filter(function(x){ return x.kind===k && (x.unread||x.needs); }).length; };
+  var ptoN=needs.filter(function(x){ return x.kind==='pto'; }).length;
+  var ivN=needs.filter(function(x){ return x.kind==='hiring'; }).length;
+  var newApps=f.filter(function(x){ return x.kind==='hiring' && x.unread && x.id.indexOf('app:')===0; }).length;
+  var openN=function(k){ return f.filter(function(x){ return x.kind===k && x.steps && !x.done; }).length; };
+  var parts=[]; if(ptoN) parts.push(plural(ptoN,'PTO request','PTO requests')); if(ivN) parts.push(plural(ivN,'interview to confirm','interviews to confirm'));
+  [['onboard','new hire to enter','new hires to enter'],['term','staff termination','staff terminations'],['enroll','enrollment to set up','enrollments to set up'],['termcare','care termination','care terminations'],['careplan','care plan','care plans'],['vacation','vacation to process','vacations to process']].forEach(function(k){ var n=openN(k[0]); if(n) parts.push(plural(n,k[1],k[2])); });
+  var d=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+  var n=f.filter(function(x){ return x.unread||x.needs; }).length;
+  var h='<div class="top"><div><div class="eyebrow">'+esc(d)+'</div><h1>'+esc(S.data.role==='ALL'?'SEE Bridge':'Bridge · '+S.data.label)+'</h1></div>'+
+    '<button type="button" class="round" data-go="inbox" aria-label="Inbox, '+n+' new">'+svg('bell')+(n?'<span class="badge">'+(n>99?'99+':n)+'</span>':'')+'</button></div>'+centerSeg();
+  h+= needs.length ? '<button type="button" class="wait" data-go="needs"><span style="flex:1"><div class="k">Waiting on you</div><div class="b">'+plural(needs.length,'thing needs','things need')+' you</div><div class="s">'+esc(parts.join(' · '))+'</div></span>'+svg('chev','#fff')+'</button>'
+    : '<div class="wait calm"><span><div class="k">Waiting on you</div><div class="b">Nothing right now</div></span></div>';
+  var team=[
+    ['pto', ptoN, ptoN? plural(ptoN,'request','requests')+' to approve' : 'Nothing waiting'],
+    ['hiring', unread('hiring'), [newApps?newApps+' new':'', ivN?ivN+' to confirm':''].filter(Boolean).join(' · ')||'All caught up'],
+    ['onboard', unread('onboard'), openN('onboard')? openN('onboard')+' to enter' : unread('onboard')? plural(unread('onboard'),'new form','new forms') : 'New hires'],
+    ['term', unread('term'), openN('term')? openN('term')+' open' : unread('term')? unread('term')+' new' : 'Termination of employment']
+  ];
+  var fam=[
+    ['enroll', unread('enroll'), openN('enroll')? openN('enroll')+' to set up' : unread('enroll')? plural(unread('enroll'),'new packet','new packets') : 'All caught up'],
+    ['careplan', unread('careplan'), openN('careplan')? openN('careplan')+' open' : unread('careplan')? plural(unread('careplan'),'new plan','new plans') : 'All caught up'],
+    ['vacation', unread('vacation'), openN('vacation')? openN('vacation')+' to process' : unread('vacation')? plural(unread('vacation'),'new request','new requests') : 'All caught up'],
+    ['termcare', unread('termcare'), openN('termcare')? openN('termcare')+' open' : unread('termcare')? unread('termcare')+' new' : 'Termination of care']
+  ];
+  var grid=function(tiles){ return '<div class="grid">'+tiles.map(function(t){ return '<button type="button" class="tile" data-tile="'+t[0]+'"><span class="row">'+ico(t[0])+(t[1]?'<span class="cnt">'+t[1]+'</span>':'')+'</span><span><div class="n">'+KIND[t[0]].name+'</div><div class="l">'+esc(t[2])+'</div></span></button>'; }).join('')+'</div>'; };
+  if(PUSH.ask) h+='<div class="ask"><span class="ico" style="background:var(--blue)">'+svg('bell','#fff')+'</span><div class="grow"><b>Alerts for this phone</b>One tap to turn on.</div><button type="button" class="pill go" data-push="on">Turn on</button><button type="button" class="link" data-push="later" aria-label="Not now">Not now</button></div>';
+  h+='<h2 class="sec">Team members</h2>'+grid(team);
+  h+='<div class="quick"><button type="button" data-go="ptoadmin">'+svg('plus','#0a5bd3')+'<span>Issue PTO</span></button><button type="button" data-go="hiring">'+svg('plus','#0a5bd3')+'<span>Post a job</span></button></div>';
+  h+='<h2 class="sec">Families</h2>'+grid(fam);
+  return h;
+}
+function shortDay(at){ return new Date(at).toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function isOpen(x){ return S.open[x.id]!==undefined ? S.open[x.id] : (S.view==='list' && !x.done); }
+function checklistHtml(x){
+  var defs=(S.data.checklists||{})[x.steps]||[], c=x.checks||{}, office=S.data.role==='ALL';
+  var row=function(key,label,off){ var v=c[key], locked=off&&!office;
+    return '<button type="button" class="ck'+(v?' on':'')+'" data-check="'+esc(key)+'" data-id="'+esc(x.id)+'" aria-pressed="'+(v?'true':'false')+'"'+(locked?' disabled':'')+'><span class="bx">'+(v?svg('check','#fff'):'')+'</span><span class="cl">'+esc(label)+(v?'<small>'+esc(v.by)+' · '+esc(shortDay(v.at))+'</small>':locked?'<small>Brent or Chelsea</small>':'')+'</span></button>'; };
+  return '<div class="cks">'+defs.map(function(s){
+    if(!s.subs) return row(s.k,s.t,s.office);
+    var n=s.subs.filter(function(b){ return c[s.k+'.'+b.k]; }).length;
+    return '<div class="ckg"><div class="ckh">'+esc(s.t)+'<span>'+n+' of '+s.subs.length+'</span></div>'+s.subs.map(function(b){ return row(s.k+'.'+b.k,b.t,s.office); }).join('')+'</div>';
+  }).join('')+'</div>';
+}
+function itemHtml(x){
+  if(x.steps) return itemHtmlSteps(x);
+  var status = x.status ? '<span class="tag '+(x.status==='Approved'?'ok':'bad')+'">'+esc(x.status)+'</span>' : x.needs ? '<span class="tag need">Needs you</span>' : '';
+  var acts='';
+  if(x.pto) acts+='<button type="button" class="pill go" data-pto="approve" data-id="'+esc(x.pto)+'">Approve</button><button type="button" class="pill no" data-pto="deny" data-id="'+esc(x.pto)+'">Deny</button>';
+  if(x.kind==='pto' && x.needs && !x.pto) acts+='<span class="sb">Waiting for the office to approve.</span>';
+  if(x.link) acts+='<a class="pill" href="'+esc(x.link)+'" target="_blank" rel="noopener" data-read="'+esc(x.id)+'">'+esc(x.linkLabel||'Open')+'</a>';
+  if(x.open==='hiring') acts+='<button type="button" class="pill" data-go="hiring" data-read="'+esc(x.id)+'">Open in Hiring</button>';
+  if(x.problem) acts+='<span class="tag bad">Not saved to Dropbox. Check the email.</span>';
+  return '<div class="item'+(x.unread?' new':'')+'" data-item="'+esc(x.id)+'">'+ico(x.kind,true)+
+    '<div class="mid"><div class="t"><span class="tt">'+esc(x.title)+'</span><span class="tm">'+esc(when(x.at))+'</span></div>'+
+    '<span class="sb">'+status+esc(x.sub)+'</span>'+(x.note?'<span class="nt">“'+esc(x.note)+'”</span>':'')+
+    (acts?'<div class="acts">'+acts+'</div>':'')+'</div>'+(x.unread?'<span class="dot" aria-label="New"></span>':'')+'</div>';
+}
+function itemHtmlSteps(x){
+  var open=isOpen(x);
+  var status = x.done ? '<span class="tag ok">Done</span>' : '<span class="tag need">'+esc(x.progress)+'</span>';
+  var acts='<button type="button" class="pill'+(x.done?'':' go')+'" data-ckopen="'+esc(x.id)+'" aria-expanded="'+open+'">'+(open?'Hide checklist':'Checklist')+'</button>';
+  if(x.link) acts+='<a class="pill" href="'+esc(x.link)+'" target="_blank" rel="noopener" data-read="'+esc(x.id)+'">'+esc(x.linkLabel||'Open')+'</a>';
+  if(x.problem) acts+='<span class="tag bad">Not saved to Dropbox. Check the email.</span>';
+  return '<div class="item'+(x.unread?' new':'')+'" data-item="'+esc(x.id)+'">'+ico(x.kind,true)+
+    '<div class="mid"><div class="t"><span class="tt">'+esc(x.title)+'</span><span class="tm">'+esc(when(x.at))+'</span></div>'+
+    '<span class="sb">'+status+esc(x.sub)+'</span>'+(x.note?'<span class="nt">“'+esc(x.note)+'”</span>':'')+
+    '<div class="acts">'+acts+'</div>'+(open?checklistHtml(x):'')+'</div>'+(x.unread?'<span class="dot" aria-label="New"></span>':'')+'</div>';
+}
+function listHtml(items, emptyText){
+  if(!items.length) return '<div class="empty">'+esc(emptyText)+'</div>';
+  var out='', g='', buf='';
+  items.forEach(function(x){ var k=group(x.at); if(k!==g){ if(buf) out+='<div class="card">'+buf+'</div>'; buf=''; g=k; out+='<div class="grp">'+k+'</div>'; } buf+=itemHtml(x); });
+  return out+'<div class="card">'+buf+'</div>';
+}
+function inbox(){
+  var f=feed().filter(function(x){ return inFilter(x,S.filter); });
+  var anyUnread=feed().some(function(x){ return x.unread; });
+  return '<div class="top"><h1>Inbox</h1>'+(anyUnread?'<button type="button" class="link" data-readall="1">Mark all read</button>':'')+'</div>'+centerSeg()+
+    '<div class="chips" role="group" aria-label="Show">'+FILTERS.map(function(c){ return '<button type="button" data-filter="'+c[0]+'" aria-pressed="'+(S.filter===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>'+
+    listHtml(f, S.filter==='needs'?'Nothing is waiting on you.':'Nothing here from the last 45 days.');
+}
+function listView(kind){
+  var f=feed().filter(function(x){ return x.kind===kind; });
+  var extra = kind==='pto' ? '<div class="quick"><button type="button" data-go="ptoadmin">'+svg('chev','#0a5bd3')+'<span>Open PTO admin (issue, adjust, history)</span></button></div>'
+    : kind==='onboard' ? '<div class="quick"><button type="button" data-go="onboardform">'+svg('plus','#0a5bd3')+'<span>Fill out an On Board form</span></button></div>' : '';
+  return '<button type="button" class="back" data-go="home">'+svg('back')+'Home</button><div class="top"><h1>'+(KIND[kind].full||KIND[kind].name)+'</h1></div>'+centerSeg()+extra+listHtml(f, kind==='onboard'?'No On Board forms in the last year.':'Nothing from the last 45 days.');
+}
+function sw(id, on, label){ return '<span class="sw"><input type="checkbox" id="'+id+'"'+(on?' checked':'')+' aria-label="'+esc(label)+'"><span></span></span>'; }
+function settings(){
+  var p=S.prefs||{}, d=S.data;
+  var h='<h1>Settings</h1>';
+  h+='<div class="grp">Signed in</div><div class="card"><div class="set"><span class="round" style="background:var(--ink);color:#fff;font-weight:700">'+esc((d.name||'?').charAt(0).toUpperCase())+'</span><div class="grow"><div style="font-weight:600">'+esc(d.name)+'</div><div class="sm">'+(d.role==='ALL'?'Both centers':esc(d.label))+'</div></div><button type="button" class="link" data-logout="1" style="color:#b3261e">Log out</button></div></div>';
+  h+='<div class="grp">Phone alerts on this device</div><div class="card"><div class="set"><div class="grow" id="push-state">'+pushStateHtml()+'</div></div></div>';
+  var rows=function(list){ return '<div class="card">'+list.map(function(r){ return '<div class="set"><span class="mark" style="background:var(--c-'+r[2]+')"></span><span class="grow">'+r[1]+'</span>'+sw('pf-'+r[0], p[r[0]]!==false, r[1])+'</div>'; }).join('')+'</div>'; };
+  h+='<div class="grp">Alert me about team members</div>'+rows(PREF_TEAM)+'<div class="grp">Alert me about families</div>'+rows(PREF_FAM);
+  h+='<div class="card" style="margin-top:12px"><div class="set"><div class="grow">Quiet nights &amp; weekends<div class="sm">No alerts 8 PM – 6 AM, Saturday or Sunday. They still show in the inbox.</div></div>'+sw('pf-quiet', p.quiet!==false, 'Quiet nights and weekends')+'</div></div>';
+  h+='<p class="help">These switches are just for your phone alerts. The emails keep coming the same way they do now.</p>';
+  return h;
+}
+
+// ---------- phone alerts ----------
+function pushSupported(){ return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+function standalone(){ return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true; }
+function iOS(){ return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1); }
+var PUSH={ on:false, checked:false, ask:false };
+function later(){ try{ return localStorage.getItem('seeBridgeLater')==='1'; }catch(e){ return false; } }
+function pushStateHtml(){
+  if(!S.data.pushReady) return '<div style="font-weight:600">Not set up yet</div><div class="sm">The office needs to finish the one-time setup (HUB_PUSH_KEY). The inbox works in the meantime.</div>';
+  if(iOS() && !standalone()) return '<div style="font-weight:600">Add SEE Bridge to your Home Screen first</div><div class="sm">In Safari, tap the Share button, then <b>Add to Home Screen</b>. Open SEE Bridge from the new icon and come back here to turn on alerts.</div>';
+  if(!pushSupported()) return '<div style="font-weight:600">This browser can’t show alerts</div><div class="sm">Try Safari on iPhone (added to the Home Screen), or Chrome or Edge on a computer.</div>';
+  if(window.Notification && Notification.permission==='denied') return '<div style="font-weight:600">Alerts are blocked</div><div class="sm">Turn on notifications for SEE Bridge in your phone’s Settings, then come back.</div>';
+  if(!PUSH.checked) return '<span class="spin"></span>';
+  if(PUSH.on) return '<div style="font-weight:600">Alerts are on</div><div class="sm">'+(S.data.devices>1?'On '+S.data.devices+' devices.':'On this device.')+'</div><div class="acts" style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="pill go" data-push="test">Send a test</button><button type="button" class="pill" data-push="off">Turn off</button></div>';
+  return '<div style="font-weight:600">Alerts are off</div><div class="sm">Get a buzz when something comes in.</div><button type="button" class="btn" style="margin-top:10px" data-push="on">Turn on alerts</button>';
+}
+function paintPush(){ var el=$('push-state'); if(el) el.innerHTML=pushStateHtml(); }
+function b64(s){ var p='='.repeat((4-s.length%4)%4), raw=atob((s+p).replace(/-/g,'+').replace(/_/g,'/')), a=new Uint8Array(raw.length); for(var i=0;i<raw.length;i++) a[i]=raw.charCodeAt(i); return a; }
+function rid(){ var a=new Uint8Array(24); crypto.getRandomValues(a); return Array.prototype.map.call(a,function(x){ return ('0'+x.toString(16)).slice(-2); }).join(''); }
+function swState(st){ return caches.open('see-hub').then(function(c){ return c.put('hub-state', new Response(JSON.stringify(st),{headers:{'Content-Type':'application/json'}})); }).catch(function(){}); }
+var REG=null;
+function registerSw(){
+  if(!('serviceWorker' in navigator)) return Promise.resolve(null);
+  return navigator.serviceWorker.register('hub-sw.js').then(function(r){ REG=r; return r; }).catch(function(){ return null; });
+}
+function checkPush(){
+  if(!pushSupported()){ PUSH.checked=true; paintPush(); return; }
+  registerSw().then(function(r){ return r ? r.pushManager.getSubscription() : null; }).then(function(sub){
+    PUSH.on=!!(sub && me && me.token); PUSH.checked=true;
+    if(PUSH.on) swState({ token:me.token, api:API, since:(me.since||'') });
+    // Alerts on by default: if this phone already allows them, turn them on with no questions.
+    // Otherwise (Apple needs one tap the first time) the home screen offers a Turn on button.
+    var canAsk = S.data && S.data.pushReady && !(iOS() && !standalone());
+    if(!PUSH.on && canAsk && Notification.permission==='granted') pushOn(true);
+    PUSH.ask = !PUSH.on && canAsk && Notification.permission==='default' && !later();
+    paintPush(); if(S.view==='home') render();
+  }).catch(function(){ PUSH.checked=true; paintPush(); });
+}
+function pushOn(silent){
+  var key=S.data.vapid; if(!key){ if(!silent) toast('Alerts aren’t set up yet.'); return; }
+  Notification.requestPermission().then(function(perm){
+    if(perm!=='granted'){ PUSH.ask=false; paintPush(); if(S.view==='home') render(); if(!silent) toast('Alerts weren’t allowed.'); return; }
+    return (REG?Promise.resolve(REG):registerSw()).then(function(r){ return navigator.serviceWorker.ready.then(function(){ return r; }); }).then(function(r){
+      return r.pushManager.getSubscription().then(function(old){ return old || r.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:b64(key) }); });
+    }).then(function(sub){
+      var token=(me&&me.token)||rid(), since=new Date().toISOString();
+      return post({action:'subscribe', endpoint:sub.endpoint, token:token, device:(iOS()?'iPhone/iPad':navigator.platform||'Computer')}).then(function(r){
+        if(!r.ok){ if(!silent) toast(r.error||'That didn’t work.'); return; }
+        me.token=token; me.since=since; save(me); S.data.devices=r.devices;
+        return swState({ token:token, api:API, since:since }).then(function(){ PUSH.on=true; PUSH.ask=false; paintPush(); if(S.view==='home') render(); if(!silent) toast('Alerts are on.'); });
+      });
+    });
+  }).catch(function(e){ if(!silent) toast('Couldn’t turn on alerts. '+(e&&e.message?e.message:'')); });
+}
+function pushOff(silent){
+  var tok=me&&me.token;
+  return (REG?REG.pushManager.getSubscription():Promise.resolve(null)).then(function(sub){
+    var p=post({action:'unsubscribe', endpoint:sub?sub.endpoint:'', token:tok||''});
+    return Promise.all([p, sub?sub.unsubscribe():null]);
+  }).catch(function(){}).then(function(){
+    if(me){ delete me.token; save(me); } PUSH.on=false; paintPush(); swState({}); if(!silent) toast('Alerts are off on this device.');
+  });
+}
+
+// ---------- hiring hub & PTO admin, right inside the app ----------
+var LOADED={};
+function loadScript(src){ if(LOADED[src]) return LOADED[src]; LOADED[src]=new Promise(function(ok,no){ var s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=no; document.head.appendChild(s); }); return LOADED[src]; }
+function openEmbed(which){
+  var box=$('embed-'+which), name={hiring:'Hiring',pto:'PTO admin',onboard:'On Board form'}[which], tag={hiring:'see-hiring',pto:'see-ptoadmin',onboard:'see-onboard'}[which];
+  if(box.getAttribute('data-ready')) return;
+  box.setAttribute('data-ready','1');
+  box.innerHTML='<div class="embed-top"><button type="button" class="back" data-go="home">'+svg('back')+'Home</button><b>'+name+'</b><span style="width:60px"></span></div><div class="embed-body"><div class="empty" style="margin:16px"><span class="spin"></span> Loading…</div></div>';
+  if(which==='hiring'){ try{ localStorage.setItem('seeHiringPass', JSON.stringify({ p:me.pass, until:Date.now()+90*864e5 })); }catch(e){} }
+  loadScript('https://instant-frkdkdsktiwn-bdejonge-1408.wix-site-host.com/'+tag+'.js').then(function(){
+    var body=box.querySelector('.embed-body');
+    body.innerHTML = '<'+tag+'></'+tag+'>';
+    // The app already has its own top bar: hide the website header and footer inside the embedded page.
+    var el=body.firstChild, tries=0;
+    (function hide(){ var r=el.shadowRoot; if(r){ var st=document.createElement('style'); st.textContent='.vf-top,.vf-foot,footer{display:none!important}.vf-main{padding-top:20px!important}'; r.appendChild(st); } else if(tries++<40) setTimeout(hide,50); })();
+  }).catch(function(){ box.removeAttribute('data-ready'); box.querySelector('.embed-body').innerHTML='<div class="empty" style="margin:16px">Couldn’t load. Check your connection.</div>'; });
+}
+
+// ---------- sign in ----------
+function showLogin(err, who){
+  $('nav').classList.add('hidden');
+  $('embed-hiring').innerHTML=''; $('embed-hiring').removeAttribute('data-ready');
+  $('embed-pto').innerHTML=''; $('embed-pto').removeAttribute('data-ready');
+  $('embed-onboard').innerHTML=''; $('embed-onboard').removeAttribute('data-ready');
+  $('wrap').classList.remove('wide'); $('embed-hiring').classList.add('hidden'); $('embed-pto').classList.add('hidden'); $('embed-onboard').classList.add('hidden'); $('view').classList.remove('hidden');
+  $('view').innerHTML='<div class="login"><img src="images/see-logo.png" alt="SEE"><h1>SEE Bridge</h1><p class="help" style="text-align:center">For SEE management. Use the same passcode as the hiring hub.</p>'+
+    '<form id="login-form" autocomplete="on"><label>Your first name<input id="lg-name" autocomplete="given-name" required maxlength="40" value="'+esc(who||(me&&me.name)||'')+'"></label><label>Passcode<input id="lg-pass" type="password" autocomplete="current-password" required maxlength="200"></label><div class="err" id="lg-err" role="alert">'+esc(err||'')+'</div><button class="btn" id="lg-btn" type="submit">Sign in</button></form></div>';
+}
+function signIn(name, pass){
+  var btn=$('lg-btn'); btn.disabled=true; btn.textContent='Checking…';
+  save({ name:name, pass:pass });
+  post({action:'login'}).then(function(r){
+    if(!r.ok){ btn.disabled=false; btn.textContent='Sign in'; $('lg-err').textContent=r.error||'That didn’t work.'; if(r.locked) save(null); return; }
+    me.name=r.name; save(me); start(r);
+  });
+}
+function start(r){
+  apply(r); $('nav').classList.remove('hidden');
+  setView(location.hash==='#inbox'?'inbox':'home'); checkPush();
+}
+
+// ---------- events ----------
+document.addEventListener('submit',function(e){ if(e.target.id==='login-form'){ e.preventDefault(); signIn($('lg-name').value.trim(), $('lg-pass').value); } });
+document.addEventListener('click',function(e){
+  var t=e.target.closest('button,a,.item'); if(!t) return;
+  if(t.hasAttribute('data-tab')){ setView(t.getAttribute('data-tab')); if(t.getAttribute('data-tab')!=='settings') refresh(true); return; }
+  if(t.hasAttribute('data-read')) markRead([t.getAttribute('data-read')]);
+  var go=t.getAttribute('data-go');
+  if(go){ if(go==='needs'){ S.filter='needs'; setView('inbox'); } else setView(go); return; }
+  if(t.hasAttribute('data-tile')){ var k=t.getAttribute('data-tile'); if(k==='hiring') setView('hiring'); else setView('list',k); markRead(feed().filter(function(x){ return x.kind===k && x.unread && !x.needs && (!x.link || k==='onboard') && x.kind!=='pto'; }).map(function(x){ return x.id; })); return; }
+  if(t.hasAttribute('data-center')){ S.center=t.getAttribute('data-center'); render(); return; }
+  if(t.hasAttribute('data-filter')){ S.filter=t.getAttribute('data-filter'); render(); return; }
+  if(t.hasAttribute('data-readall')){ post({action:'read',all:true}).then(function(r){ if(apply(r)) render(); }); (S.data.feed||[]).forEach(function(x){ x.unread=false; }); apply(S.data); render(); return; }
+  if(t.hasAttribute('data-ckopen')){ var oid=t.getAttribute('data-ckopen'), ox=(S.data.feed||[]).find(function(y){ return y.id===oid; }); if(ox){ S.open[oid]=!isOpen(ox); if(ox.unread) markRead([oid]); render(); } return; }
+  if(t.hasAttribute('data-check')){
+    var cid=t.getAttribute('data-id'), box=t.getAttribute('data-check'), cx=(S.data.feed||[]).find(function(y){ return y.id===cid; });
+    if(!cx) return; var on=t.getAttribute('aria-pressed')!=='true';
+    cx.checks=cx.checks||{}; if(on) cx.checks[box]={ by:S.data.name, at:new Date().toISOString() }; else delete cx.checks[box];
+    S.open[cid]=true; render();
+    post({action:'check', id:cid, box:box, on:on}).then(function(r){ if(apply(r)){ render(); var nx=(S.data.feed||[]).find(function(y){ return y.id===cid; }); if(nx && nx.done && on) toast('All done: '+nx.title); } else refresh(true); });
+    return;
+  }
+  if(t.hasAttribute('data-pto')){
+    var dec=t.getAttribute('data-pto'), id=t.getAttribute('data-id');
+    if(dec==='deny' && !confirm('Deny this PTO request? The team member will get an email.')) return;
+    t.disabled=true; t.textContent=dec==='deny'?'Denying…':'Approving…';
+    post({action:'pto', id:id, decision:dec}).then(function(r){ if(apply(r)){ render(); toast(r.message||'Done.'); } else { t.disabled=false; t.textContent=dec==='deny'?'Deny':'Approve'; } });
+    return;
+  }
+  if(t.hasAttribute('data-push')){ var a=t.getAttribute('data-push'); if(a==='on') pushOn(); else if(a==='later'){ try{ localStorage.setItem('seeBridgeLater','1'); }catch(e){} PUSH.ask=false; render(); } else if(a==='off'){ try{ localStorage.setItem('seeBridgeLater','1'); }catch(e){} pushOff(); } else { t.disabled=true; post({action:'test', token:me.token}).then(function(r){ t.disabled=false; toast(r.ok?r.message:(r.error||'That didn’t work.')); }); } return; }
+  if(t.hasAttribute('data-logout')){ if(!confirm('Log out of SEE Bridge on this device?')) return; var who=me&&me.name; pushOff(true).then(function(){ try{ localStorage.removeItem('seeHiringPass'); }catch(e){} save(null); S.data=null; showLogin('', who); }); return; }
+  if(t.classList.contains('item')){ var iid=t.getAttribute('data-item'); var x=(S.data.feed||[]).find(function(y){ return y.id===iid; }); if(x && x.unread && (!x.needs || x.steps)){ markRead([iid]); t.classList.remove('new'); var dot=t.querySelector('.dot'); if(dot) dot.remove(); } }
+});
+document.addEventListener('change',function(e){
+  var t=e.target; if(!t.id || t.id.indexOf('pf-')!==0) return;
+  var k=t.id.slice(3), o={}; o[k]=t.checked; S.prefs[k]=t.checked;
+  post({action:'prefs', prefs:o}).then(function(r){ if(r.ok) S.prefs=r.prefs; else { toast(r.error||'Couldn’t save that.'); t.checked=!t.checked; } });
+});
+document.addEventListener('visibilitychange',function(){ if(!document.hidden && me && S.data) refresh(true); });
+setInterval(function(){ if(!document.hidden && me && S.data && S.view!=='settings') refresh(true); }, 60000);
+if(navigator.serviceWorker) navigator.serviceWorker.addEventListener('message',function(e){ if(e.data && e.data.go==='inbox' && S.data){ refresh(true); setView('inbox'); } });
+
+// ---------- go ----------
+if(me && me.pass && me.name){
+  $('nav').classList.remove('hidden'); render();
+  post({action:'login'}).then(function(r){ if(r.ok) start(r); else if(r.locked) showLogin(r.error); else { $('view').innerHTML='<div class="empty">'+esc(r.error||'Couldn’t load.')+'<br><br><button type="button" class="btn" onclick="location.reload()">Try again</button></div>'; } });
+} else showLogin();
+})();
+</script>
+</body>
+</html>
