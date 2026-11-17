@@ -130,6 +130,13 @@ nav .badge{top:-2px;right:14px}
 .seg button[data-center=SF][aria-pressed=true]{background:#0B6BEB}
 .seg button[data-center=all][aria-pressed=true]{background:#7B3FE4}
 .seg button[data-center=BV][aria-pressed=true]{background:#40B549}
+.sect{display:flex;align-items:center;gap:10px;width:100%;margin-top:18px;padding:14px 16px;border:0;border-radius:14px;background:var(--card);color:var(--ink);font:inherit;font-size:16px;font-weight:600;text-align:left;cursor:pointer}
+.sect .grow{flex:1;min-width:0}
+.sect b{display:inline-block;min-width:22px;margin-left:6px;padding:1px 7px;border-radius:999px;background:#ececf0;font-size:13px;text-align:center}
+.sect small{display:block;font-size:13px;font-weight:400;color:var(--sub);margin-top:2px}
+.sect svg{width:18px;height:18px;color:var(--faint);transition:transform .2s;flex-shrink:0}
+.sect[aria-expanded=true] svg{transform:rotate(90deg)}
+.arq{width:100%;min-height:42px;margin-top:10px;border:1px solid #d2d2d7;border-radius:12px;padding:0 12px;font:inherit;font-size:16px;background:#fff}
 .uform{display:flex;flex-direction:column;gap:12px;padding:16px}
 .uform label{font-size:14px;font-weight:600;display:flex;flex-direction:column;gap:6px}
 .uform input{min-height:44px;border:1px solid #d2d2d7;border-radius:12px;padding:0 12px;font-size:16px;background:#fff;font-family:inherit}
@@ -176,7 +183,7 @@ var GROUPS = { team:['pto','hiring','onboard','term'], families:['enroll','carep
 var PREF_TEAM = [['pto','PTO requests','pto'],['pto_ok','PTO approved (heads-up)','pto'],['hiring_new','New applicants','hiring'],['hiring_iv','Interviews & offers','hiring'],['onboard','Team member on board','onboard'],['term','Termination of employment','term']];
 var PREF_FAM = [['enroll','Enrollment packets','enroll'],['careplan','Care plans','careplan'],['vacation','Family vacations','vacation'],['termcare','Termination of care','termcare']];
 
-var S = { view:'home', filter:'all', center:'all', list:null, data:null, prefs:null, busy:false, open:{} };
+var S = { sect:{}, arq:'', view:'home', filter:'all', center:'all', list:null, data:null, prefs:null, busy:false, open:{} };
 var me = load();
 
 function $(id){ return document.getElementById(id); }
@@ -210,7 +217,7 @@ function apply(r){
 function refresh(quiet){
   if(!me || S.busy) return Promise.resolve();
   S.busy=true;
-  return post({action:'feed'}).then(function(r){ S.busy=false; if(apply(r) && (!quiet || ['home','inbox','list'].indexOf(S.view)>=0)) render(); });
+  return post({action:'feed'}).then(function(r){ S.busy=false; if(apply(r) && (!quiet || ['home','inbox','list'].indexOf(S.view)>=0) && !(quiet && document.activeElement && document.activeElement.id==='ar-q')) render(); });
 }
 function markRead(ids){
   ids=ids.filter(function(id){ var x=(S.data.feed||[]).find(function(y){ return y.id===id; }); if(x&&x.unread){ x.unread=false; return true; } return false; });
@@ -359,8 +366,20 @@ function listView(kind){
   var f=feed().filter(function(x){ return x.kind===kind; });
   var extra = kind==='pto' && ptoAdminOK() ? '<div class="quick"><button type="button" data-go="ptoadmin">'+svg('chev','#0a5bd3')+'<span>'+ptoAdminLabel()+'</span></button></div>'
     : kind==='onboard' ? '<div class="quick"><button type="button" data-go="onboardform">'+svg('plus','#0a5bd3')+'<span>Fill out an On Board form</span></button></div>' : '';
-  return '<button type="button" class="back" data-go="home">'+svg('back')+'Home</button><div class="top"><h1>'+(KIND[kind].full||KIND[kind].name)+'</h1></div>'+centerSeg()+extra+listHtml(f, kind==='onboard'?'No On Board forms in the last year.':'Nothing from the last 45 days.');
+  var head='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button><div class="top"><h1>'+(KIND[kind].full||KIND[kind].name)+'</h1></div>'+centerSeg()+extra;
+  if(!(S.data.checklists||{})[kind]) return head+listHtml(f, kind==='onboard'?'No On Board forms in the last year.':'Nothing from the last 45 days.');
+  // Checklist areas: open ones up top; finished ones fold into Completed; after 30 days they move to the Archive.
+  var open=[], done=[], arch=[], now=Date.now();
+  f.forEach(function(x){ if(x.steps && !x.done) open.push(x); else (now-doneAt(x) <= 30*864e5 ? done : arch).push(x); });
+  var h=head+listHtml(open, 'Nothing open right now. 🎉');
+  var sk=kind+':done', ak=kind+':arch';
+  if(done.length) h+='<button type="button" class="sect" data-sect="'+sk+'" aria-expanded="'+!!S.sect[sk]+'"><span class="grow">Completed <b>'+done.length+'</b><small>Finished in the last 30 days</small></span>'+svg('chev')+'</button>'+(S.sect[sk]?listHtml(done,''):'');
+  if(arch.length) h+='<button type="button" class="sect" data-sect="'+ak+'" aria-expanded="'+!!S.sect[ak]+'"><span class="grow">Archive <b>'+arch.length+'</b><small>Finished more than 30 days ago</small></span>'+svg('chev')+'</button>'+
+    (S.sect[ak]?'<input type="search" class="arq" id="ar-q" placeholder="Search the archive" value="'+esc(S.arq||'')+'" aria-label="Search the archive"><div id="ar-list">'+archList(arch)+'</div>':'');
+  return h;
 }
+function doneAt(x){ var m=0; Object.keys(x.checks||{}).forEach(function(k){ var a=Date.parse(x.checks[k].at); if(a>m) m=a; }); return m || Date.parse(x.at); }
+function archList(arch){ var q=String(S.arq||'').trim().toLowerCase(); var l=q?arch.filter(function(x){ return (x.title+' '+x.sub).toLowerCase().indexOf(q)>=0; }):arch; return listHtml(l, q?'No matches.':''); }
 function sw(id, on, label){ return '<span class="sw"><input type="checkbox" id="'+id+'"'+(on?' checked':'')+' aria-label="'+esc(label)+'"><span></span></span>'; }
 function settings(){
   var p=S.prefs||{}, d=S.data;
@@ -625,6 +644,7 @@ document.addEventListener('click',function(e){
   }
   if(t.hasAttribute('data-push')){ var a=t.getAttribute('data-push'); if(a==='on') pushOn(); else if(a==='later'){ try{ localStorage.setItem('seeBridgeLater','1'); }catch(e){} PUSH.ask=false; render(); } else if(a==='off'){ try{ localStorage.setItem('seeBridgeLater','1'); }catch(e){} pushOff(); } else { t.disabled=true; post({action:'test', token:me.token}).then(function(r){ t.disabled=false; toast(r.ok?r.message:(r.error||'That didn’t work.')); }); } return; }
   if(t.hasAttribute('data-logout')){ if(!confirm('Log out of SEE Bridge on this device?')) return; var who=me&&(me.user||''), wasPass=me&&!me.session; pushOff(true).then(function(){ return me&&me.session?post({action:'signout'}):null; }).then(function(){ try{ localStorage.removeItem('seeHiringPass'); localStorage.removeItem('seeBridgeSession'); }catch(e){} save(null); S.data=null; S.users=null; showLogin('', who, wasPass?'pass':''); }); return; }
+  if(t.hasAttribute('data-sect')){ var sk2=t.getAttribute('data-sect'); S.sect[sk2]=!S.sect[sk2]; render(); return; }
   if(t.hasAttribute('data-auth')){ var am=t.getAttribute('data-auth'), wn=($('lu-name')||$('fg-name')||{}).value||''; if(am==='forgot') showForgot(wn); else if(am==='pass') showLogin('', '', 'pass'); else showLogin('', wn); return; }
   if(t.hasAttribute('data-uedit')){
     var uid=t.getAttribute('data-uedit');
@@ -657,6 +677,7 @@ document.addEventListener('change',function(e){
   var k=t.id.slice(3), o={}; o[k]=t.checked; S.prefs[k]=t.checked;
   post({action:'prefs', prefs:o}).then(function(r){ if(r.ok) S.prefs=r.prefs; else { toast(r.error||'Couldn’t save that.'); t.checked=!t.checked; } });
 });
+document.addEventListener('input',function(e){ if(e.target.id!=='ar-q') return; S.arq=e.target.value; var f=feed().filter(function(x){ return x.kind===S.list; }), now=Date.now(); var arch=f.filter(function(x){ return !(x.steps && !x.done) && now-doneAt(x)>30*864e5; }); var box=$('ar-list'); if(box) box.innerHTML=archList(arch); });
 document.addEventListener('visibilitychange',function(){ if(!document.hidden && me && S.data) refresh(true); });
 setInterval(function(){ if(!document.hidden && me && S.data && S.view!=='settings') refresh(true); }, 60000);
 if(navigator.serviceWorker) navigator.serviceWorker.addEventListener('message',function(e){ if(e.data && e.data.go==='inbox' && S.data){ refresh(true); setView('inbox'); } });
