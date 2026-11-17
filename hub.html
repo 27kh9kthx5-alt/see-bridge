@@ -14,8 +14,8 @@
 <link rel="apple-touch-icon" href="images/hub-icon-180.png?v=2">
 <link rel="icon" type="image/png" href="images/hub-icon-192.png?v=2">
 <style>
-:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--sub:#5f5f66;--faint:#8e8e93;--line:#ececf0;--blue:#0a5bd3;--red:#d93025;--green:#15803d;
-  --c-pto:#0B6BEB;--c-hiring:#0B6BEB;--c-enroll:#0B6BEB;--c-careplan:#0B6BEB;--c-vacation:#0B6BEB;--c-term:#55555c;--c-termcare:#55555c;--c-onboard:#0B6BEB}
+:root{--c-main:#7B3FE4;--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--sub:#5f5f66;--faint:#8e8e93;--line:#ececf0;--blue:#0a5bd3;--red:#d93025;--green:#15803d;
+  --c-pto:var(--c-main);--c-hiring:var(--c-main);--c-enroll:var(--c-main);--c-careplan:var(--c-main);--c-vacation:var(--c-main);--c-term:#55555c;--c-termcare:#55555c;--c-onboard:var(--c-main)}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
 button,input{font:inherit;color:inherit}
@@ -246,8 +246,11 @@ function setView(v, arg){
   if(v==='hiring') openEmbed('hiring'); else if(v==='ptoadmin') openEmbed('pto'); else if(v==='onboardform') openEmbed('onboard'); else render();
   window.scrollTo(0,0);
 }
+// Icon color follows the center you're looking at: both centers purple, Sioux Falls blue, Brandon green.
+var CENTER_COLOR={all:'#7B3FE4',SF:'#0B6BEB',BV:'#40B549'};
+function paintCenter(){ var c=!S.data?'all':(S.data.role==='ALL'?S.center:S.data.role); document.documentElement.style.setProperty('--c-main', CENTER_COLOR[c]||CENTER_COLOR.all); }
 function render(){
-  var v=$('view');
+  var v=$('view'); paintCenter();
   if(!S.data){ v.innerHTML='<div class="empty"><span class="spin"></span> Loading…</div>'; return; }
   if(S.view==='home') v.innerHTML=home();
   else if(S.view==='inbox') v.innerHTML=inbox();
@@ -290,7 +293,7 @@ function home(){
     ['termcare', unread('termcare'), openN('termcare')? openN('termcare')+' open' : unread('termcare')? unread('termcare')+' new' : 'Termination of care']
   ];
   var grid=function(tiles){ return '<div class="grid">'+tiles.map(function(t){ return '<button type="button" class="tile" data-tile="'+t[0]+'"><span class="row">'+ico(t[0])+(t[1]?'<span class="cnt">'+t[1]+'</span>':'')+'</span><span><div class="n">'+KIND[t[0]].name+'</div><div class="l">'+esc(t[2])+'</div></span></button>'; }).join('')+'</div>'; };
-  team=team.filter(function(t){ return can(t[0]); }); fam=fam.filter(function(t){ return can(t[0]); });
+  team=team.filter(function(t){ return can(t[0]); }); fam=fam.filter(function(t){ return can(t[0]) && !(t[0]==='vacation' && S.center==='BV'); });
   if(PUSH.ask) h+='<div class="ask"><span class="ico" style="background:var(--blue)">'+svg('bell','#fff')+'</span><div class="grow"><b>Alerts for this phone</b>One tap to turn on.</div><button type="button" class="pill go" data-push="on">Turn on</button><button type="button" class="link" data-push="later" aria-label="Not now">Not now</button></div>';
   var quick=(issuer()&&can('pto')?'<button type="button" data-go="ptoadmin">'+svg('plus','#0a5bd3')+'<span>Issue PTO</span></button>':'')+(can('hiring')?'<button type="button" data-go="hiring-jobs">'+svg('plus','#0a5bd3')+'<span>Post a job</span></button>':'');
   if(team.length) h+='<h2 class="sec">Team members</h2>'+grid(team);
