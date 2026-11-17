@@ -262,7 +262,7 @@ function render(){
 }
 function centerSeg(){
   if(S.data.role!=='ALL') return '';
-  return '<div class="seg" role="group" aria-label="Center">'+[['all','Both centers'],['SF','Sioux Falls'],['BV','Brandon']].map(function(c){ return '<button type="button" data-center="'+c[0]+'" aria-pressed="'+(S.center===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>';
+  return '<div class="seg" role="group" aria-label="Center">'+[['SF','Sioux Falls'],['all','SEE'],['BV','Brandon']].map(function(c){ return '<button type="button" data-center="'+c[0]+'" aria-pressed="'+(S.center===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>';
 }
 function plural(n,a,b){ return n+' '+(n===1?a:b); }
 function home(){
