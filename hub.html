@@ -259,7 +259,7 @@ function setView(v, arg){
 }
 // Icon color follows the center you're looking at: both centers purple, Sioux Falls blue, Brandon green.
 var CENTER_COLOR={all:'#7B3FE4',SF:'#0B6BEB',BV:'#40B549'};
-function paintCenter(){ var c=!S.data?'all':(S.data.role==='ALL'?S.center:S.data.role); document.documentElement.style.setProperty('--c-main', CENTER_COLOR[c]||CENTER_COLOR.all); }
+function paintCenter(){ var c=!S.data?'all':(S.data.role==='ALL'?(S.view==='list'&&S.list==='onboard'?obCenter():S.center):S.data.role); document.documentElement.style.setProperty('--c-main', CENTER_COLOR[c]||CENTER_COLOR.all); }
 function render(){
   var v=$('view'); paintCenter();
   if(!S.data){ v.innerHTML='<div class="empty"><span class="spin"></span> Loading…</div>'; return; }
@@ -362,11 +362,15 @@ function inbox(){
     '<div class="chips" role="group" aria-label="Show">'+FILTERS.map(function(c){ return '<button type="button" data-filter="'+c[0]+'" aria-pressed="'+(S.filter===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>'+
     listHtml(f, S.filter==='needs'?'Nothing is waiting on you.':'Nothing here from the last 45 days.');
 }
+// On Board has no "SEE" tab: every new hire belongs to one center.
+function obCenter(){ return S.center!=='all' ? S.center : (S.obCenter||'SF'); }
 function listView(kind){
-  var f=feed().filter(function(x){ return x.kind===kind; });
+  var twoTab = kind==='onboard' && S.data.role==='ALL';
+  var f = twoTab ? (S.data.feed||[]).filter(function(x){ return x.kind===kind && (!x.center || x.center===obCenter()); }) : feed().filter(function(x){ return x.kind===kind; });
   var extra = kind==='pto' && ptoAdminOK() ? '<div class="quick"><button type="button" data-go="ptoadmin">'+svg('chev','#0a5bd3')+'<span>'+ptoAdminLabel()+'</span></button></div>'
     : kind==='onboard' ? '<div class="quick"><button type="button" data-go="onboardform">'+svg('plus','#0a5bd3')+'<span>Fill out an On Board form</span></button></div>' : '';
-  var head='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button><div class="top"><h1>'+(KIND[kind].full||KIND[kind].name)+'</h1></div>'+centerSeg()+extra;
+  var seg = twoTab ? '<div class="seg" role="group" aria-label="Center">'+[['SF','Sioux Falls'],['BV','Brandon']].map(function(c){ return '<button type="button" data-center="'+c[0]+'" data-ob="1" aria-pressed="'+(obCenter()===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>' : centerSeg();
+  var head='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button><div class="top"><h1>'+(KIND[kind].full||KIND[kind].name)+'</h1></div>'+seg+extra;
   if(!(S.data.checklists||{})[kind]) return head+listHtml(f, kind==='onboard'?'No On Board forms in the last year.':'Nothing from the last 45 days.');
   // Checklist areas: open ones up top; finished ones fold into Completed; after 30 days they move to the Archive.
   var open=[], done=[], arch=[], now=Date.now();
@@ -623,6 +627,7 @@ document.addEventListener('click',function(e){
   if(go==='hiring'){ openHiring(''); return; }
   if(go){ if(go==='needs'){ S.filter='needs'; setView('inbox'); } else setView(go); return; }
   if(t.hasAttribute('data-tile')){ var k=t.getAttribute('data-tile'); if(k==='hiring') openHiring(''); else setView('list',k); markRead(feed().filter(function(x){ return x.kind===k && x.unread && !x.needs && (!x.link || k==='onboard') && x.kind!=='pto'; }).map(function(x){ return x.id; })); return; }
+  if(t.hasAttribute('data-ob')){ S.obCenter=t.getAttribute('data-center'); if(S.center!=='all') S.center=S.obCenter; render(); return; }
   if(t.hasAttribute('data-center')){ S.center=t.getAttribute('data-center'); render(); return; }
   if(t.hasAttribute('data-filter')){ S.filter=t.getAttribute('data-filter'); render(); return; }
   if(t.hasAttribute('data-readall')){ post({action:'read',all:true}).then(function(r){ if(apply(r)) render(); }); (S.data.feed||[]).forEach(function(x){ x.unread=false; }); apply(S.data); render(); return; }
