@@ -177,6 +177,25 @@ nav .badge{top:-2px;right:14px}
 .ot-warn{background:#fff1d6;color:#8a4b00;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.4;margin-top:12px}
 .ot-line{padding:12px 14px;font-size:14px;color:var(--sub);line-height:1.45}
 .ot-line b{color:var(--ink);font-weight:600}
+.ot-total{background:var(--card);border-radius:16px;padding:16px 18px;margin-top:12px;display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.ot-total .k{font-size:13px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.02em}
+.ot-total b{font-size:28px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.ot-total b small{font-size:15px;font-weight:600;color:var(--sub);margin-left:4px}
+.ot-tw{background:var(--card);border-radius:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:12px}
+.ot-t{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+.ot-t th{font-size:10px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:0;padding:10px 3px 8px;text-align:center;white-space:nowrap}
+.ot-t td{padding:10px 3px;border-top:1px solid var(--line);text-align:center;white-space:nowrap}
+@media (min-width:560px){.ot-t th{font-size:11px;padding:10px 8px 8px}.ot-t td{padding:11px 8px}}
+.ot-t th:first-child,.ot-t td:first-child{text-align:left;padding-left:14px;position:sticky;left:0;background:var(--card);white-space:normal;min-width:64px;max-width:96px;line-height:1.2}
+.ot-t td:first-child{font-weight:600;font-size:14px}
+.ot-t th:last-child,.ot-t td:last-child{padding-right:12px}
+.ot-t td.d b{font-weight:700;color:var(--ink)}
+.ot-t td.d i{color:var(--sub)}
+.ot-t td.d .no{color:var(--faint)}
+.ot-t td.pj{font-weight:700;font-size:14px;border-left:1px solid var(--line)}
+.ot-t tr.hot td:first-child{box-shadow:inset 3px 0 0 #d93025}
+.ot-key{display:flex;gap:16px;font-size:13px;color:var(--sub);margin:10px 4px 0}
+.ot-key b{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -359,8 +378,41 @@ function otWeek(o){
   var r=o.runAt ? new Date(o.runAt) : null;
   return [w, r ? 'updated '+r.toLocaleDateString('en-US',{weekday:'short'})+' '+r.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : ''].filter(Boolean).join(' · ');
 }
+function hrs1(n){ return n==null ? '' : String(parseFloat(Number(n).toFixed(2))); }
+// Center managers: their center only, no dollars. Hours per day (bold = clocked, italic = still scheduled), then Projected and Over.
+function overtimeMgrView(o){
+  var h='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button><div class="top"><div><h1>Overtime</h1>'+(o.runAt?'<div class="help" style="margin:2px 0 0">'+esc(otWeek(o))+'</div>':'')+'</div></div>';
+  if(o.none || !o.runAt) return h+'<div class="empty">No report yet. The overtime report runs at 9 PM, Sunday through Thursday, and shows up here.</div>';
+  if(Date.now()-Date.parse(o.runAt)>4*864e5) h+='<div class="ot-warn">This is the last report, from '+esc(new Date(o.runAt).toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'}))+'. A newer one hasn’t come in.</div>';
+  if(o.problems) h+='<div class="ot-warn"><b>Heads-up:</b> '+esc(o.problems)+'</div>';
+  otCenters().forEach(function(c){
+    var s=o.centers[c]||{}, ppl=s.people||[];
+    if(s.ran===false){ h+='<div class="empty">This part of the report didn’t run tonight.</div>'; return; }
+    h+='<div class="ot-total"><span class="k">Projected overtime</span><b>'+h2(s.otHours||0)+'<small>hrs</small></b></div>';
+    if(!ppl.length){ h+='<div class="empty">No one on the schedule this week.</div>'; return; }
+    var hasDays=ppl.some(function(p){ return Array.isArray(p.days) && p.days.length; });
+    var dayOf=function(p,d){ return (p.days||[]).find(function(x){ return x && x.day===d; }); };
+    var cols=['Mon','Tue','Wed','Thu','Fri'];
+    if(hasDays) ['Sat','Sun'].forEach(function(d){ if(ppl.some(function(p){ var x=dayOf(p,d); return x && ((x.actual||0)>0 || (x.scheduled||0)>0); })) cols.push(d); });
+    else cols=[];
+    var cell=function(p,d){ var x=dayOf(p,d);
+      if(!x) return '<td class="d"><span class="no">–</span></td>';
+      if(typeof x.actual==='number') return '<td class="d"><b>'+hrs1(x.actual)+'</b></td>';
+      return '<td class="d">'+((x.scheduled||0)>0?'<i>'+hrs1(x.scheduled)+'</i>':'<span class="no">–</span>')+'</td>'; };
+    h+='<div class="ot-tw"><table class="ot-t"><thead><tr><th>Name</th>'+cols.map(function(d){ return '<th>'+d+'</th>'; }).join('')+'<th>Projected</th><th>Over</th></tr></thead><tbody>'+
+      ppl.map(function(p){ var over=(p.over||0)>0;
+        return '<tr'+(over?' class="hot"':'')+'><td>'+esc(p.name)+'</td>'+cols.map(function(d){ return cell(p,d); }).join('')+
+          '<td class="pj">'+hrs1(p.projected)+'</td><td>'+(over?'<span class="ot-over" style="margin:0">+'+hrs1(p.over)+'</span>':'<span class="no" style="color:var(--faint)">–</span>')+'</td></tr>'; }).join('')+
+      '</tbody></table></div>';
+    if(cols.length) h+='<div class="ot-key"><span><b>8.5</b> clocked</span><span><i>8</i> still scheduled</span></div>';
+    if((s.notes||[]).length) h+='<p class="help">'+s.notes.map(esc).join('<br>')+'</p>';
+  });
+  h+='<p class="help">Hours clocked come from Procare; hours still to come from the When I Work schedule (no break deduction). The list is ordered by overtime cost, highest first.</p>';
+  return h;
+}
 function overtimeView(){
   var o=S.data.overtime||{}, office=isOffice();
+  if(!office) return overtimeMgrView(o);
   var h='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button><div class="top"><div><h1>Overtime</h1>'+(o.runAt?'<div class="help" style="margin:2px 0 0">'+esc(otWeek(o))+'</div>':'')+'</div></div>'+centerSeg();
   if(o.none || !o.runAt) return h+'<div class="empty">No report yet. The overtime report runs at 9 PM, Sunday through Thursday, and shows up here.</div>';
   var age=Date.now()-Date.parse(o.runAt);
