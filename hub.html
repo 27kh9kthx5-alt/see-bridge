@@ -557,7 +557,7 @@ function pushStateHtml(){
 function paintPush(){ var el=$('push-state'); if(el) el.innerHTML=pushStateHtml(); }
 function b64(s){ var p='='.repeat((4-s.length%4)%4), raw=atob((s+p).replace(/-/g,'+').replace(/_/g,'/')), a=new Uint8Array(raw.length); for(var i=0;i<raw.length;i++) a[i]=raw.charCodeAt(i); return a; }
 function rid(){ var a=new Uint8Array(24); crypto.getRandomValues(a); return Array.prototype.map.call(a,function(x){ return ('0'+x.toString(16)).slice(-2); }).join(''); }
-function swState(st){ return caches.open('see-hub').then(function(c){ return c.put('hub-state', new Response(JSON.stringify(st),{headers:{'Content-Type':'application/json'}})); }).catch(function(){}); }
+function swState(st){ return caches.open('see-hub').then(function(c){ return c.match('hub-state').then(function(r){ return r ? r.json() : {}; }).catch(function(){ return {}; }).then(function(old){ if(old && old.since && (!st.since || old.since > st.since)) st.since = old.since; return c.put('hub-state', new Response(JSON.stringify(st),{headers:{'Content-Type':'application/json'}})); }); }).catch(function(){}); }
 var REG=null;
 function registerSw(){
   if(!('serviceWorker' in navigator)) return Promise.resolve(null);
