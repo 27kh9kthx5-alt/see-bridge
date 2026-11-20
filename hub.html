@@ -199,7 +199,8 @@ nav .badge{top:-2px;right:14px}
 .ot-key b{color:var(--ink)}
 .ot-row.has-days{display:grid;grid-template-columns:24px minmax(0,1fr) auto;column-gap:12px;align-items:start}
 .ot-row.has-days .ot-rank{margin-top:1px}
-.ot-row.has-days .ot-days{grid-column:2 / 4}
+.ot-row.has-days .ot-days{grid-column:2 / 3}
+.ot-row.has-days .ot-ovm{grid-column:3;justify-self:end;align-self:center;margin-top:8px;font-size:15px;font-weight:700;color:#b3261e;white-space:nowrap;font-variant-numeric:tabular-nums}
 .ot-row.has-days .dt{grid-column:2 / 4;margin-top:4px}
 .ot-days{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin-top:8px;max-width:420px}
 .ot-dy{text-align:center;border-radius:7px;padding:2px 0 3px;background:#f4f4f7}
@@ -393,6 +394,8 @@ function otWeek(o){
   return [w, r ? 'updated '+r.toLocaleDateString('en-US',{weekday:'short'})+' '+r.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : ''].filter(Boolean).join(' · ');
 }
 function hrs1(n){ return n==null ? '' : String(parseFloat(Number(n).toFixed(2))); }
+// Overtime as hours:minutes: 8.65 → "+ 8:39", 0.29 → "+ 0:17". Empty when not over.
+function otHM(over){ var m=Math.round((Number(over)||0)*60); if(m<=0) return ''; return '+ '+Math.floor(m/60)+':'+String(m%60).padStart(2,'0'); }
 // Center managers: their center only, no dollars. Hours per day (bold = clocked, italic = still scheduled), then Projected and Over.
 function overtimeMgrView(o){
   var h='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button><div class="top"><div><h1>Overtime</h1>'+(o.runAt?'<div class="help" style="margin:2px 0 0">'+esc(otWeek(o))+'</div>':'')+'</div></div>';
@@ -415,7 +418,7 @@ function overtimeMgrView(o){
     h+='<div class="ot-tw"><table class="ot-t"><thead><tr><th>Name</th>'+cols.map(function(d){ return '<th>'+d+'</th>'; }).join('')+'<th>Projected</th><th>Over</th></tr></thead><tbody>'+
       ppl.map(function(p){ var over=(p.over||0)>0;
         return '<tr'+(over?' class="hot"':'')+'><td>'+esc(p.name)+'</td>'+cols.map(function(d){ return cell(p,d); }).join('')+
-          '<td class="pj">'+hrs1(p.projected)+'</td><td>'+(over?'<span class="ot-over" style="margin:0">+'+hrs1(p.over)+'</span>':'<span class="no" style="color:var(--faint)">–</span>')+'</td></tr>'; }).join('')+
+          '<td class="pj">'+hrs1(p.projected)+'</td><td>'+(over?'<span class="ot-over" style="margin:0">'+otHM(p.over)+'</span>':'<span class="no" style="color:var(--faint)">–</span>')+'</td></tr>'; }).join('')+
       '</tbody></table></div>';
     if(cols.length) h+='<div class="ot-key"><span><b>8.5</b> clocked</span><span><i>8</i> still scheduled</span></div>';
   });
@@ -462,7 +465,7 @@ function overtimeView(){
       var hasDays=Array.isArray(p.days) && p.days.length;
       var right='<b>'+otSplit(p)+'</b>';
       if(office) right+='<small>'+(p.cost!=null?esc(money(p.cost)):'rate not visible')+'</small>';
-      if(hasDays) return '<div class="ot-row has-days"><span class="ot-rank">'+(i+1)+'</span><span class="grow"><div class="nm">'+esc(p.name)+'</div></span><span class="ot-num">'+right+'</span>'+otDays(p)+((p.worked||0)>40?'<div class="dt">Already over 40</div>':'')+'</div>';
+      if(hasDays) return '<div class="ot-row has-days"><span class="ot-rank">'+(i+1)+'</span><span class="grow"><div class="nm">'+esc(p.name)+'</div></span><span class="ot-num">'+right+'</span>'+otDays(p)+(otHM(p.over)?'<span class="ot-ovm">'+otHM(p.over)+'</span>':'')+((p.worked||0)>40?'<div class="dt">Already over 40</div>':'')+'</div>';
       return '<div class="ot-row"><span class="ot-rank">'+(i+1)+'</span><span class="grow"><div class="nm">'+esc(p.name)+'</div><div class="dt">'+dt+'</div></span><span class="ot-num">'+right+'</span></div>'; }).join('')+'</div>';
     if(close.length) h+='<div class="grp">Close (35–40)</div><div class="card"><div class="ot-line">'+close.map(function(p){ return '<b>'+esc(p.name)+'</b> '+h2(p.projected); }).join(' · ')+'</div></div>';
     if(ahead.length) h+='<div class="grp">Running ahead of schedule</div><div class="card"><div class="ot-line">'+ahead.map(function(p){ return '<b>'+esc(p.name)+'</b> +'+h2(p.aheadBy)+' hrs'; }).join(' · ')+'</div></div>';
