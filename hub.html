@@ -1001,7 +1001,9 @@ function schedView(){
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
   var cols=SC_DAYS.map(function(dd,i){ return { key:dd[0], label:dd[1], date:scIso(scDate(S.sc.week,i)) }; });
   var dayTot={}, dayCost={}; cols.forEach(function(c){ dayTot[c.key]=0; dayCost[c.key]=0; });
-  var payTot=0, people=[{ id:'open', name:'Open shifts', open:true }].concat(d.staff||[]);
+  // This center's own people, plus anyone from the other center who has shifts here this week.
+  var hasHere=function(id){ var r=scRow(id); return SC_ALL_DAYS.some(function(k){ return ((r.days||{})[k]||[]).length || (((r.published||{})[k])||[]).length; }); };
+  var payTot=0, people=[{ id:'open', name:'Open shifts', open:true }].concat((d.staff||[]).filter(function(p){ return p.center===S.sc.center || hasHere(p.id); }));
   var rowsH=people.map(function(p){
     var r=scRow(p.id), days=r.days||{}, pub=r.published||{};
     var here=scWeekMins(days), oth=d.other&&d.other[p.id]?d.other[p.id].minutes:0, tot=here+oth;
