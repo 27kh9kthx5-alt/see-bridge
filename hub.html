@@ -999,7 +999,7 @@ function schedView(){
       SC_ALL_DAYS.forEach(function(k){ var m=scBlocksMins(days[k]), reg=Math.max(0,Math.min(m,2400-run)), ot=m-reg; if(dayCost[k]!=null) dayCost[k]+=(reg*rate+ot*rate*1.5)/60; run+=m+scBlocksMins(od2[k]); }); }
     var cells=cols.map(function(c){
       var list=days[c.key]||[], changed=JSON.stringify(list)!==JSON.stringify(pub[c.key]||[]) && !(list.length===0 && !(pub[c.key]||[]).length);
-      if(!p.open) dayTot[c.key]+=scBlocksMins(list);
+      if(!p.open && p.payType!=='salaried') dayTot[c.key]+=scBlocksMins(list);
       var od=d.other&&d.other[p.id]&&(d.other[p.id].days||{})[c.key]||[];
       var chips=list.map(function(b){ var ps=scPos(b.p); return '<span class="sc-chip" style="background:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+scT(b.s)+'–'+scT(b.e)+'</b><span>'+esc(ps.name)+'</span></span>'; }).join('');
       if(od.length) chips+='<span class="sc-chip sc-other"><b>'+scT(od[0].s)+'–'+scT(od[od.length-1].e)+'</b><span>at Brandon</span></span>';
