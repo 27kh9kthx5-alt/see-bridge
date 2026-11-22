@@ -991,12 +991,12 @@ function schedView(){
     var sub;
     if(p.open) sub='<small>Anyone can pick up</small>';
     else { var pay=scPay(p,tot); if(pay!=null) payTot+=pay;
-      sub='<span class="sc-sub"><small>'+(p.payType==='salaried'?'Salaried':pay!=null?scMoney(pay):'')+'</small><small class="sc-hr">'+(p.payType==='salaried'?h2(tot/60):otSplit({ projected:tot/60 }))+' hrs</small></span>'+
-        (oth?'<small>incl. '+h2(oth/60)+' hrs at Brandon</small>':''); }
+      sub='<span class="sc-sub"><small>'+(p.payType==='salaried'?'Salaried':pay!=null?scMoney(pay):'')+'</small><small class="sc-hr">'+(p.payType==='salaried'?h2(tot/60):otSplit({ projected:tot/60 }))+'</small></span>'+
+        (oth?'<small>incl. '+h2(oth/60)+' at Brandon</small>':''); }
     return '<tr'+(p.open?' class="sc-open"':'')+'><th scope="row"><span class="sc-nm">'+esc(p.name)+'</span>'+sub+'</th>'+cells+'</tr>';
   }).join('');
   var weekTot=cols.reduce(function(s,c){ return s+dayTot[c.key]; },0), weekCost=cols.reduce(function(t,c){ return t+dayCost[c.key]; },0);
-  var tots=function(cost,mins){ return '<span class="sc-sub"><small>'+scMoney(cost)+'</small><small class="sc-hr">'+h2(mins/60)+' hrs</small></span>'; };
+  var tots=function(cost,mins){ return '<span class="sc-sub"><small>'+scMoney(cost)+'</small><small class="sc-hr">'+h2(mins/60)+'</small></span>'; };
   var head='<tr><th class="sc-wk"><span class="sc-nm">Week</span>'+tots(weekCost,weekTot)+'</th>'+cols.map(function(c){ var dt=scDate(c.date); return '<th class="sc-dh"><button type="button" class="sc-day" data-sc="day" data-date="'+c.date+'">'+c.label+' '+dt.getDate()+(closed[c.date]?'<small>'+esc(closed[c.date])+'</small>':'')+'</button>'+(closed[c.date]?'':tots(dayCost[c.key],dayTot[c.key]))+'</th>'; }).join('')+'</tr>';
   h+='<div class="sc-wrap"><table class="sc-t"><thead>'+head+'</thead><tbody>'+rowsH+'</tbody></table></div>';
   h+='<div class="sc-key">'+(d.positions||[]).filter(function(p){ return p.centers.indexOf(S.sc.center)>=0; }).map(function(p){ return '<span><i style="background:'+p.color+'"></i>'+esc(p.name)+'</span>'; }).join('')+'</div>';
@@ -1015,7 +1015,7 @@ function scEditor(){
   var rows=e.blocks.map(function(b,i){ return '<div class="sc-blk"><input type="time" step="300" aria-label="Start" data-sb="s" data-i="'+i+'" value="'+b.s+'"><span>to</span><input type="time" step="300" aria-label="End" data-sb="e" data-i="'+i+'" value="'+b.e+'"><select aria-label="Room or duty" data-sb="p" data-i="'+i+'">'+opts(b.p)+'</select><button type="button" class="sc-x" data-sc="del" data-i="'+i+'" aria-label="Remove this block">×</button></div>'; }).join('');
   var mins=scBlocksMins(e.blocks.filter(function(b){ return b.s&&b.e&&b.e>b.s; }));
   return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Edit shifts"><div class="sc-card">'+
-    '<div class="sc-ch"><div><b>'+esc(p.name)+'</b><div class="sm">'+dayName+' '+date.toLocaleDateString('en-US',{month:'short',day:'numeric'})+(mins?' · '+scHM(mins)+' hrs':'')+'</div></div><button type="button" class="link" data-sc="close">Cancel</button></div>'+
+    '<div class="sc-ch"><div><b>'+esc(p.name)+'</b><div class="sm">'+dayName+' '+date.toLocaleDateString('en-US',{month:'short',day:'numeric'})+(mins?' · '+h2(mins/60):'')+'</div></div><button type="button" class="link" data-sc="close">Cancel</button></div>'+
     (rows||'<div class="help" style="margin:6px 0 10px">No shifts this day.</div>')+
     '<div class="sc-acts"><button type="button" class="pill" data-sc="add">+ Add a block</button>'+(e.blocks.length?'<button type="button" class="pill" data-sc="clear">Clear day</button>':'')+'</div>'+
     '<label class="sc-rep"><input type="checkbox" id="sc-rep"'+(e.rep?' checked':'')+'> Use for every weekday this week</label>'+
