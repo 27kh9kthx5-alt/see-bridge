@@ -264,6 +264,15 @@ nav .badge{top:-2px;right:14px}
   .sc-t{min-width:0}
   .sc-cell{min-width:112px}
 }
+.sc-who{display:flex;align-items:center;gap:8px}
+.sc-av{width:28px;height:28px;border-radius:50%;flex-shrink:0;background:#e8e8ee center/cover no-repeat;color:#3a3a3f;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;letter-spacing:.02em}
+.sc-av-open{background:#fff;border:1.5px dashed #ca8a04;color:#854d0e;font-size:15px}
+.sc-short{display:none}
+@media (max-width:640px){
+  .sc-who{flex-direction:column;align-items:flex-start;gap:4px}
+  .sc-full{display:none}
+  .sc-short{display:inline}
+}
 .sc-sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.32);display:flex;align-items:flex-end;justify-content:center}
 @media (min-width:640px){.sc-sheet{align-items:center}}
 .sc-card{background:var(--card);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:18px 18px calc(env(safe-area-inset-bottom) + 18px);max-height:90vh;overflow:auto}
@@ -1002,7 +1011,8 @@ function schedView(){
     else { var pay=scPay(p,tot); if(pay!=null) payTot+=pay;
       sub='<span class="sc-sub"><small>'+(p.payType==='salaried'?'Salaried':pay!=null?scMoney(pay):'')+'</small><small class="sc-hr">'+(p.payType==='salaried'?h2(tot/60):otSplit({ projected:tot/60 }))+'</small></span>'+
         (oth?'<small>incl. '+h2(oth/60)+' at Brandon</small>':''); }
-    return '<tr'+(p.open?' class="sc-open"':'')+'><th scope="row"><span class="sc-nm">'+esc(p.name)+'</span>'+sub+'</th>'+cells+'</tr>';
+    var nm=String(p.name||'').trim().split(/\s+/), ini=p.open?'+':(nm[0]||'').charAt(0)+(nm.length>1?nm[nm.length-1].charAt(0):''), short=p.open?'Open':nm[0]+(nm.length>1?' '+nm[nm.length-1].charAt(0)+'.':'');
+    return '<tr'+(p.open?' class="sc-open"':'')+'><th scope="row"><span class="sc-who"><span class="sc-av'+(p.open?' sc-av-open':'')+'"'+(p.photo?' style="background-image:url('+esc(p.photo)+')"':'')+' aria-hidden="true">'+(p.photo?'':esc(ini.toUpperCase()))+'</span><span class="sc-nm"><span class="sc-full">'+esc(p.name)+'</span><span class="sc-short">'+esc(short)+'</span></span></span>'+sub+'</th>'+cells+'</tr>';
   }).join('');
   var weekTot=cols.reduce(function(s,c){ return s+dayTot[c.key]; },0), weekCost=cols.reduce(function(t,c){ return t+dayCost[c.key]; },0);
   var tots=function(cost,mins){ return '<span class="sc-sub"><small>'+scMoney(cost)+'</small><small class="sc-hr">'+h2(mins/60)+'</small></span>'; };
