@@ -258,7 +258,15 @@ nav .badge{top:-2px;right:14px}
 @media (max-width:640px){
   .sc-t tbody th,.sc-t thead th.sc-wk{min-width:0;width:25vw;max-width:25vw;padding:8px 6px 8px 10px!important}
   .sc-nm{font-size:13px;line-height:1.2;overflow-wrap:normal;word-break:normal;hyphens:none}
-  .sc-t .sc-sub .sc-hr{margin-left:auto}
+  .sc-t tbody th .sc-sub{flex-direction:column;align-items:center;gap:1px}
+  .sc-t tbody th .sc-sub .sc-hr{margin-left:0}
+  .sc-t tbody th .sc-warn{margin:2px 0 0}
+  .sc-t tbody th .sc-who{align-items:center;text-align:center}
+  .sc-t tbody th{text-align:center}
+  .sc-t thead th.sc-wk{text-align:center!important}
+  .sc-wk .sc-sub{flex-direction:column;align-items:center;gap:1px}
+  .sc-wk .sc-sub .sc-hr{margin-left:0}
+  .sc-dh .sc-sub .sc-hr{margin-left:auto}
   .sc-t .sc-sub{flex-wrap:wrap;gap:0 6px}
   .sc-t .sc-sub small,.sc-t tbody th small{font-size:11px!important}
   .sc-t{min-width:0}
