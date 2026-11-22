@@ -1048,7 +1048,7 @@ function schedView(){
     var sub;
     if(p.open) sub='<small>Anyone can pick up</small>';
     else { var pay=scPay(p,tot); if(pay!=null) payTot+=pay;
-      sub=p.payType==='salaried'?'':'<span class="sc-sub"><small>'+(p.payType==='salaried'?'Salaried':pay!=null?scMoney(pay):'')+'</small><small class="sc-hr">'+(p.payType==='salaried'?h2(tot/60):otSplit({ projected:tot/60 }))+'</small>'+warn+'</span>'+
+      sub=p.payType==='salaried'?'':'<span class="sc-sub"><small>'+(p.payType==='salaried'?'Salaried':pay!=null?scMoney(pay):'')+'</small><small class="sc-hr">'+(p.payType==='salaried'?h2(tot/60):(tot/60>=50?'<span class="ot-red">'+h2(tot/60)+'</span>':otSplit({ projected:tot/60 })))+'</small>'+warn+'</span>'+
         ''; }
     var nm=String(p.name||'').trim().split(/\s+/), ini=p.open?'+':(nm[0]||'').charAt(0)+(nm.length>1?nm[nm.length-1].charAt(0):''), short=p.open?'Open':nm[0]+(nm.length>1?' '+nm[nm.length-1].charAt(0)+'.':'');
     return '<tr'+(p.open?' class="sc-open"':'')+'><th scope="row"><span class="sc-who"><span class="sc-av'+(p.open?' sc-av-open':'')+'"'+(p.photo?' style="background-image:url('+esc(p.photo)+')"':'')+' aria-hidden="true">'+(p.photo?'':esc(ini.toUpperCase()))+'</span><span class="sc-nm"><span class="sc-full">'+esc(p.name)+'</span><span class="sc-short">'+esc(short)+'</span></span></span>'+sub+'</th>'+cells+'</tr>';
