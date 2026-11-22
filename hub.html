@@ -273,6 +273,7 @@ nav .badge{top:-2px;right:14px}
   .sc-full{display:none}
   .sc-short{display:inline}
 }
+.sc-warn{width:18px;height:18px;border-radius:50%;border:0;background:#d93025;color:#fff;font-size:12px;font-weight:800;line-height:18px;padding:0;margin-left:6px;cursor:pointer;flex-shrink:0}
 .sc-sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.32);display:flex;align-items:flex-end;justify-content:center}
 @media (min-width:640px){.sc-sheet{align-items:center}}
 .sc-card{background:var(--card);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:18px 18px calc(env(safe-area-inset-bottom) + 18px);max-height:90vh;overflow:auto}
@@ -1006,11 +1007,15 @@ function schedView(){
       if(closed[c.date]) return '<td class="sc-cell sc-closed"><span class="sc-cl">'+(p.open?esc(closed[c.date]):'')+'</span></td>';
       return '<td class="sc-cell'+(changed?' sc-chg':'')+'"><button type="button" class="sc-hit" data-sc="edit" data-id="'+esc(p.id)+'" data-day="'+c.key+'" aria-label="'+esc(p.name+', '+c.label)+'">'+(chips||'<span class="sc-plus">+</span>')+'</button></td>';
     }).join('');
+    var warn='';
+    if(!p.open && p.payType!=='salaried' && oth>0 && tot>2400){ var oc=d.other[p.id].center==='BV'?'Brandon':'Sioux Falls';
+      var msg=p.name+' is scheduled '+h2(tot/60)+' hours this week, '+h2((tot-2400)/60)+' over 40. That includes '+h2(oth/60)+' hours at '+oc+'.';
+      warn='<button type="button" class="sc-warn" data-sc="info" data-msg="'+esc(msg)+'" aria-label="Overtime includes hours at '+oc+'">!</button>'; }
     var sub;
     if(p.open) sub='<small>Anyone can pick up</small>';
     else { var pay=scPay(p,tot); if(pay!=null) payTot+=pay;
-      sub=p.payType==='salaried'?'':'<span class="sc-sub"><small>'+(p.payType==='salaried'?'Salaried':pay!=null?scMoney(pay):'')+'</small><small class="sc-hr">'+(p.payType==='salaried'?h2(tot/60):otSplit({ projected:tot/60 }))+'</small></span>'+
-        (oth&&p.payType!=='salaried'?'<small>incl. '+h2(oth/60)+' at Brandon</small>':''); }
+      sub=p.payType==='salaried'?'':'<span class="sc-sub"><small>'+(p.payType==='salaried'?'Salaried':pay!=null?scMoney(pay):'')+'</small><small class="sc-hr">'+(p.payType==='salaried'?h2(tot/60):otSplit({ projected:tot/60 }))+'</small>'+warn+'</span>'+
+        ''; }
     var nm=String(p.name||'').trim().split(/\s+/), ini=p.open?'+':(nm[0]||'').charAt(0)+(nm.length>1?nm[nm.length-1].charAt(0):''), short=p.open?'Open':nm[0]+(nm.length>1?' '+nm[nm.length-1].charAt(0)+'.':'');
     return '<tr'+(p.open?' class="sc-open"':'')+'><th scope="row"><span class="sc-who"><span class="sc-av'+(p.open?' sc-av-open':'')+'"'+(p.photo?' style="background-image:url('+esc(p.photo)+')"':'')+' aria-hidden="true">'+(p.photo?'':esc(ini.toUpperCase()))+'</span><span class="sc-nm"><span class="sc-full">'+esc(p.name)+'</span><span class="sc-short">'+esc(short)+'</span></span></span>'+sub+'</th>'+cells+'</tr>';
   }).join('');
@@ -1060,6 +1065,7 @@ function schedClick(t){
     var blocks=JSON.parse(JSON.stringify((r.days||{})[day]||[]));
     if(!blocks.length) blocks=[{ s:'07:00', e:'17:00', p:firstRoom||(st&&st.positions[0])||'infant' }];
     S.sc.edit={ id:id, day:day, blocks:blocks, rev:r.rev||0 }; render(); return; }
+  if(a==='info'){ toast(t.getAttribute('data-msg')); return; }
   if(a==='close'){ S.sc.edit=null; render(); return; }
   if(a==='add'){ scGrab(); var e=S.sc.edit, last=e.blocks[e.blocks.length-1]; e.blocks.push({ s:last?last.e:'07:00', e:last?(last.e<'17:00'?'17:00':'18:00'):'17:00', p:last?last.p:'infant' }); render(); return; }
   if(a==='del'){ scGrab(); S.sc.edit.blocks.splice(+t.getAttribute('data-i'),1); render(); return; }
