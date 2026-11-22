@@ -245,6 +245,12 @@ nav .badge{top:-2px;right:14px}
 .sc-open th,.sc-open td{background:#fffbeb}
 .sc-foot th,.sc-foot td{border-top:1px solid #d8d8dd;padding:8px 6px;font-size:12px;color:var(--sub);font-weight:600;font-variant-numeric:tabular-nums}
 .sc-foot th{padding-left:14px;text-align:left}
+.sc-dh{vertical-align:top;padding:8px 8px 8px!important}
+.sc-dh .sc-sub,.sc-wk .sc-sub{font-weight:400}
+.sc-dh .sc-sub small,.sc-wk .sc-sub small{font-size:12px;color:var(--sub)}
+.sc-wk .sc-nm{font-size:14px}
+.sc-wk{text-align:left!important;vertical-align:top;padding:10px 10px 8px 14px!important}
+.sc-wk .sc-nm{color:var(--ink)}
 .sc-day{border:0;background:none;font:inherit;font-weight:600;color:var(--sub);cursor:pointer;padding:4px;border-radius:6px;text-align:center;width:100%}
 .sc-day small{display:block;font-size:11px;color:#b3261e}
 .sc-key{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--sub);margin:10px 4px 0}
@@ -989,10 +995,10 @@ function schedView(){
         (oth?'<small>incl. '+h2(oth/60)+' hrs at Brandon</small>':''); }
     return '<tr'+(p.open?' class="sc-open"':'')+'><th scope="row"><span class="sc-nm">'+esc(p.name)+'</span>'+sub+'</th>'+cells+'</tr>';
   }).join('');
-  var head='<tr><th></th>'+cols.map(function(c){ var dt=scDate(c.date); return '<th><button type="button" class="sc-day" data-sc="day" data-date="'+c.date+'">'+c.label+' '+dt.getDate()+(closed[c.date]?'<small>'+esc(closed[c.date])+'</small>':'')+'</button></th>'; }).join('')+'</tr>';
-  var weekTot=cols.reduce(function(s,c){ return s+dayTot[c.key]; },0);
-  var foot='<tr class="sc-foot"><th><span class="sc-sub"><small>'+scMoney(cols.reduce(function(t,c){ return t+dayCost[c.key]; },0))+' est.</small><small class="sc-hr">'+h2(weekTot/60)+' hrs</small></span></th>'+cols.map(function(c){ return '<td>'+(closed[c.date]?'':'<span class="sc-sub"><small>'+scMoney(dayCost[c.key])+'</small><small class="sc-hr">'+h2(dayTot[c.key]/60)+' hrs</small></span>')+'</td>'; }).join('')+'</tr>';
-  h+='<div class="sc-wrap"><table class="sc-t"><thead>'+head+'</thead><tbody>'+rowsH+'</tbody><tfoot>'+foot+'</tfoot></table></div>';
+  var weekTot=cols.reduce(function(s,c){ return s+dayTot[c.key]; },0), weekCost=cols.reduce(function(t,c){ return t+dayCost[c.key]; },0);
+  var tots=function(cost,mins){ return '<span class="sc-sub"><small>'+scMoney(cost)+'</small><small class="sc-hr">'+h2(mins/60)+' hrs</small></span>'; };
+  var head='<tr><th class="sc-wk"><span class="sc-nm">Week</span>'+tots(weekCost,weekTot)+'</th>'+cols.map(function(c){ var dt=scDate(c.date); return '<th class="sc-dh"><button type="button" class="sc-day" data-sc="day" data-date="'+c.date+'">'+c.label+' '+dt.getDate()+(closed[c.date]?'<small>'+esc(closed[c.date])+'</small>':'')+'</button>'+(closed[c.date]?'':tots(dayCost[c.key],dayTot[c.key]))+'</th>'; }).join('')+'</tr>';
+  h+='<div class="sc-wrap"><table class="sc-t"><thead>'+head+'</thead><tbody>'+rowsH+'</tbody></table></div>';
   h+='<div class="sc-key">'+(d.positions||[]).filter(function(p){ return p.centers.indexOf(S.sc.center)>=0; }).map(function(p){ return '<span><i style="background:'+p.color+'"></i>'+esc(p.name)+'</span>'; }).join('')+'</div>';
   h+='<p class="help">Tap a day to add or change shifts. Tap a day’s name to mark the center closed or open it again. Hours under each name include time at Brandon; overtime shows in red past 40. Pay is an estimate (time and a half past 40).</p>';
   if(S.sc.edit) h+=scEditor();
