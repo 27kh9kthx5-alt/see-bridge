@@ -231,7 +231,8 @@ nav .badge{top:-2px;right:14px}
 .sc-foot th small{display:block;font-weight:500}
 .sc-cell{border-top:1px solid var(--line);border-left:1px solid var(--line);padding:3px;vertical-align:top;min-width:128px}
 .sc-cell.sc-closed{background:repeating-linear-gradient(135deg,#f6f6f8 0 6px,#ededf1 6px 12px)}
-.sc-cell.sc-chg .sc-hit{outline:2px dashed #c27c0e;outline-offset:-2px}
+.sc-cell.sc-chg .sc-chip{position:relative}
+.sc-cell.sc-chg .sc-chip::after{content:"";position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:#e8890c;box-shadow:0 0 0 2px #fff}
 .sc-hit{display:flex;flex-direction:column;gap:3px;width:100%;min-height:52px;border:0;background:none;border-radius:8px;padding:2px;text-align:left;cursor:pointer;font:inherit;color:inherit}
 .sc-hit:hover{background:#f6f6f9}
 .sc-plus{margin:auto;color:#c7c7cc;font-size:20px}
@@ -1019,7 +1020,7 @@ function schedView(){
     '<span style="flex:1"></span><button type="button" class="pill" data-sc="tpls">Templates</button><button type="button" class="pill" data-sc="copy">Copy last week</button>'+
     (d? '<button type="button" class="pill go" data-sc="publish"'+(d.unpublished?'':' disabled')+'>'+(d.unpublished?'Publish ('+d.unpublished+')':'Published')+'</button>':'')+'</div>';
   if(!d) return h+'<div class="empty"><span class="spin"></span> Loading…</div>';
-  if(d.unpublished) h+='<div class="note">Draft: '+plural(d.unpublished,'person’s week has','people’s weeks have')+' changes that aren’t published yet (dashed outline).</div>';
+  if(d.unpublished) h+='<div class="note">Draft: '+plural(d.unpublished,'person’s week has','people’s weeks have')+' changes that aren’t published yet (marked with an orange dot).</div>';
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
   var cols=SC_DAYS.map(function(dd,i){ return { key:dd[0], label:dd[1], date:scIso(scDate(S.sc.week,i)) }; });
   var dayTot={}, dayCost={}; cols.forEach(function(c){ dayTot[c.key]=0; dayCost[c.key]=0; });
