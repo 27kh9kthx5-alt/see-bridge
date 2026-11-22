@@ -299,6 +299,12 @@ nav .badge{top:-2px;right:14px}
 .sc-save label{font-size:14px;font-weight:600}
 .sc-save-r{display:flex;gap:8px}
 .sc-save-r input{flex:1;min-height:44px;border:1px solid #d2d2d7;border-radius:12px;padding:0 12px;font:inherit;font-size:16px}
+.sc-drag{cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.sc-hit{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.sc-lift{opacity:.35}
+.sc-ghost{position:fixed;z-index:80;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.25);transform:scale(1.04);background:#fff}
+.sc-hit.sc-drop{background:#e8f0fe;outline:2px solid var(--blue);outline-offset:-2px}
+body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.32);display:flex;align-items:flex-end;justify-content:center}
 @media (min-width:640px){.sc-sheet{align-items:center}}
 .sc-card{background:var(--card);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:18px 18px calc(env(safe-area-inset-bottom) + 18px);max-height:90vh;overflow:auto}
@@ -1029,7 +1035,7 @@ function schedView(){
       var list=days[c.key]||[], changed=JSON.stringify(list)!==JSON.stringify(pub[c.key]||[]) && !(list.length===0 && !(pub[c.key]||[]).length);
       if(!p.open && p.payType!=='salaried') dayTot[c.key]+=scBlocksMins(list);
       var od=d.other&&d.other[p.id]&&(d.other[p.id].days||{})[c.key]||[];
-      var chips=list.map(function(b){ var ps=scPos(b.p); return '<span class="sc-chip" style="background:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+scT(b.s)+'–'+scT(b.e)+'</b><span>'+esc(ps.name)+'</span></span>'; }).join('');
+      var chips=list.map(function(b,bi){ var ps=scPos(b.p); return '<span class="sc-chip sc-drag" data-did="'+esc(p.id)+'" data-dday="'+c.key+'" data-di="'+bi+'" style="background:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+scT(b.s)+'–'+scT(b.e)+'</b><span>'+esc(ps.name)+'</span></span>'; }).join('');
       if(od.length) chips+='<span class="sc-chip sc-other"><b>'+scT(od[0].s)+'–'+scT(od[od.length-1].e)+'</b><span>at Brandon</span></span>';
       if(closed[c.date]) return '<td class="sc-cell sc-closed"><span class="sc-cl">'+(p.open?esc(closed[c.date]):'')+'</span></td>';
       return '<td class="sc-cell'+(changed?' sc-chg':'')+'"><button type="button" class="sc-hit" data-sc="edit" data-id="'+esc(p.id)+'" data-day="'+c.key+'" aria-label="'+esc(p.name+', '+c.label)+'">'+(chips||'<span class="sc-plus">+</span>')+'</button></td>';
@@ -1051,7 +1057,7 @@ function schedView(){
   var head='<tr><th class="sc-wk"><span class="sc-nm">Week</span>'+tots(weekCost,weekTot)+'</th>'+cols.map(function(c){ var dt=scDate(c.date); return '<th class="sc-dh"><button type="button" class="sc-day" data-sc="day" data-date="'+c.date+'">'+c.label+' '+dt.getDate()+(closed[c.date]?'<small>'+esc(closed[c.date])+'</small>':'')+'</button>'+(closed[c.date]?'':tots(dayCost[c.key],dayTot[c.key]))+'</th>'; }).join('')+'</tr>';
   h+='<div class="sc-wrap"><table class="sc-t"><thead>'+head+'</thead><tbody>'+rowsH+'</tbody></table></div>';
   h+='<div class="sc-key">'+(d.positions||[]).filter(function(p){ return p.centers.indexOf(S.sc.center)>=0; }).map(function(p){ return '<span><i style="background:'+p.color+'"></i>'+esc(p.name)+'</span>'; }).join('')+'</div>';
-  h+='<p class="help">Tap a day to add or change shifts. Tap a day’s name to mark the center closed or open it again. Hours under each name include time at Brandon; overtime shows in red past 40. Pay is an estimate (time and a half past 40).</p>';
+  h+='<p class="help">Tap a day to add or change shifts. Press and hold a shift to drag it to another person or day. Tap a day’s name to mark the center closed or open it again. Hours under each name include time at Brandon; overtime shows in red past 40. Pay is an estimate (time and a half past 40).</p>';
   if(S.sc.edit) h+=scEditor();
   if(S.sc.tpl) h+=scTemplates();
   return h;
@@ -1097,6 +1103,60 @@ function scTemplates(){
     (rows?'<div class="sc-tl">'+rows+'</div>':'<div class="help" style="margin:6px 0 12px">No templates yet. Save this week as your first one below.</div>')+
     '<div class="sc-save"><label for="sc-tn">Save this week as a template</label><div class="sc-save-r"><input id="sc-tn" maxlength="60" placeholder="For example: Winter 2026"><button type="button" class="btn" data-sc="tplsave">Save</button></div><div class="err" id="sc-terr" role="alert"></div></div>'+
     '</div></div>';
+}
+// ---- press, hold and drag a shift block onto another person or day ----
+var SCD={ t:null, on:false, src:null, ghost:null, over:null, x0:0, y0:0, skipClick:false };
+function scDragEnd(){ clearTimeout(SCD.t); SCD.t=null; if(SCD.ghost){ SCD.ghost.remove(); SCD.ghost=null; } if(SCD.over){ SCD.over.classList.remove('sc-drop'); SCD.over=null; } if(SCD.src&&SCD.src.el) SCD.src.el.classList.remove('sc-lift'); document.body.classList.remove('sc-dragging'); SCD.on=false; SCD.src=null; }
+function scTargetAt(x,y){ if(SCD.ghost) SCD.ghost.style.display='none'; var el=document.elementFromPoint(x,y); if(SCD.ghost) SCD.ghost.style.display=''; return el && el.closest('.sc-hit[data-sc=edit]'); }
+document.addEventListener('pointerdown',function(e){
+  var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl) return;
+  if(e.pointerType==='mouse' && e.button!==0) return;
+  SCD.x0=e.clientX; SCD.y0=e.clientY;
+  SCD.src={ el:ch, id:ch.getAttribute('data-did'), day:ch.getAttribute('data-dday'), i:+ch.getAttribute('data-di') };
+  SCD.t=setTimeout(function(){
+    SCD.on=true; SCD.skipClick=true; ch.classList.add('sc-lift'); document.body.classList.add('sc-dragging');
+    var r=ch.getBoundingClientRect(), g=ch.cloneNode(true); g.className='sc-chip sc-ghost'; g.style.width=r.width+'px'; g.style.left=(SCD.x0-r.width/2)+'px'; g.style.top=(SCD.y0-r.height/2)+'px';
+    document.body.appendChild(g); SCD.ghost=g; try{ if(navigator.vibrate) navigator.vibrate(15); }catch(err){}
+  }, e.pointerType==='mouse'?250:400);
+});
+document.addEventListener('pointermove',function(e){
+  if(!SCD.src) return;
+  if(!SCD.on){ if(Math.abs(e.clientX-SCD.x0)>8 || Math.abs(e.clientY-SCD.y0)>8){ clearTimeout(SCD.t); SCD.src=null; } return; }
+  e.preventDefault();
+  var g=SCD.ghost; g.style.left=(e.clientX-g.offsetWidth/2)+'px'; g.style.top=(e.clientY-g.offsetHeight/2)+'px';
+  var tg=scTargetAt(e.clientX,e.clientY); if(tg!==SCD.over){ if(SCD.over) SCD.over.classList.remove('sc-drop'); SCD.over=tg; if(tg) tg.classList.add('sc-drop'); }
+  // nudge the grid sideways near its edges
+  var w=document.querySelector('.sc-wrap'); if(w){ var wr=w.getBoundingClientRect(); if(e.clientX>wr.right-40) w.scrollLeft+=12; else if(e.clientX<wr.left+110) w.scrollLeft-=12; }
+},{ passive:false });
+document.addEventListener('touchmove',function(e){ if(SCD.on) e.preventDefault(); },{ passive:false });
+document.addEventListener('pointerup',function(e){
+  if(!SCD.src) return; if(!SCD.on){ clearTimeout(SCD.t); SCD.src=null; return; }
+  var src=SCD.src, tg=scTargetAt(e.clientX,e.clientY); scDragEnd();
+  setTimeout(function(){ SCD.skipClick=false; }, 350);
+  if(!tg) return; scMove(src, tg.getAttribute('data-id'), tg.getAttribute('data-day'));
+});
+document.addEventListener('pointercancel',function(){ if(SCD.src) scDragEnd(); });
+document.addEventListener('click',function(e){ if(SCD.skipClick){ e.stopPropagation(); e.preventDefault(); SCD.skipClick=false; } }, true);
+document.addEventListener('contextmenu',function(e){ if(e.target.closest && e.target.closest('.sc-drag')) e.preventDefault(); });
+function scMove(src, toId, toDay){
+  if(!toId || (src.id===toId && src.day===toDay)) return;
+  var d=S.sc.data, from=scRow(src.id), fromDays=JSON.parse(JSON.stringify(from.days||{})), blk=(fromDays[src.day]||[])[src.i];
+  if(!blk) return;
+  fromDays[src.day].splice(src.i,1);
+  var to=src.id===toId?null:scRow(toId), toDays=to?JSON.parse(JSON.stringify(to.days||{})):fromDays;
+  toDays[toDay]=(toDays[toDay]||[]).concat([blk]).sort(function(a,b){ return a.s<b.s?-1:1; });
+  var who=(d.staff||[]).find(function(x){ return x.id===toId; }), nm=toId==='open'?'Open shifts':(who?who.name:'them');
+  // show it right away, then save
+  var setLocal=function(id,days){ var r=(d.rows||[]).find(function(x){ return x.staffId===id; }); if(r) r.days=days; else (d.rows=d.rows||[]).push({ staffId:id, days:days, published:null, rev:0 }); };
+  setLocal(src.id, fromDays); if(to) setLocal(toId, toDays); render();
+  var save=function(id,days){ var r=scRow(id); return scPost({ action:'sched_save', center:S.sc.center, week:S.sc.week, staffId:id, rev:r.rev||0, days:days }); };
+  save(src.id, fromDays).then(function(r1){
+    if(!r1 || !r1.ok){ scApply(r1); return; }
+    if(!to){ scApply(r1); toast('Moved to '+(SC_DAYS.find(function(x){ return x[0]===toDay; })||['',''])[1]+'.'); return; }
+    S.sc.data=r1; var tr=scRow(toId);
+    return scPost({ action:'sched_save', center:S.sc.center, week:S.sc.week, staffId:toId, rev:tr.rev||0, days:(function(){ var dd=JSON.parse(JSON.stringify(tr.days||{})); dd[toDay]=(dd[toDay]||[]).concat([blk]).sort(function(a,b){ return a.s<b.s?-1:1; }); return dd; })() })
+      .then(function(r2){ scApply(r2); if(r2&&r2.ok) toast('Moved to '+nm+'.'); });
+  });
 }
 function scGrab(){
   var e=S.sc.edit; if(!e) return;
