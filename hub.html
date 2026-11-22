@@ -218,11 +218,15 @@ nav .badge{top:-2px;right:14px}
 .sc-wrap{background:var(--card);border-radius:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:12px}
 .sc-t{border-collapse:collapse;width:100%;min-width:860px;font-size:13px}
 .sc-t thead th{font-size:12px;font-weight:600;color:var(--sub);padding:10px 6px 8px;text-align:left;white-space:nowrap}
-.sc-t thead th:last-child,.sc-t td.sc-tot{text-align:right;padding-right:14px}
 .sc-t tbody th{position:sticky;left:0;z-index:1;background:var(--card);text-align:left;padding:8px 10px 8px 14px;min-width:150px;max-width:170px;border-top:1px solid var(--line);vertical-align:top}
 .sc-t thead th:first-child,.sc-t tfoot th{position:sticky;left:0;background:var(--card);z-index:1}
 .sc-nm{display:block;font-size:14px;font-weight:600}
-.sc-t tbody th small{display:block;font-size:11px;font-weight:400;color:var(--sub);margin-top:2px}
+.sc-t tbody th small{display:block;font-size:12px;font-weight:400;color:var(--sub);margin-top:2px}
+.sc-hp{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;margin-top:3px;font-size:13px;font-variant-numeric:tabular-nums}
+.sc-hp b{font-weight:600}
+.sc-hp em{font-style:normal;font-weight:700;color:#b3261e;font-size:12px}
+.sc-cl{display:block;padding:8px 6px;font-size:12px;font-weight:600;color:#b3261e}
+.sc-foot th small{display:block;font-weight:500}
 .sc-cell{border-top:1px solid var(--line);border-left:1px solid var(--line);padding:3px;vertical-align:top;min-width:128px}
 .sc-cell.sc-closed{background:repeating-linear-gradient(135deg,#f6f6f8 0 6px,#ededf1 6px 12px)}
 .sc-cell.sc-chg .sc-hit{outline:2px dashed #c27c0e;outline-offset:-2px}
@@ -239,7 +243,6 @@ nav .badge{top:-2px;right:14px}
 .sc-open th,.sc-open td{background:#fffbeb}
 .sc-foot th,.sc-foot td{border-top:1px solid #d8d8dd;padding:8px 6px;font-size:12px;color:var(--sub);font-weight:600;font-variant-numeric:tabular-nums}
 .sc-foot th{padding-left:14px;text-align:left}
-.sc-foot td:last-child{text-align:right;padding-right:14px}
 .sc-day{border:0;background:none;font:inherit;font-weight:600;color:var(--sub);cursor:pointer;padding:4px;border-radius:6px;text-align:left}
 .sc-day small{display:block;font-size:11px;color:#b3261e}
 .sc-key{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--sub);margin:10px 4px 0}
@@ -923,6 +926,8 @@ function scDate(iso,add){ var p=iso.split('-'); var d=new Date(+p[0],+p[1]-1,+p[
 function scMins(t){ return +t.slice(0,2)*60 + +t.slice(3); }
 function scT(t){ var h=+t.slice(0,2), m=t.slice(3), a=h<12?'a':'p'; h=h%12||12; return h+(m==='00'?'':':'+m)+a; }
 function scHM(m){ return Math.floor(m/60)+':'+String(m%60).padStart(2,'0'); }
+function scPay(p,mins){ if(p.payType==='salaried'||typeof p.rate!=='number') return null; var reg=Math.min(mins,2400), ot=Math.max(0,mins-2400); return (reg*p.rate + ot*p.rate*1.5)/60; }
+function scMoney(n){ return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function scBlocksMins(list){ return (list||[]).reduce(function(s,b){ return s+Math.max(0,scMins(b.e)-scMins(b.s)); },0); }
 function scWeekMins(days){ return SC_ALL_DAYS.reduce(function(s,k){ return s+scBlocksMins((days||{})[k]); },0); }
 function scPos(k){ return ((S.sc.data&&S.sc.data.positions)||[]).find(function(p){ return p.key===k; }) || { key:k, name:k, color:'#8e8e93', kind:'room' }; }
@@ -960,7 +965,7 @@ function schedView(){
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
   var cols=SC_DAYS.map(function(dd,i){ return { key:dd[0], label:dd[1], date:scIso(scDate(S.sc.week,i)) }; });
   var dayTot={}; cols.forEach(function(c){ dayTot[c.key]=0; });
-  var people=[{ id:'open', name:'Open shifts', open:true }].concat(d.staff||[]);
+  var payTot=0, people=[{ id:'open', name:'Open shifts', open:true }].concat(d.staff||[]);
   var rowsH=people.map(function(p){
     var r=scRow(p.id), days=r.days||{}, pub=r.published||{};
     var here=scWeekMins(days), oth=d.other&&d.other[p.id]?d.other[p.id].minutes:0, tot=here+oth;
@@ -970,17 +975,22 @@ function schedView(){
       var od=d.other&&d.other[p.id]&&(d.other[p.id].days||{})[c.key]||[];
       var chips=list.map(function(b){ var ps=scPos(b.p); return '<span class="sc-chip" style="background:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+scT(b.s)+'–'+scT(b.e)+'</b><span>'+esc(ps.name)+'</span></span>'; }).join('');
       if(od.length) chips+='<span class="sc-chip sc-other"><b>'+scT(od[0].s)+'–'+scT(od[od.length-1].e)+'</b><span>at Brandon</span></span>';
-      return '<td class="sc-cell'+(closed[c.date]?' sc-closed':'')+(changed?' sc-chg':'')+'"><button type="button" class="sc-hit" data-sc="edit" data-id="'+esc(p.id)+'" data-day="'+c.key+'" aria-label="'+esc(p.name+', '+c.label)+'">'+(chips||'<span class="sc-plus">+</span>')+'</button></td>';
+      if(closed[c.date]) return '<td class="sc-cell sc-closed"><span class="sc-cl">'+(p.open?esc(closed[c.date]):'')+'</span></td>';
+      return '<td class="sc-cell'+(changed?' sc-chg':'')+'"><button type="button" class="sc-hit" data-sc="edit" data-id="'+esc(p.id)+'" data-day="'+c.key+'" aria-label="'+esc(p.name+', '+c.label)+'">'+(chips||'<span class="sc-plus">+</span>')+'</button></td>';
     }).join('');
-    var ot=(!p.open && p.payType!=='salaried' && tot>2400)?'<small class="sc-ot">+ '+scHM(tot-2400)+'</small>':'';
-    var sub=p.open?'Anyone can pick up':(p.payType==='salaried'?'Salaried':'')+(oth?((p.payType==='salaried'?' · ':'')+'incl. '+scHM(oth)+' at Brandon'):'');
-    return '<tr'+(p.open?' class="sc-open"':'')+'><th scope="row"><span class="sc-nm">'+esc(p.name)+'</span>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</th>'+cells+'<td class="sc-tot">'+(p.open?'':'<b>'+scHM(tot)+'</b>'+ot)+'</td></tr>';
+    var sub;
+    if(p.open) sub='<small>Anyone can pick up</small>';
+    else { var pay=scPay(p,tot); if(pay!=null) payTot+=pay;
+      sub='<span class="sc-hp"><b>'+scHM(tot)+' hrs</b>'+(p.payType!=='salaried'&&tot>2400?'<em>+ '+scHM(tot-2400)+' OT</em>':'')+'</span>'+
+        '<small>'+(p.payType==='salaried'?'Salaried':pay!=null?scMoney(pay):'')+(oth?((p.payType==='salaried'||pay!=null?' · ':'')+'incl. '+scHM(oth)+' at Brandon'):'')+'</small>'; }
+    return '<tr'+(p.open?' class="sc-open"':'')+'><th scope="row"><span class="sc-nm">'+esc(p.name)+'</span>'+sub+'</th>'+cells+'</tr>';
   }).join('');
-  var head='<tr><th></th>'+cols.map(function(c){ var dt=scDate(c.date); return '<th><button type="button" class="sc-day" data-sc="day" data-date="'+c.date+'">'+c.label+' '+dt.getDate()+(closed[c.date]?'<small>'+esc(closed[c.date])+'</small>':'')+'</button></th>'; }).join('')+'<th>Week</th></tr>';
-  var foot='<tr class="sc-foot"><th>Hours</th>'+cols.map(function(c){ return '<td>'+(dayTot[c.key]?scHM(dayTot[c.key]):'')+'</td>'; }).join('')+'<td>'+scHM(cols.reduce(function(s,c){ return s+dayTot[c.key]; },0))+'</td></tr>';
+  var head='<tr><th></th>'+cols.map(function(c){ var dt=scDate(c.date); return '<th><button type="button" class="sc-day" data-sc="day" data-date="'+c.date+'">'+c.label+' '+dt.getDate()+(closed[c.date]?'<small>'+esc(closed[c.date])+'</small>':'')+'</button></th>'; }).join('')+'</tr>';
+  var weekTot=cols.reduce(function(s,c){ return s+dayTot[c.key]; },0);
+  var foot='<tr class="sc-foot"><th>'+scHM(weekTot)+' hrs'+(payTot?'<small>'+scMoney(payTot)+' est.</small>':'')+'</th>'+cols.map(function(c){ return '<td>'+(dayTot[c.key]?scHM(dayTot[c.key])+' hrs':'')+'</td>'; }).join('')+'</tr>';
   h+='<div class="sc-wrap"><table class="sc-t"><thead>'+head+'</thead><tbody>'+rowsH+'</tbody><tfoot>'+foot+'</tfoot></table></div>';
   h+='<div class="sc-key">'+(d.positions||[]).filter(function(p){ return p.centers.indexOf(S.sc.center)>=0; }).map(function(p){ return '<span><i style="background:'+p.color+'"></i>'+esc(p.name)+'</span>'; }).join('')+'</div>';
-  h+='<p class="help">Tap a day to add or change shifts. Tap a day’s name to mark the center closed. Week totals include hours at Brandon; overtime shows in red past 40.</p>';
+  h+='<p class="help">Tap a day to add or change shifts. Tap a day’s name to mark the center closed or open it again. Hours under each name include time at Brandon; overtime shows in red past 40. Pay is an estimate (time and a half past 40).</p>';
   if(S.sc.edit) h+=scEditor();
   return h;
 }
@@ -1014,7 +1024,7 @@ function schedClick(t){
   if(a==='publish'){ if(!confirm('Publish this week? (Staff alerts aren’t turned on yet, so nobody is notified.)')) return; t.disabled=true; scPost({ action:'sched_publish', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
   if(a==='day'){ var dt=t.getAttribute('data-date'), isC=(S.sc.data.closed||[]).some(function(c){ return c.date===dt; });
     if(isC){ if(!confirm('Open the center again on this day?')) return; scPost({ action:'sched_closed', center:S.sc.center, week:S.sc.week, date:dt, on:false }).then(scApply); }
-    else { var why=prompt('Mark the center closed this day? Type the reason (for example Thanksgiving):','Closed'); if(why===null) return; scPost({ action:'sched_closed', center:S.sc.center, week:S.sc.week, date:dt, title:why }).then(scApply); }
+    else { var hasShifts=(S.sc.data.rows||[]).some(function(r){ var k=SC_DAYS[Math.round((scDate(dt)-scDate(S.sc.week))/864e5)]; return k && ((r.days||{})[k[0]]||[]).length; }); var why=prompt('Mark the center closed this day?'+(hasShifts?' Anyone scheduled that day will be taken off it.':'')+' Type the reason (for example Thanksgiving):','Closed'); if(why===null) return; scPost({ action:'sched_closed', center:S.sc.center, week:S.sc.week, date:dt, title:why }).then(scApply); }
     return; }
   if(a==='edit'){ var id=t.getAttribute('data-id'), day=t.getAttribute('data-day'), r=scRow(id);
     var st=(S.sc.data.staff||[]).find(function(x){ return x.id===id; }), firstRoom=st&&st.positions.find(function(k){ return scPos(k).kind==='room'; });
