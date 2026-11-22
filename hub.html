@@ -211,6 +211,54 @@ nav .badge{top:-2px;right:14px}
 .ot-dy .v .no{color:var(--faint)}
 .ot-dy.x{background:#fde8e7;box-shadow:inset 0 0 0 1.5px #e9a29b}
 .ot-dy.x .k{color:#b3261e}
+#wrap.sc-wide{max-width:1240px}
+.sc-bar{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+.sc-bar .round svg{width:20px;height:20px}
+.pill:disabled{opacity:.55;cursor:default}
+.sc-wrap{background:var(--card);border-radius:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:12px}
+.sc-t{border-collapse:collapse;width:100%;min-width:860px;font-size:13px}
+.sc-t thead th{font-size:12px;font-weight:600;color:var(--sub);padding:10px 6px 8px;text-align:left;white-space:nowrap}
+.sc-t thead th:last-child,.sc-t td.sc-tot{text-align:right;padding-right:14px}
+.sc-t tbody th{position:sticky;left:0;z-index:1;background:var(--card);text-align:left;padding:8px 10px 8px 14px;min-width:150px;max-width:170px;border-top:1px solid var(--line);vertical-align:top}
+.sc-t thead th:first-child,.sc-t tfoot th{position:sticky;left:0;background:var(--card);z-index:1}
+.sc-nm{display:block;font-size:14px;font-weight:600}
+.sc-t tbody th small{display:block;font-size:11px;font-weight:400;color:var(--sub);margin-top:2px}
+.sc-cell{border-top:1px solid var(--line);border-left:1px solid var(--line);padding:3px;vertical-align:top;min-width:128px}
+.sc-cell.sc-closed{background:repeating-linear-gradient(135deg,#f6f6f8 0 6px,#ededf1 6px 12px)}
+.sc-cell.sc-chg .sc-hit{outline:2px dashed #c27c0e;outline-offset:-2px}
+.sc-hit{display:flex;flex-direction:column;gap:3px;width:100%;min-height:52px;border:0;background:none;border-radius:8px;padding:2px;text-align:left;cursor:pointer;font:inherit;color:inherit}
+.sc-hit:hover{background:#f6f6f9}
+.sc-plus{margin:auto;color:#c7c7cc;font-size:20px}
+.sc-chip{display:flex;flex-direction:column;border-radius:6px;padding:3px 6px;line-height:1.25}
+.sc-chip b{font-size:12px;font-weight:600;white-space:nowrap}
+.sc-chip span{font-size:11px;color:#3a3a3f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-chip.sc-other{background:#f2f2f5;border-left:3px solid #40B549}
+.sc-tot{border-top:1px solid var(--line);padding:8px 14px 8px 6px;white-space:nowrap;vertical-align:top;font-variant-numeric:tabular-nums}
+.sc-tot b{display:block;font-size:14px}
+.sc-ot{display:block;color:#b3261e;font-weight:700;font-size:12px}
+.sc-open th,.sc-open td{background:#fffbeb}
+.sc-foot th,.sc-foot td{border-top:1px solid #d8d8dd;padding:8px 6px;font-size:12px;color:var(--sub);font-weight:600;font-variant-numeric:tabular-nums}
+.sc-foot th{padding-left:14px;text-align:left}
+.sc-foot td:last-child{text-align:right;padding-right:14px}
+.sc-day{border:0;background:none;font:inherit;font-weight:600;color:var(--sub);cursor:pointer;padding:4px;border-radius:6px;text-align:left}
+.sc-day small{display:block;font-size:11px;color:#b3261e}
+.sc-key{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--sub);margin:10px 4px 0}
+.sc-key i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.sc-sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.32);display:flex;align-items:flex-end;justify-content:center}
+@media (min-width:640px){.sc-sheet{align-items:center}}
+.sc-card{background:var(--card);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:18px 18px calc(env(safe-area-inset-bottom) + 18px);max-height:90vh;overflow:auto}
+@media (min-width:640px){.sc-card{border-radius:20px}}
+.sc-ch{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+.sc-ch b{font-size:18px}
+.sc-ch .sm{font-size:13px;color:var(--sub);margin-top:2px}
+.sc-blk{display:grid;grid-template-columns:1fr auto 1fr;gap:6px 8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.sc-blk select{grid-column:1 / 3}
+.sc-blk input,.sc-blk select{min-height:42px;border:1px solid #d2d2d7;border-radius:10px;padding:0 10px;font:inherit;font-size:16px;background:#fff;width:100%}
+.sc-blk span{font-size:13px;color:var(--sub)}
+.sc-x{width:42px;height:42px;border:0;border-radius:10px;background:#fde8e7;color:#b3261e;font-size:22px;cursor:pointer;justify-self:end}
+.sc-acts{display:flex;gap:8px;margin:12px 0}
+.sc-rep{display:flex;align-items:center;gap:8px;font-size:14px;margin:4px 0 8px}
+.sc-rep input{width:20px;height:20px}
 </style>
 </head>
 <body>
@@ -310,13 +358,15 @@ function setView(v, arg){
   S.view=v; if(v==='list') S.list=arg;
   var emb = v==='hiring'||v==='ptoadmin'||v==='onboardform';
   $('wrap').classList.toggle('wide', emb);
+  $('wrap').classList.toggle('sc-wide', v==='sched');
   $('embed-hiring').classList.toggle('hidden', v!=='hiring');
   $('embed-pto').classList.toggle('hidden', v!=='ptoadmin');
   $('embed-onboard').classList.toggle('hidden', v!=='onboardform');
   $('view').classList.toggle('hidden', emb);
-  var tab = v==='list'||v==='overtime'||emb ? 'home' : (v==='users'||v==='useredit'||v==='password') ? 'settings' : v;
+  var tab = v==='list'||v==='overtime'||v==='sched'||emb ? 'home' : (v==='users'||v==='useredit'||v==='password') ? 'settings' : v;
   Array.prototype.forEach.call(document.querySelectorAll('nav button'),function(b){ if(b.getAttribute('data-tab')===tab) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
   if(v==='hiring') openEmbed('hiring'); else if(v==='ptoadmin') openEmbed('pto'); else if(v==='onboardform') openEmbed('onboard'); else render();
+  if(v==='sched' && (!S.sc || !S.sc.data) && !(S.sc && S.sc.busy)) scLoad();
   window.scrollTo(0,0);
 }
 // Icon color follows the center you're looking at: both centers purple, Sioux Falls blue, Brandon green.
@@ -333,6 +383,7 @@ function render(){
   else if(S.view==='useredit') v.innerHTML=userEdit();
   else if(S.view==='password') v.innerHTML=passwordView();
   else if(S.view==='overtime') v.innerHTML=overtimeView();
+  else if(S.view==='sched') v.innerHTML=schedView();
 }
 function centerSeg(){
   if(S.data.role!=='ALL') return '';
@@ -374,6 +425,7 @@ function home(){
   if(team.length) h+='<h2 class="sec">Team members</h2>'+grid(team);
   if(quick) h+='<div class="quick">'+quick+'</div>';
   if(fam.length) h+='<h2 class="sec">Families</h2>'+grid(fam);
+  if(S.data.owner) h+='<h2 class="sec">Preview</h2><div class="quick"><button type="button" data-go="sched">'+svg('pto','#0a5bd3')+'<span>Schedule<div class="help" style="margin:0;font-size:13px">Only you can see this while it’s being built</div></span></button></div>';
   return h;
 }
 // ---------- overtime (nightly report from the Overtime Alert task) ----------
@@ -794,6 +846,7 @@ document.addEventListener('submit',function(e){
 document.addEventListener('click',function(e){
   var t=e.target.closest('button,a,.item'); if(!t) return;
   if(t.hasAttribute('data-tab')){ setView(t.getAttribute('data-tab')); if(t.getAttribute('data-tab')!=='settings') refresh(true); return; }
+  if(t.hasAttribute('data-sc')){ schedClick(t); return; }
   if(t.hasAttribute('data-read')) markRead([t.getAttribute('data-read')]);
   var go=t.getAttribute('data-go');
   if(go==='hiring-jobs'){ openHiring('jobs'); return; }
@@ -860,6 +913,127 @@ document.addEventListener('input',function(e){ if(e.target.id!=='ar-q') return; 
 document.addEventListener('visibilitychange',function(){ if(!document.hidden && me && S.data) refresh(true); });
 setInterval(function(){ if(!document.hidden && me && S.data && S.view!=='settings') refresh(true); }, 60000);
 if(navigator.serviceWorker) navigator.serviceWorker.addEventListener('message',function(e){ if(e.data && e.data.go==='inbox' && S.data){ refresh(true); setView('inbox'); } });
+
+// ---------- Schedule (replacing When I Work). Owner-only preview while it's being built. ----------
+var SC_DAYS=[['mon','Mon'],['tue','Tue'],['wed','Wed'],['thu','Thu'],['fri','Fri']];
+var SC_ALL_DAYS=['mon','tue','wed','thu','fri','sat','sun'];
+function scMonday(d){ d=new Date(d.getFullYear(),d.getMonth(),d.getDate()); var k=(d.getDay()+6)%7; d.setDate(d.getDate()-k); return d; }
+function scIso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function scDate(iso,add){ var p=iso.split('-'); var d=new Date(+p[0],+p[1]-1,+p[2]); if(add) d.setDate(d.getDate()+add); return d; }
+function scMins(t){ return +t.slice(0,2)*60 + +t.slice(3); }
+function scT(t){ var h=+t.slice(0,2), m=t.slice(3), a=h<12?'a':'p'; h=h%12||12; return h+(m==='00'?'':':'+m)+a; }
+function scHM(m){ return Math.floor(m/60)+':'+String(m%60).padStart(2,'0'); }
+function scBlocksMins(list){ return (list||[]).reduce(function(s,b){ return s+Math.max(0,scMins(b.e)-scMins(b.s)); },0); }
+function scWeekMins(days){ return SC_ALL_DAYS.reduce(function(s,k){ return s+scBlocksMins((days||{})[k]); },0); }
+function scPos(k){ return ((S.sc.data&&S.sc.data.positions)||[]).find(function(p){ return p.key===k; }) || { key:k, name:k, color:'#8e8e93', kind:'room' }; }
+function scRow(id){ return ((S.sc.data&&S.sc.data.rows)||[]).find(function(r){ return r.staffId===id; }) || { staffId:id, days:{}, published:null, rev:0 }; }
+function scInit(){ if(!S.sc){ var nw=scMonday(new Date()); nw.setDate(nw.getDate()+7); S.sc={ center:'SF', week:scIso(nw), data:null, busy:false, edit:null }; } }
+function scPost(o){
+  o.form='sched'; if(me&&me.session) o.session=me.session;
+  return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)})
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return { ok:false, error:'Can’t reach SEE right now. Check your connection and try again.' }; });
+}
+function scLoad(){
+  scInit(); S.sc.busy=true; S.sc.data=null; render();
+  return scPost({ action:'sched_load', center:S.sc.center, week:S.sc.week }).then(scApply);
+}
+function scApply(r){
+  S.sc.busy=false;
+  if(r && r.locked){ toast(r.error); return; }
+  if(!r || (!r.ok && !r.rows)){ toast((r&&r.error)||'Something went wrong.'); if(S.view==='sched') render(); return; }
+  if(!r.ok) toast(r.error);
+  if(r.message) toast(r.message);
+  S.sc.data=r; if(S.view==='sched') render();
+}
+function scWeekLabel(){ var a=scDate(S.sc.week), b=scDate(S.sc.week,4), f=function(d){ return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }; return f(a)+' – '+f(b); }
+
+function schedView(){
+  scInit(); var d=S.sc.data;
+  var h='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button>'+
+    '<div class="top"><div><div class="eyebrow">Preview · only you can see this</div><h1>Schedule</h1><div class="help" style="margin:2px 0 0">Sioux Falls · Week of '+esc(scWeekLabel())+'</div></div></div>'+
+    '<div class="sc-bar"><button type="button" class="round" data-sc="prev" aria-label="Previous week">'+svg('back')+'</button><button type="button" class="pill" data-sc="today">This week</button><button type="button" class="round" data-sc="next" aria-label="Next week">'+svg('chev')+'</button>'+
+    '<span style="flex:1"></span><button type="button" class="pill" data-sc="copy">Copy last week</button>'+
+    (d? '<button type="button" class="pill go" data-sc="publish"'+(d.unpublished?'':' disabled')+'>'+(d.unpublished?'Publish ('+d.unpublished+')':'Published')+'</button>':'')+'</div>';
+  if(!d) return h+'<div class="empty"><span class="spin"></span> Loading…</div>';
+  if(d.unpublished) h+='<div class="note">Draft: '+plural(d.unpublished,'person’s week has','people’s weeks have')+' changes that aren’t published yet (dashed outline).</div>';
+  var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
+  var cols=SC_DAYS.map(function(dd,i){ return { key:dd[0], label:dd[1], date:scIso(scDate(S.sc.week,i)) }; });
+  var dayTot={}; cols.forEach(function(c){ dayTot[c.key]=0; });
+  var people=[{ id:'open', name:'Open shifts', open:true }].concat(d.staff||[]);
+  var rowsH=people.map(function(p){
+    var r=scRow(p.id), days=r.days||{}, pub=r.published||{};
+    var here=scWeekMins(days), oth=d.other&&d.other[p.id]?d.other[p.id].minutes:0, tot=here+oth;
+    var cells=cols.map(function(c){
+      var list=days[c.key]||[], changed=JSON.stringify(list)!==JSON.stringify(pub[c.key]||[]) && !(list.length===0 && !(pub[c.key]||[]).length);
+      if(!p.open) dayTot[c.key]+=scBlocksMins(list);
+      var od=d.other&&d.other[p.id]&&(d.other[p.id].days||{})[c.key]||[];
+      var chips=list.map(function(b){ var ps=scPos(b.p); return '<span class="sc-chip" style="background:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+scT(b.s)+'–'+scT(b.e)+'</b><span>'+esc(ps.name)+'</span></span>'; }).join('');
+      if(od.length) chips+='<span class="sc-chip sc-other"><b>'+scT(od[0].s)+'–'+scT(od[od.length-1].e)+'</b><span>at Brandon</span></span>';
+      return '<td class="sc-cell'+(closed[c.date]?' sc-closed':'')+(changed?' sc-chg':'')+'"><button type="button" class="sc-hit" data-sc="edit" data-id="'+esc(p.id)+'" data-day="'+c.key+'" aria-label="'+esc(p.name+', '+c.label)+'">'+(chips||'<span class="sc-plus">+</span>')+'</button></td>';
+    }).join('');
+    var ot=(!p.open && p.payType!=='salaried' && tot>2400)?'<small class="sc-ot">+ '+scHM(tot-2400)+'</small>':'';
+    var sub=p.open?'Anyone can pick up':(p.payType==='salaried'?'Salaried':'')+(oth?((p.payType==='salaried'?' · ':'')+'incl. '+scHM(oth)+' at Brandon'):'');
+    return '<tr'+(p.open?' class="sc-open"':'')+'><th scope="row"><span class="sc-nm">'+esc(p.name)+'</span>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</th>'+cells+'<td class="sc-tot">'+(p.open?'':'<b>'+scHM(tot)+'</b>'+ot)+'</td></tr>';
+  }).join('');
+  var head='<tr><th></th>'+cols.map(function(c){ var dt=scDate(c.date); return '<th><button type="button" class="sc-day" data-sc="day" data-date="'+c.date+'">'+c.label+' '+dt.getDate()+(closed[c.date]?'<small>'+esc(closed[c.date])+'</small>':'')+'</button></th>'; }).join('')+'<th>Week</th></tr>';
+  var foot='<tr class="sc-foot"><th>Hours</th>'+cols.map(function(c){ return '<td>'+(dayTot[c.key]?scHM(dayTot[c.key]):'')+'</td>'; }).join('')+'<td>'+scHM(cols.reduce(function(s,c){ return s+dayTot[c.key]; },0))+'</td></tr>';
+  h+='<div class="sc-wrap"><table class="sc-t"><thead>'+head+'</thead><tbody>'+rowsH+'</tbody><tfoot>'+foot+'</tfoot></table></div>';
+  h+='<div class="sc-key">'+(d.positions||[]).filter(function(p){ return p.centers.indexOf(S.sc.center)>=0; }).map(function(p){ return '<span><i style="background:'+p.color+'"></i>'+esc(p.name)+'</span>'; }).join('')+'</div>';
+  h+='<p class="help">Tap a day to add or change shifts. Tap a day’s name to mark the center closed. Week totals include hours at Brandon; overtime shows in red past 40.</p>';
+  if(S.sc.edit) h+=scEditor();
+  return h;
+}
+
+function scEditor(){
+  var e=S.sc.edit, d=S.sc.data, p=e.id==='open'?{ id:'open', name:'Open shift', positions:[] }:(d.staff||[]).find(function(x){ return x.id===e.id; })||{ name:'', positions:[] };
+  var dayName=(SC_DAYS.find(function(x){ return x[0]===e.day; })||['',''])[1], date=scDate(S.sc.week,SC_DAYS.findIndex(function(x){ return x[0]===e.day; }));
+  var opts=function(sel){ var mine=(d.positions||[]).filter(function(ps){ return ps.centers.indexOf(S.sc.center)>=0; });
+    var ok=mine.filter(function(ps){ return e.id==='open' || p.positions.indexOf(ps.key)>=0; }), rest=mine.filter(function(ps){ return ok.indexOf(ps)<0; });
+    var o=function(ps){ return '<option value="'+ps.key+'"'+(ps.key===sel?' selected':'')+'>'+esc(ps.name)+'</option>'; };
+    return ok.map(o).join('')+(rest.length?'<optgroup label="Not usually theirs">'+rest.map(o).join('')+'</optgroup>':''); };
+  var rows=e.blocks.map(function(b,i){ return '<div class="sc-blk"><input type="time" step="300" aria-label="Start" data-sb="s" data-i="'+i+'" value="'+b.s+'"><span>to</span><input type="time" step="300" aria-label="End" data-sb="e" data-i="'+i+'" value="'+b.e+'"><select aria-label="Room or duty" data-sb="p" data-i="'+i+'">'+opts(b.p)+'</select><button type="button" class="sc-x" data-sc="del" data-i="'+i+'" aria-label="Remove this block">×</button></div>'; }).join('');
+  var mins=scBlocksMins(e.blocks.filter(function(b){ return b.s&&b.e&&b.e>b.s; }));
+  return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Edit shifts"><div class="sc-card">'+
+    '<div class="sc-ch"><div><b>'+esc(p.name)+'</b><div class="sm">'+dayName+' '+date.toLocaleDateString('en-US',{month:'short',day:'numeric'})+(mins?' · '+scHM(mins)+' hrs':'')+'</div></div><button type="button" class="link" data-sc="close">Cancel</button></div>'+
+    (rows||'<div class="help" style="margin:6px 0 10px">No shifts this day.</div>')+
+    '<div class="sc-acts"><button type="button" class="pill" data-sc="add">+ Add a block</button>'+(e.blocks.length?'<button type="button" class="pill" data-sc="clear">Clear day</button>':'')+'</div>'+
+    '<label class="sc-rep"><input type="checkbox" id="sc-rep"'+(e.rep?' checked':'')+'> Use for every weekday this week</label>'+
+    '<div class="err" id="sc-err" role="alert"></div><button type="button" class="btn" data-sc="save" style="width:100%">Save</button></div></div>';
+}
+function scGrab(){
+  var e=S.sc.edit; if(!e) return;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-sb]'),function(el){ var b=e.blocks[+el.getAttribute('data-i')]; if(b) b[el.getAttribute('data-sb')]=el.value; });
+  var rep=$('sc-rep'); if(rep) e.rep=rep.checked;
+}
+function schedClick(t){
+  var a=t.getAttribute('data-sc'); scInit();
+  if(a==='prev'||a==='next'){ S.sc.week=scIso(scDate(S.sc.week,a==='prev'?-7:7)); S.sc.edit=null; scLoad(); return; }
+  if(a==='today'){ S.sc.week=scIso(scMonday(new Date())); S.sc.edit=null; scLoad(); return; }
+  if(a==='copy'){ if(!confirm('Copy last week’s shifts into this week? People who already have shifts this week are left alone.')) return; t.disabled=true; scPost({ action:'sched_copy', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
+  if(a==='publish'){ if(!confirm('Publish this week? (Staff alerts aren’t turned on yet, so nobody is notified.)')) return; t.disabled=true; scPost({ action:'sched_publish', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
+  if(a==='day'){ var dt=t.getAttribute('data-date'), isC=(S.sc.data.closed||[]).some(function(c){ return c.date===dt; });
+    if(isC){ if(!confirm('Open the center again on this day?')) return; scPost({ action:'sched_closed', center:S.sc.center, week:S.sc.week, date:dt, on:false }).then(scApply); }
+    else { var why=prompt('Mark the center closed this day? Type the reason (for example Thanksgiving):','Closed'); if(why===null) return; scPost({ action:'sched_closed', center:S.sc.center, week:S.sc.week, date:dt, title:why }).then(scApply); }
+    return; }
+  if(a==='edit'){ var id=t.getAttribute('data-id'), day=t.getAttribute('data-day'), r=scRow(id);
+    var st=(S.sc.data.staff||[]).find(function(x){ return x.id===id; }), firstRoom=st&&st.positions.find(function(k){ return scPos(k).kind==='room'; });
+    var blocks=JSON.parse(JSON.stringify((r.days||{})[day]||[]));
+    if(!blocks.length) blocks=[{ s:'07:00', e:'17:00', p:firstRoom||(st&&st.positions[0])||'infant' }];
+    S.sc.edit={ id:id, day:day, blocks:blocks, rev:r.rev||0 }; render(); return; }
+  if(a==='close'){ S.sc.edit=null; render(); return; }
+  if(a==='add'){ scGrab(); var e=S.sc.edit, last=e.blocks[e.blocks.length-1]; e.blocks.push({ s:last?last.e:'07:00', e:last?(last.e<'17:00'?'17:00':'18:00'):'17:00', p:last?last.p:'infant' }); render(); return; }
+  if(a==='del'){ scGrab(); S.sc.edit.blocks.splice(+t.getAttribute('data-i'),1); render(); return; }
+  if(a==='clear'){ scGrab(); S.sc.edit.blocks=[]; render(); return; }
+  if(a==='save'){
+    scGrab(); var ed=S.sc.edit, bad=ed.blocks.find(function(b){ return !b.s||!b.e||b.e<=b.s; });
+    if(bad){ $('sc-err').textContent='Each block needs an end time after its start time.'; return; }
+    var row=scRow(ed.id), days=JSON.parse(JSON.stringify(row.days||{})), clean=ed.blocks.map(function(b){ return { s:b.s, e:b.e, p:b.p }; }).sort(function(x,y){ return x.s<y.s?-1:1; });
+    if(ed.rep) SC_DAYS.forEach(function(dd){ days[dd[0]]=JSON.parse(JSON.stringify(clean)); }); else days[ed.day]=clean;
+    t.disabled=true; t.textContent='Saving…';
+    scPost({ action:'sched_save', center:S.sc.center, week:S.sc.week, staffId:ed.id, rev:row.rev||0, days:days }).then(function(r){ if(r&&r.ok) S.sc.edit=null; else if(r&&r.conflict) S.sc.edit=null; scApply(r); if(r&&!r.ok&&!r.conflict&&$('sc-err')){ $('sc-err').textContent=r.error||'That didn’t save.'; t.disabled=false; t.textContent='Save'; } });
+    return; }
+}
 
 // ---------- go ----------
 if(/^#setpw=/.test(location.hash)){ save(null); showSetPw(location.hash.slice(7)); }
