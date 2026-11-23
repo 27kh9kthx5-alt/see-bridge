@@ -1465,7 +1465,7 @@ function suClick(t){
     su.edit=src?JSON.parse(JSON.stringify(src)):{ id:'', name:'', center:S.sc.center, centers:[S.sc.center], positions:[], payType:'hourly', rate:null, active:true, typical:{} };
     su.edit.typical=su.edit.typical||{}; render(); return; }
   if(a==='room'){ var k=t.getAttribute('data-key'), p=(su.data.positions||[]).find(function(x){ return x.key===k; });
-    su.room=p?JSON.parse(JSON.stringify(p)):{ key:'', name:'', kind:t.getAttribute('data-kind')||'room', color:'#406eb6', centers:[S.sc.center], active:true, ages:'', ratio:null }; render(); return; }
+    su.room=p?JSON.parse(JSON.stringify(p)):{ key:'', name:'', kind:t.getAttribute('data-kind')||'room', color:'#0B6BEB', centers:[S.sc.center], active:true, ages:'', ratio:null }; render(); return; }
   suGrab();
   var e=su.edit, r=su.room;
   if(a==='tpos'){ var kk=t.getAttribute('data-key'), i=e.positions.indexOf(kk); if(i>=0) e.positions.splice(i,1); else e.positions.push(kk); render(); return; }
