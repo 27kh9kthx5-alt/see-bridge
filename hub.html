@@ -349,6 +349,7 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-tbx{width:32px;height:32px;border:0;border-radius:8px;background:none;color:#8e8e93;font-size:20px;cursor:pointer}
 .sc-tpick select{width:100%;min-height:40px;border:1px solid #d2d2d7;border-radius:10px;padding:0 10px;font:inherit;font-size:15px;background:#fff;color:var(--blue);margin:6px 0 4px}
 .sc-tcopy{margin-left:auto;font-size:13px}
+.sc-ssh{display:flex;justify-content:space-between;align-items:baseline}.sc-ssh .link{text-transform:none;letter-spacing:0;font-size:13px}
 </style>
 </head>
 <body>
@@ -1057,6 +1058,7 @@ function scMenu(){
   h+=it('fill','Fill a room…','Add a room’s standard shifts to Open shifts on the days you pick.');
   if(d.unpublished && scHasPub()) h+=it('discard','Discard changes','Go back to what was last published.');
   if(st==='publish' && scHasPub()) h+=it('unpublish','Unpublish','Take the published schedule down. It stays here as a draft.');
+  if(has) h+=it('clear','Clear this week','Remove every shift this week, open shifts too. If it was published, Discard changes brings it back until you publish.');
   if(d.canSetup) h+=it('setup','Rooms &amp; staff…','Rooms, their standard shifts, and each person’s set schedule.');
   return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="This week"><div class="sc-card">'+h+'</div></div></div>';
 }
@@ -1208,7 +1210,7 @@ function suStaffEdit(){
   h+='<label class="sc-rep" style="margin-top:12px"><input type="checkbox" id="su-both"'+(e.centers.indexOf(other)>=0?' checked':'')+'> Also works at '+(other==='SF'?'Sioux Falls':'Brandon')+'</label>';
   h+='<label class="sc-rep"><input type="checkbox" id="su-active"'+(e.active?' checked':'')+'> Active (shows on the schedule)</label>';
   // typical week
-  h+='<div class="sc-pres-h" style="margin-top:16px">Set schedule</div><div class="help" style="margin:0 0 6px">What they normally work. Generate uses it every week. Leave a day empty if they’re usually off.</div>';
+  h+='<div class="sc-pres-h sc-ssh" style="margin-top:16px">Set schedule'+(SC_ALL_DAYS.some(function(k){ return (e.typical[k]||[]).length; })?'<button type="button" class="link" data-su="tbclear">Clear all</button>':'')+'</div><div class="help" style="margin:0 0 6px">What they normally work. Generate uses it every week. Leave a day empty if they’re usually off.</div>';
   var atC=(d.positions||[]).filter(function(p){ return p.active && p.centers.indexOf(c)>=0; });
   var roomsFor=e.positions.length?atC.filter(function(p){ return e.positions.indexOf(p.key)>=0; }):atC;
   var preAt=(d.presets||[]).filter(function(x){ return x.centers.indexOf(c)>=0; }).sort(function(a,b){ return a.s<b.s?-1:a.s>b.s?1:(a.e<b.e?-1:1); });
@@ -1269,6 +1271,7 @@ function suClick(t){
   if(a==='tbadd'){ var day=t.getAttribute('data-day'), list=(e.typical[day]=e.typical[day]||[]), last=list[list.length-1];
     list.push(t.getAttribute('data-s')?{ s:t.getAttribute('data-s'), e:t.getAttribute('data-e'), p:t.getAttribute('data-p') }:{ s:last?last.e:'07:00', e:last?(last.e<'17:00'?'17:00':'18:00'):'17:00', p:t.getAttribute('data-p')||(last?last.p:(e.positions[0]||'infant')) }); if(e.pick) delete e.pick[day];
     list.sort(function(x,y){ return x.s<y.s?-1:1; }); render(); return; }
+  if(a==='tbclear'){ if(!confirm('Clear their whole set schedule? (Nothing changes until you tap Save.)')) return; e.typical={}; e.pick={}; render(); return; }
   if(a==='tbdel'){ e.typical[t.getAttribute('data-day')].splice(+t.getAttribute('data-i'),1); render(); return; }
   if(a==='tbcopy'){ var src2=e.typical[t.getAttribute('data-day')]||[]; if(!confirm('Use this day for Monday–Friday?')) return; SC_DAYS.forEach(function(dd){ e.typical[dd[0]]=JSON.parse(JSON.stringify(src2)); }); render(); return; }
   if(a==='ssave'){ var bad=false; SC_ALL_DAYS.forEach(function(k){ (e.typical[k]||[]).forEach(function(b){ if(!b.s||!b.e||b.e<=b.s) bad=true; }); });
@@ -1388,6 +1391,7 @@ function schedClick(t){
     if(scShiftCount() && !confirm('Generate this week again? Everyone with a set schedule gets it back, and open shifts are worked out again. People without a set schedule keep what they have.')) return;
     t.disabled=true; S.sc.menu=false; scPost({ action:'sched_generate', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
   if(a==='main'){ a=t.getAttribute('data-st'); }
+  if(a==='clear'){ S.sc.menu=false; render(); if(!confirm('Clear every shift this week, including open shifts?')) return; scPost({ action:'sched_clear', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
   if(a==='setup'){ S.sc.bld=null; S.sc.menu=false; suOpen(); return; }
   if(a==='fillroom'){ t.disabled=true; scPost({ action:'sched_fillroom', center:S.sc.center, week:S.sc.week, pos:S.sc.bld.room, days:S.sc.bld.days }).then(function(r){ if(r&&r.ok) S.sc.bld=null; else t.disabled=false; scApply(r); }); return; }
   if(a==='tpls'){ S.sc.tpl=true; S.sc.tplOpen=null; render(); return; }
