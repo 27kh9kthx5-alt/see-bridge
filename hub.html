@@ -344,6 +344,11 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-step button{width:34px;height:34px;border:1px solid #d2d2d7;border-radius:10px;background:#fff;font-size:18px;cursor:pointer;color:inherit}
 .sc-step button[disabled]{opacity:.4}
 .sc-step span{display:flex;flex-direction:column;align-items:center;min-width:44px;line-height:1.1}.sc-step small{font-size:10px;color:var(--sub)}
+.sc-tb{display:flex;align-items:center;gap:8px;background:#f2f2f6;border-left:4px solid #8e8e93;border-radius:8px;padding:6px 6px 6px 10px;margin:6px 0}
+.sc-tb b{font-size:14px}.sc-tb span{flex:1;font-size:13px;color:var(--sub)}
+.sc-tbx{width:32px;height:32px;border:0;border-radius:8px;background:none;color:#8e8e93;font-size:20px;cursor:pointer}
+.sc-tpick select{width:100%;min-height:40px;border:1px solid #d2d2d7;border-radius:10px;padding:0 10px;font:inherit;font-size:15px;background:#fff;color:var(--blue);margin:6px 0 4px}
+.sc-tcopy{margin-left:auto;font-size:13px}
 </style>
 </head>
 <body>
@@ -1203,12 +1208,21 @@ function suStaffEdit(){
   h+='<label class="sc-rep" style="margin-top:12px"><input type="checkbox" id="su-both"'+(e.centers.indexOf(other)>=0?' checked':'')+'> Also works at '+(other==='SF'?'Sioux Falls':'Brandon')+'</label>';
   h+='<label class="sc-rep"><input type="checkbox" id="su-active"'+(e.active?' checked':'')+'> Active (shows on the schedule)</label>';
   // typical week
-  var mineP=(d.presets||[]).filter(function(x){ return x.centers.indexOf(c)>=0 && e.positions.indexOf(x.p)>=0; }).sort(function(a,b){ return a.s<b.s?-1:1; });
   h+='<div class="sc-pres-h" style="margin-top:16px">Set schedule</div><div class="help" style="margin:0 0 6px">What they normally work. Generate uses it every week. Leave a day empty if they’re usually off.</div>';
-  SC_DAYS.forEach(function(dd){ var k=dd[0], list=(e.typical[k]||[]);
-    h+='<div class="sc-tday"><div class="sc-tdh"><b>'+dd[1]+'</b>'+(list.length?'':'<span class="sm">Off</span>')+'</div>'+suBlockRows(k,list)+
-      '<div class="sc-pres">'+mineP.map(function(x){ var p=suPos(x.p); return '<button type="button" class="sc-pre" data-su="tbadd" data-day="'+k+'" data-s="'+x.s+'" data-e="'+x.e+'" data-p="'+x.p+'" style="border-left:3px solid '+p.color+'"><b>'+scT(x.s)+'–'+scT(x.e)+'</b><span>'+esc(p.name)+'</span></button>'; }).join('')+
-      '<button type="button" class="sc-pre sc-more" data-su="tbadd" data-day="'+k+'">+ Custom</button>'+(list.length?'<button type="button" class="sc-pre sc-more" data-su="tbcopy" data-day="'+k+'">Copy to all days</button>':'')+'</div></div>'; });
+  var atC=(d.positions||[]).filter(function(p){ return p.active && p.centers.indexOf(c)>=0; });
+  var roomsFor=e.positions.length?atC.filter(function(p){ return e.positions.indexOf(p.key)>=0; }):atC;
+  var preAt=(d.presets||[]).filter(function(x){ return x.centers.indexOf(c)>=0; }).sort(function(a,b){ return a.s<b.s?-1:a.s>b.s?1:(a.e<b.e?-1:1); });
+  var isPre=function(b){ return preAt.some(function(x){ return x.p===b.p && x.s===b.s && x.e===b.e; }); };
+  e.pick=e.pick||{};
+  SC_DAYS.forEach(function(dd){ var k=dd[0], list=(e.typical[k]||[]), pk=e.pick[k];
+    h+='<div class="sc-tday"><div class="sc-tdh"><b>'+dd[1]+'</b>'+(list.length?'':'<span class="sm">Off</span>')+(list.length?'<button type="button" class="link sc-tcopy" data-su="tbcopy" data-day="'+k+'">Copy to all days</button>':'')+'</div>';
+    list.forEach(function(b,i){ var p=suPos(b.p);
+      h+=isPre(b)?'<div class="sc-tb" style="border-left-color:'+p.color+'"><b>'+scT(b.s)+'–'+scT(b.e)+'</b><span>'+esc(p.name)+'</span><button type="button" class="sc-tbx" data-su="tbdel" data-day="'+k+'" data-i="'+i+'" aria-label="Remove '+scT(b.s)+' to '+scT(b.e)+' '+esc(p.name)+' on '+dd[1]+'">×</button></div>':suBlockRows(k,[b]).replace(/data-i="0"/g,'data-i="'+i+'"'); });
+    h+='<div class="sc-tpick"><select data-tsel="'+k+'" aria-label="Add a shift on '+dd[1]+': pick a room"><option value="">'+(list.length?'+ Add another shift…':'+ Add a shift…')+'</option>'+roomsFor.map(function(p){ return '<option value="'+p.key+'"'+(pk===p.key?' selected':'')+'>'+esc(p.name)+'</option>'; }).join('')+'</select></div>';
+    if(pk){ var rp=suPos(pk), opts=preAt.filter(function(x){ return x.p===pk; });
+      h+='<div class="sc-pres">'+opts.map(function(x){ return '<button type="button" class="sc-pre" data-su="tbadd" data-day="'+k+'" data-s="'+x.s+'" data-e="'+x.e+'" data-p="'+x.p+'" style="border-left:3px solid '+rp.color+'"><b>'+scT(x.s)+'–'+scT(x.e)+'</b></button>'; }).join('')+
+        '<button type="button" class="sc-pre sc-more" data-su="tbadd" data-day="'+k+'" data-p="'+pk+'">Custom time</button></div>'; }
+    h+='</div>'; });
   h+='<div class="err" id="su-err" role="alert"></div><button type="button" class="btn" data-su="ssave" style="width:100%;margin-top:6px">Save</button>';
   return suSheet(h);
 }
@@ -1253,7 +1267,7 @@ function suClick(t){
   if(a==='tpos'){ var kk=t.getAttribute('data-key'), i=e.positions.indexOf(kk); if(i>=0) e.positions.splice(i,1); else e.positions.push(kk); render(); return; }
   if(a==='pay'){ e.payType=t.getAttribute('data-v'); render(); return; }
   if(a==='tbadd'){ var day=t.getAttribute('data-day'), list=(e.typical[day]=e.typical[day]||[]), last=list[list.length-1];
-    list.push(t.getAttribute('data-s')?{ s:t.getAttribute('data-s'), e:t.getAttribute('data-e'), p:t.getAttribute('data-p') }:{ s:last?last.e:'07:00', e:last?(last.e<'17:00'?'17:00':'18:00'):'17:00', p:last?last.p:(e.positions[0]||'infant') });
+    list.push(t.getAttribute('data-s')?{ s:t.getAttribute('data-s'), e:t.getAttribute('data-e'), p:t.getAttribute('data-p') }:{ s:last?last.e:'07:00', e:last?(last.e<'17:00'?'17:00':'18:00'):'17:00', p:t.getAttribute('data-p')||(last?last.p:(e.positions[0]||'infant')) }); if(e.pick) delete e.pick[day];
     list.sort(function(x,y){ return x.s<y.s?-1:1; }); render(); return; }
   if(a==='tbdel'){ e.typical[t.getAttribute('data-day')].splice(+t.getAttribute('data-i'),1); render(); return; }
   if(a==='tbcopy'){ var src2=e.typical[t.getAttribute('data-day')]||[]; if(!confirm('Use this day for Monday–Friday?')) return; SC_DAYS.forEach(function(dd){ e.typical[dd[0]]=JSON.parse(JSON.stringify(src2)); }); render(); return; }
@@ -1283,6 +1297,7 @@ function scBuild(){
   return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Fill a room"><div class="sc-card">'+h+'</div></div>';
 }
 document.addEventListener('pointerdown',function(e){ var c=e.target.closest&&e.target.closest('.sc-split'); if(!c) return; var tm=setTimeout(function(){ S.sc.menu=true; render(); },450); var stop=function(){ clearTimeout(tm); document.removeEventListener('pointerup',stop); document.removeEventListener('pointercancel',stop); }; document.addEventListener('pointerup',stop); document.addEventListener('pointercancel',stop); });
+document.addEventListener('change',function(ev){ var el=ev.target; if(!el.hasAttribute||!el.hasAttribute('data-tsel')||!S.sc.su||!S.sc.su.edit) return; suGrab(); var ed=S.sc.su.edit; ed.pick=ed.pick||{}; if(el.value) ed.pick[el.getAttribute('data-tsel')]=el.value; else delete ed.pick[el.getAttribute('data-tsel')]; render(); });
 document.addEventListener('contextmenu',function(e){ if(e.target.closest&&e.target.closest('.sc-split')) e.preventDefault(); });
 // ---- press, hold and drag a shift block onto another person or day ----
 var SCD={ t:null, on:false, src:null, ghost:null, over:null, x0:0, y0:0, skipClick:false };
@@ -1317,6 +1332,7 @@ document.addEventListener('pointerup',function(e){
 });
 document.addEventListener('pointercancel',function(){ if(SCD.src) scDragEnd(); });
 document.addEventListener('click',function(e){ if(SCD.skipClick){ e.stopPropagation(); e.preventDefault(); SCD.skipClick=false; } }, true);
+document.addEventListener('change',function(ev){ var el=ev.target; if(!el.hasAttribute||!el.hasAttribute('data-tsel')||!S.sc.su||!S.sc.su.edit) return; suGrab(); var ed=S.sc.su.edit; ed.pick=ed.pick||{}; if(el.value) ed.pick[el.getAttribute('data-tsel')]=el.value; else delete ed.pick[el.getAttribute('data-tsel')]; render(); });
 document.addEventListener('contextmenu',function(e){ if(e.target.closest && e.target.closest('.sc-drag')) e.preventDefault(); });
 function scMove(src, toId, toDay){
   if(!toId || (src.id===toId && src.day===toDay)) return;
