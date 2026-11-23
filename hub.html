@@ -1668,13 +1668,16 @@ function scMove(src, toId, toDay){
   // show it right away, then save
   var setLocal=function(id,days){ var r=(d.rows||[]).find(function(x){ return x.staffId===id; }); if(r) r.days=days; else (d.rows=d.rows||[]).push({ staffId:id, days:days, published:null, rev:0 }); };
   setLocal(src.id, fromDays); if(to) setLocal(toId, toDays); render();
-  var save=function(id,days){ var r=scRow(id); return scPost({ action:'sched_save', center:S.sc.center, week:S.sc.week, staffId:id, rev:r.rev||0, days:days }); };
-  save(src.id, fromDays).then(function(r1){
+  // Save where it's going FIRST (with the override if they confirmed an unavailable day), then take it off where it came from.
+  // If the first save fails, nothing is lost.
+  var ovr=!!S.sc.ovr; S.sc.ovr=false;
+  var save=function(id,days,o){ var r=scRow(id); return scPost(Object.assign({ action:'sched_save', center:S.sc.center, week:S.sc.week, staffId:id, rev:r.rev||0, days:days }, o||{})); };
+  if(!to){ save(src.id, fromDays).then(function(r1){ scApply(r1); if(r1&&r1.ok) toast('Moved to '+(SC_DAYS.find(function(x){ return x[0]===toDay; })||['',''])[1]+'.'); }); return; }
+  save(toId, toDays, ovr?{ override:true }:null).then(function(r1){
     if(!r1 || !r1.ok){ scApply(r1); return; }
-    if(!to){ scApply(r1); toast('Moved to '+(SC_DAYS.find(function(x){ return x[0]===toDay; })||['',''])[1]+'.'); return; }
-    S.sc.data=r1; var tr=scRow(toId);
-    return scPost({ action:'sched_save', center:S.sc.center, week:S.sc.week, staffId:toId, rev:tr.rev||0, days:(function(){ var dd=JSON.parse(JSON.stringify(tr.days||{})); dd[toDay]=(dd[toDay]||[]).concat([blk]).sort(function(a,b){ return a.s<b.s?-1:1; }); return dd; })() })
-      .then(function(r2){ scApply(r2); if(r2&&r2.ok) toast('Moved to '+nm+'.'); });
+    S.sc.data=r1; var fr=scRow(src.id), fd=JSON.parse(JSON.stringify(fr.days||{})), k=(fd[src.day]||[]).findIndex(function(b){ return b.s===blk.s && b.e===blk.e && b.p===blk.p; });
+    if(k>=0) fd[src.day].splice(k,1);
+    return save(src.id, fd).then(function(r2){ scApply(r2); if(r2&&r2.ok) toast('Moved to '+nm+'.'); });
   });
 }
 function scGrab(){
