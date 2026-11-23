@@ -405,6 +405,8 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-ddv{flex-direction:row!important;align-items:center!important;gap:10px!important}.sc-ddv>.sc-svg{width:20px;height:20px;flex:none;color:var(--sub)}
 .sc-ddv .grow{display:flex;flex-direction:column}.sc-ddv>svg:last-child{width:16px;height:16px;color:var(--blue);flex:none}
 .sc-ddv.on>.sc-svg,.sc-ddv.on b{color:var(--blue)}
+.sc-bad{color:#b3261e;font-weight:600}
+.sc-tl-open{border:1px dashed var(--c);border-left:3px solid var(--c);background:#fff;cursor:pointer;font:inherit;font-size:11px}
 </style>
 </head>
 <body>
@@ -1167,11 +1169,31 @@ function scGroupView(vw,cols,closed){
       var list=per[cc.key].filter(function(x){ return match(x,g); });
       if(!list.length) return '<td class="sc-cell"><span class="sc-none">—</span></td>';
       return '<td class="sc-cell'+(list.some(function(x){ return x.chg; })?' sc-chg':'')+'">'+list.map(function(x){ var ps=scPos(x.b.p);
-        return '<button type="button" class="sc-chip sc-gchip'+(x.id==='open'?' sc-gopen':'')+'" data-sc="edit" data-id="'+esc(x.id)+'" data-day="'+cc.key+'" style="--c:'+ps.color+';background-color:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+esc(scShortName(x.who))+(x.b.d&&x.b.d.length?'<span class="sc-di">'+scDutyIcons(x.b)+'</span>':'')+'</b><span>'+scT(x.b.s)+'–'+scT(x.b.e)+(vw==='duties'&&x.b.p!==g.key?' · '+esc(ps.name):'')+'</span></button>'; }).join('')+'</td>'; }).join('');
+        return '<button type="button" class="sc-chip sc-gchip'+(x.id==='open'?' sc-gopen':'')+'" data-sc="'+(x.id==='open'?'asg':'edit')+'" data-i="'+x.i+'" data-id="'+esc(x.id)+'" data-day="'+cc.key+'" style="--c:'+ps.color+';background-color:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+(x.id==='open'?'Open · Assign':esc(scShortName(x.who)))+(x.b.d&&x.b.d.length?'<span class="sc-di">'+scDutyIcons(x.b)+'</span>':'')+'</b><span>'+scT(x.b.s)+'–'+scT(x.b.e)+(vw==='duties'&&x.b.p!==g.key?' · '+esc(ps.name):'')+'</span></button>'; }).join('')+'</td>'; }).join('');
     var lab=vw==='rooms'?'<span class="sc-dot" style="background:'+g.color+'"></span>':'<span class="sc-dico">'+scIcon(g)+'</span>';
     return '<tr><th scope="row"><span class="sc-gname">'+lab+'<span>'+esc(g.name)+(g.ratio&&vw==='rooms'?'<small>1:'+g.ratio+'</small>':'')+'</span></span></th>'+cells+'</tr>'; }).join('');
   return '<div class="sc-wrap"><table class="sc-t sc-gt"><thead>'+head+'</thead><tbody>'+(rows||'<tr><td class="sc-cell" colspan="6">Nothing set up yet.</td></tr>')+'</tbody></table></div>'+
     '<p class="help">'+(vw==='rooms'?'Who’s in each room each day. Tap a name to change that person’s day.':'Who has each duty each day, as a tag on their shift or its own block. Tap a name to change it.')+' Striped days have unpublished changes.</p>';
+}
+function scAssign(){
+  var d=S.sc.data, a=S.sc.asg, c=S.sc.center, b=((scRow('open').days||{})[a.day]||[])[a.i];
+  if(!b) return '';
+  var ps=scPos(b.p), dayName=(SC_DAYS.find(function(x){ return x[0]===a.day; })||['',''])[1], len=scMins(b.e)-scMins(b.s);
+  var list=(d.staff||[]).filter(function(p){ return p.centers.indexOf(c)>=0; }).map(function(p){
+    var r=scRow(p.id), today=(r.days||{})[a.day]||[], oth=d.other&&d.other[p.id]?d.other[p.id].minutes:0;
+    var wk=scWeekMins(r.days||{})+oth, after=wk+len, clash=today.find(function(x){ return scMins(x.s)<scMins(b.e) && scMins(x.e)>scMins(b.s); });
+    var fits=p.positions.indexOf(b.p)>=0, sal=p.payType==='salaried';
+    return { p:p, wk:wk, after:after, clash:clash, fits:fits, today:today, sal:sal, score:(clash?100:0)+(fits?0:10)+(!sal&&after>2400?5:0) }; })
+    .sort(function(x,y){ return x.score-y.score || x.wk-y.wk; });
+  var row=function(x){ var bits=[];
+    if(x.clash) bits.push('<span class="sc-bad">Already working '+scT(x.clash.s)+'–'+scT(x.clash.e)+'</span>');
+    else if(x.today.length) bits.push('Also working '+x.today.map(function(t){ return scT(t.s)+'–'+scT(t.e); }).join(', '));
+    else bits.push('Off that day');
+    if(!x.fits) bits.push('Not usually in '+esc(ps.name));
+    if(!x.sal) bits.push(x.after>2400?'<span class="sc-bad">'+h2(x.after/60)+' hrs with this</span>':h2(x.after/60)+' hrs with this');
+    return '<button type="button" class="sc-li sc-asg'+(x.clash?' sc-off':'')+'" data-sc="asgto" data-id="'+esc(x.p.id)+'"><span class="grow"><b>'+esc(x.p.name)+'</b><span class="sm">'+bits.join(' · ')+'</span></span>'+svg('chev')+'</button>'; };
+  return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Assign open shift"><div class="sc-card"><div class="sc-ch"><div><b>Assign open shift</b><div class="sm">'+dayName+' · '+scT(b.s)+'–'+scT(b.e)+' · '+esc(ps.name)+(b.d&&b.d.length?' '+scDutyIcons(b):'')+'</div></div><button type="button" class="link" data-sc="asgclose">Cancel</button></div>'+
+    '<div class="sc-list">'+list.map(row).join('')+'</div><p class="help">Best fits first: people free then, who usually work this room, with the fewest hours.</p></div></div>';
 }
 function scDayView(cols,closed){
   var d=S.sc.data, c=S.sc.center, dk=S.sc.dayPick||cols[0].key, col=cols.find(function(x){ return x.key===dk; })||cols[0];
@@ -1183,7 +1205,8 @@ function scDayView(cols,closed){
   var lines=''; for(var m2=7*60;m2<=18*60;m2+=60){ lines+='<i style="left:'+((m2-start)/span*100)+'%"></i>'; }
   var rows=ids.map(function(id){ var mine=all.filter(function(x){ return x.id===id; }), who=mine[0].who;
     return '<div class="sc-tl-r"><button type="button" class="sc-tl-n" data-sc="edit" data-id="'+esc(id)+'" data-day="'+col.key+'">'+esc(scShortName(who))+'</button><div class="sc-tl-t">'+lines+mine.map(function(x){ var ps=scPos(x.b.p), l=pct(x.b.s), w=pct(x.b.e)-l;
-      return '<span class="sc-tl-b'+(x.chg?' sc-tl-chg':'')+'" style="left:'+l+'%;width:'+w+'%;--c:'+ps.color+'" title="'+esc(ps.name+' '+scT(x.b.s)+'–'+scT(x.b.e))+'">'+(x.b.d&&x.b.d.length?scDutyIcons(x.b):'')+'<em>'+scT(x.b.s)+'–'+scT(x.b.e)+'</em></span>'; }).join('')+'</div></div>'; }).join('');
+      var tag=x.id==='open'?'button':'span';
+      return '<'+tag+(x.id==='open'?' type="button" data-sc="asg" data-day="'+col.key+'" data-i="'+x.i+'" aria-label="Assign open shift '+esc(ps.name+' '+scT(x.b.s)+' to '+scT(x.b.e))+'"':'')+' class="sc-tl-b'+(x.chg?' sc-tl-chg':'')+(x.id==='open'?' sc-tl-open':'')+'" style="left:'+l+'%;width:'+w+'%;--c:'+ps.color+'" title="'+esc(ps.name+' '+scT(x.b.s)+'–'+scT(x.b.e))+'">'+(x.b.d&&x.b.d.length?scDutyIcons(x.b):'')+'<em>'+scT(x.b.s)+'–'+scT(x.b.e)+'</em></'+tag+'>'; }).join('')+'</div></div>'; }).join('');
   // staff in each room, every half hour
   var rooms=(d.positions||[]).filter(function(p){ return p.active && p.kind==='room' && p.centers.indexOf(c)>=0; });
   var slots=[]; for(var t=7*60;t<18*60;t+=30) slots.push(t);
@@ -1207,7 +1230,7 @@ function schedView(){
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
   var cols=SC_DAYS.map(function(dd,i){ return { key:dd[0], label:dd[1], date:scIso(scDate(S.sc.week,i)) }; });
   if(vw!=='people'){ h+=vw==='day'?scDayView(cols,closed):scGroupView(vw,cols,closed);
-    if(S.sc.edit) h+=scEditor(); if(S.sc.tpl) h+=scTemplates(); if(S.sc.bld) h+=scBuild(); if(S.sc.su) h+=suView(); return h; }
+    if(S.sc.edit) h+=scEditor(); if(S.sc.tpl) h+=scTemplates(); if(S.sc.bld) h+=scBuild(); if(S.sc.su) h+=suView(); if(S.sc.asg) h+=scAssign(); return h; }
   var dayTot={}, dayCost={}; cols.forEach(function(c){ dayTot[c.key]=0; dayCost[c.key]=0; });
   // This center's own people, plus anyone from the other center who has shifts here this week.
   var hasHere=function(id){ var r=scRow(id); return SC_ALL_DAYS.some(function(k){ return ((r.days||{})[k]||[]).length || (((r.published||{})[k])||[]).length; }); };
@@ -1248,6 +1271,7 @@ function schedView(){
   if(S.sc.tpl) h+=scTemplates();
   if(S.sc.bld) h+=scBuild();
   if(S.sc.su) h+=suView();
+  if(S.sc.asg) h+=scAssign();
   return h;
 }
 
@@ -1448,7 +1472,7 @@ var SCD={ t:null, on:false, src:null, ghost:null, over:null, x0:0, y0:0, skipCli
 function scDragEnd(){ clearTimeout(SCD.t); SCD.t=null; if(SCD.ghost){ SCD.ghost.remove(); SCD.ghost=null; } if(SCD.over){ SCD.over.classList.remove('sc-drop'); SCD.over=null; } if(SCD.src&&SCD.src.el) SCD.src.el.classList.remove('sc-lift'); document.body.classList.remove('sc-dragging'); SCD.on=false; SCD.src=null; }
 function scTargetAt(x,y){ if(SCD.ghost) SCD.ghost.style.display='none'; var el=document.elementFromPoint(x,y); if(SCD.ghost) SCD.ghost.style.display=''; return el && el.closest('.sc-hit[data-sc=edit]'); }
 document.addEventListener('pointerdown',function(e){
-  var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su || S.sc.menu || S.sc.gear || S.sc.vmenu) return;
+  var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su || S.sc.menu || S.sc.gear || S.sc.vmenu || S.sc.asg) return;
   if(e.pointerType==='mouse' && e.button!==0) return;
   SCD.x0=e.clientX; SCD.y0=e.clientY;
   SCD.src={ el:ch, id:ch.getAttribute('data-did'), day:ch.getAttribute('data-dday'), i:+ch.getAttribute('data-di') };
@@ -1532,6 +1556,9 @@ function schedClick(t){
     t.disabled=true; S.sc.menu=false; scPost({ action:'sched_generate', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
   if(a==='main'){ a=t.getAttribute('data-st'); }
   if(a==='clear'){ S.sc.menu=false; render(); if(!confirm('Clear every shift this week, including open shifts?')) return; scPost({ action:'sched_clear', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
+  if(a==='asg'){ S.sc.asg={ day:t.getAttribute('data-day'), i:+t.getAttribute('data-i') }; render(); return; }
+  if(a==='asgclose'){ S.sc.asg=null; render(); return; }
+  if(a==='asgto'){ var ag=S.sc.asg, to=t.getAttribute('data-id'); if(t.classList.contains('sc-off') && !confirm('They’re already working then. Assign anyway?')) return; S.sc.asg=null; scMove({ id:'open', day:ag.day, i:ag.i }, to, ag.day); return; }
   if(a==='vmenu'){ S.sc.vmenu=!S.sc.vmenu; S.sc.menu=false; S.sc.gear=false; render(); return; }
   if(a==='view'){ S.sc.view=t.getAttribute('data-v'); S.sc.menu=false; S.sc.vmenu=false; render(); return; }
   if(a==='dpick'){ S.sc.dayPick=t.getAttribute('data-v'); render(); return; }
