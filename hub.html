@@ -334,6 +334,16 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .sc-two>div{min-width:0}.sc-two input{box-sizing:border-box;width:100%;min-width:0}
 .sc-mode[disabled]{opacity:.5;cursor:default}
+.sc-split{display:inline-flex;border-radius:18px;overflow:hidden;background:var(--blue);-webkit-touch-callout:none;user-select:none}
+.sc-split button{border:0;background:none;color:#fff;font:inherit;font-weight:600;font-size:14px;min-height:36px;padding:0 14px;cursor:pointer}
+.sc-split button[disabled]{opacity:.6;cursor:default}
+.sc-split .sc-chev{padding:0 10px;border-left:1px solid rgba(255,255,255,.35);display:flex;align-items:center}
+.sc-split .sc-chev svg{width:16px;height:16px;transform:rotate(90deg)}
+.sc-split.sc-quiet{background:#e8e8ed}.sc-split.sc-quiet button{color:#1d1d1f}.sc-split.sc-quiet .sc-chev{border-left-color:#d2d2d7}
+.sc-step{display:flex;align-items:center;gap:4px;margin-right:8px}
+.sc-step button{width:34px;height:34px;border:1px solid #d2d2d7;border-radius:10px;background:#fff;font-size:18px;cursor:pointer;color:inherit}
+.sc-step button[disabled]{opacity:.4}
+.sc-step span{display:flex;flex-direction:column;align-items:center;min-width:44px;line-height:1.1}.sc-step small{font-size:10px;color:var(--sub)}
 </style>
 </head>
 <body>
@@ -1027,15 +1037,30 @@ function scApply(r){
 function scHasPub(){ return ((S.sc.data&&S.sc.data.rows)||[]).some(function(r){ return r.published && SC_ALL_DAYS.some(function(k){ return ((r.published||{})[k]||[]).length; }); }); }
 function scWeekLabel(){ var a=scDate(S.sc.week), b=scDate(S.sc.week,4), f=function(d){ return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }; return f(a)+' – '+f(b); }
 
+function scShiftCount(){ return ((S.sc.data&&S.sc.data.rows)||[]).reduce(function(n,r){ return n+SC_ALL_DAYS.reduce(function(m,k){ return m+((r.days||{})[k]||[]).length; },0); },0); }
+function scMainState(){ var d=S.sc.data; if(d.unpublished) return 'publish'; if(scHasPub()) return 'unpublish'; return scShiftCount()?'publish':'generate'; }
+function scMainBtn(){ var d=S.sc.data, st=scMainState();
+  var lab=st==='generate'?'Generate':st==='unpublish'?'Unpublish':'Publish'+(d.unpublished?' ('+d.unpublished+')':'');
+  return '<span class="sc-split'+(st==='unpublish'?' sc-quiet':'')+'"><button type="button" data-sc="main" data-st="'+st+'"'+(st==='publish'&&!d.unpublished?' disabled':'')+'>'+lab+'</button><button type="button" class="sc-chev" data-sc="menu" aria-label="More ways to fill this week" aria-haspopup="dialog">'+svg('chev')+'</button></span>'; }
+function scMenu(){
+  var d=S.sc.data, st=scMainState(), has=scShiftCount()>0;
+  var it=function(a,t,sub,extra){ return '<button type="button" class="sc-mode" data-sc="'+a+'"'+(extra||'')+'><b>'+t+'</b><span>'+sub+'</span></button>'; };
+  var h='<div class="sc-ch"><div><b>This week</b><div class="sm">Week of '+esc(scWeekLabel())+'</div></div><button type="button" class="link" data-sc="menuclose">Done</button></div><div class="sc-modes" style="padding-top:0;border:0">';
+  h+=it('gen', has?'Generate again':'Generate','Everyone gets their set schedule, minus closed days and time off. Standard shifts nobody covers become open shifts.');
+  h+=it('copy','Copy last week','Bring last week’s shifts into this week as a draft.');
+  h+=it('tpls','Templates…','Load a saved week, or save this one.');
+  h+=it('fill','Fill a room…','Add a room’s standard shifts to Open shifts on the days you pick.');
+  if(d.unpublished && scHasPub()) h+=it('discard','Discard changes','Go back to what was last published.');
+  if(st==='publish' && scHasPub()) h+=it('unpublish','Unpublish','Take the published schedule down. It stays here as a draft.');
+  if(d.canSetup) h+=it('setup','Rooms &amp; staff…','Rooms, their standard shifts, and each person’s set schedule.');
+  return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="This week"><div class="sc-card">'+h+'</div></div></div>';
+}
 function schedView(){
   scInit(); var d=S.sc.data;
   var h='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button>'+
     '<div class="top"><div><div class="eyebrow">Preview · only you can see this</div><h1>Schedule</h1><div class="help" style="margin:2px 0 0">Sioux Falls · Week of '+esc(scWeekLabel())+'</div></div></div>'+
     '<div class="sc-bar"><button type="button" class="round" data-sc="prev" aria-label="Previous week">'+svg('back')+'</button><button type="button" class="pill" data-sc="today">This week</button><button type="button" class="round" data-sc="next" aria-label="Next week">'+svg('chev')+'</button>'+
-    '<span style="flex:1"></span><button type="button" class="pill" data-sc="bld">Build</button><button type="button" class="pill" data-sc="tpls">Templates</button>'+(d&&d.canSetup?'<button type="button" class="pill" data-sc="setup">Rooms &amp; staff</button>':'')+'<button type="button" class="pill" data-sc="copy">Copy last week</button>'+
-    (d && d.unpublished && scHasPub()? '<button type="button" class="pill" data-sc="discard">Discard changes</button>':'')+
-    (d && scHasPub()? '<button type="button" class="pill" data-sc="unpublish">Unpublish</button>':'')+
-    (d? '<button type="button" class="pill go" data-sc="publish"'+(d.unpublished?'':' disabled')+'>'+(d.unpublished?'Publish ('+d.unpublished+')':'Published')+'</button>':'')+'</div>';
+    '<span style="flex:1"></span>'+(d? scMainBtn():'')+'</div>';
   if(!d) return h+'<div class="empty"><span class="spin"></span> Loading…</div>';
   if(d.unpublished) h+='<div class="note">Draft: '+plural(d.unpublished,'person’s week has','people’s weeks have')+' changes that aren’t published yet (striped shifts).</div>';
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
@@ -1079,6 +1104,7 @@ function schedView(){
   if(S.sc.edit) h+=scEditor();
   if(S.sc.tpl) h+=scTemplates();
   if(S.sc.bld) h+=scBuild();
+  if(S.sc.menu) h+=scMenu();
   if(S.sc.su) h+=suView();
   return h;
 }
@@ -1147,14 +1173,14 @@ function suView(){
   if(su.tab==='staff'){
     var mine=(d.staff||[]).filter(function(x){ return x.center===c; }), act=mine.filter(function(x){ return x.active; }), old=mine.filter(function(x){ return !x.active; });
     var row=function(x){ var n=SC_ALL_DAYS.filter(function(k){ return ((x.typical||{})[k]||[]).length; }).length;
-      return '<button type="button" class="sc-li" data-su="staff" data-id="'+esc(x.id)+'"><span class="grow"><b>'+esc(x.name)+'</b><span class="sm">'+(x.positions.filter(function(k){ return suPos(k).kind==='room'; }).map(function(k){ return esc(suPos(k).name); }).join(', ')||'No rooms set')+' · '+(n?'Typical week: '+n+(n===1?' day':' days'):'No typical week')+(x.payType==='salaried'?' · Salaried':'')+'</span></span>'+svg('chev')+'</button>'; };
+      return '<button type="button" class="sc-li" data-su="staff" data-id="'+esc(x.id)+'"><span class="grow"><b>'+esc(x.name)+'</b><span class="sm">'+(x.positions.filter(function(k){ return suPos(k).kind==='room'; }).map(function(k){ return esc(suPos(k).name); }).join(', ')||'No rooms set')+' · '+(n?'Set schedule: '+n+(n===1?' day':' days'):'No set schedule')+(x.payType==='salaried'?' · Salaried':'')+'</span></span>'+svg('chev')+'</button>'; };
     h+='<div class="sc-list">'+act.map(row).join('')+'</div>';
     h+='<button type="button" class="pill go" data-su="staff" data-id="new" style="margin-top:12px">+ Add person</button>';
     if(old.length) h+='<div class="sc-pres-h" style="margin-top:16px">Not active</div><div class="sc-list">'+old.map(row).join('')+'</div>';
   } else {
     var ps=(d.positions||[]).filter(function(p){ return p.centers.indexOf(c)>=0; });
     var prow=function(p){ var n=(d.presets||[]).filter(function(x){ return x.p===p.key && x.centers.indexOf(c)>=0; }).length;
-      return '<button type="button" class="sc-li'+(p.active?'':' sc-off')+'" data-su="room" data-key="'+esc(p.key)+'"><span class="sc-dot" style="background:'+p.color+'"></span><span class="grow"><b>'+esc(p.name)+'</b><span class="sm">'+[p.ages, p.ratio?'1:'+p.ratio:'', plural(n,'standard shift','standard shifts'), p.active?'':'Retired'].filter(Boolean).join(' · ')+'</span></span>'+svg('chev')+'</button>'; };
+      return '<button type="button" class="sc-li'+(p.active?'':' sc-off')+'" data-su="room" data-key="'+esc(p.key)+'"><span class="sc-dot" style="background:'+p.color+'"></span><span class="grow"><b>'+esc(p.name)+'</b><span class="sm">'+[p.ages, p.ratio?'1:'+p.ratio:'', plural(n,'standard shift','standard shifts')+(function(){ var nd=(d.presets||[]).filter(function(x){ return x.p===p.key && x.centers.indexOf(c)>=0; }).reduce(function(m,x){ return m+(x.need||0); },0); return nd?' · '+nd+' needed a day':''; })(), p.active?'':'Retired'].filter(Boolean).join(' · ')+'</span></span>'+svg('chev')+'</button>'; };
     h+='<div class="sc-pres-h">Rooms</div><div class="sc-list">'+ps.filter(function(p){ return p.kind==='room'; }).map(prow).join('')+'</div>';
     h+='<div class="sc-pres-h" style="margin-top:14px">Duties</div><div class="sc-list">'+ps.filter(function(p){ return p.kind!=='room'; }).map(prow).join('')+'</div>';
     h+='<button type="button" class="pill go" data-su="room" data-key="new" style="margin-top:12px">+ Add room or duty</button>';
@@ -1169,7 +1195,7 @@ function suBlockRows(day, list){
 function suStaffEdit(){
   var e=S.sc.su.edit, d=S.sc.su.data, c=S.sc.center, other=c==='SF'?'BV':'SF';
   var ps=(d.positions||[]).filter(function(p){ return p.active && p.centers.indexOf(c)>=0; });
-  var h='<div class="sc-ch"><div><b>'+(e.id?esc(e.name):'Add person')+'</b><div class="sm">Profile and typical week</div></div><button type="button" class="link" data-su="back">Cancel</button></div>';
+  var h='<div class="sc-ch"><div><b>'+(e.id?esc(e.name):'Add person')+'</b><div class="sm">Profile and set schedule</div></div><button type="button" class="link" data-su="back">Cancel</button></div>';
   h+='<div class="uform" style="padding:0"><label>Name<input id="su-name" maxlength="60" value="'+esc(e.name)+'"></label></div>';
   h+='<div class="sc-pres-h" style="margin-top:12px">Rooms and duties they can work</div><div class="sc-tags">'+ps.map(function(p){ var on=e.positions.indexOf(p.key)>=0; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-su="tpos" data-key="'+p.key+'" aria-pressed="'+on+'"><i style="background:'+p.color+'"></i>'+esc(p.name)+'</button>'; }).join('')+'</div>';
   h+='<div class="sc-pres-h" style="margin-top:12px">Pay</div><div class="seg" style="margin-top:0"><button type="button" data-su="pay" data-v="hourly" aria-pressed="'+(e.payType!=='salaried')+'">Hourly</button><button type="button" data-su="pay" data-v="salaried" aria-pressed="'+(e.payType==='salaried')+'">Salaried</button></div>';
@@ -1178,7 +1204,7 @@ function suStaffEdit(){
   h+='<label class="sc-rep"><input type="checkbox" id="su-active"'+(e.active?' checked':'')+'> Active (shows on the schedule)</label>';
   // typical week
   var mineP=(d.presets||[]).filter(function(x){ return x.centers.indexOf(c)>=0 && e.positions.indexOf(x.p)>=0; }).sort(function(a,b){ return a.s<b.s?-1:1; });
-  h+='<div class="sc-pres-h" style="margin-top:16px">Typical week</div><div class="help" style="margin:0 0 6px">Used by “Build from typical weeks.” Leave a day empty if they’re usually off.</div>';
+  h+='<div class="sc-pres-h" style="margin-top:16px">Set schedule</div><div class="help" style="margin:0 0 6px">What they normally work. Generate uses it every week. Leave a day empty if they’re usually off.</div>';
   SC_DAYS.forEach(function(dd){ var k=dd[0], list=(e.typical[k]||[]);
     h+='<div class="sc-tday"><div class="sc-tdh"><b>'+dd[1]+'</b>'+(list.length?'':'<span class="sm">Off</span>')+'</div>'+suBlockRows(k,list)+
       '<div class="sc-pres">'+mineP.map(function(x){ var p=suPos(x.p); return '<button type="button" class="sc-pre" data-su="tbadd" data-day="'+k+'" data-s="'+x.s+'" data-e="'+x.e+'" data-p="'+x.p+'" style="border-left:3px solid '+p.color+'"><b>'+scT(x.s)+'–'+scT(x.e)+'</b><span>'+esc(p.name)+'</span></button>'; }).join('')+
@@ -1197,8 +1223,8 @@ function suRoomEdit(){
   h+='<div class="sc-pres-h" style="margin-top:12px">Centers</div><label class="sc-rep"><input type="checkbox" id="su-csf"'+(r.centers.indexOf('SF')>=0?' checked':'')+'> Sioux Falls</label><label class="sc-rep"><input type="checkbox" id="su-cbv"'+(r.centers.indexOf('BV')>=0?' checked':'')+'> Brandon</label>';
   h+='<label class="sc-rep"><input type="checkbox" id="su-ractive"'+(r.active?' checked':'')+'> In use (uncheck to retire it; past weeks keep it)</label>';
   if(r.key){
-    h+='<div class="sc-pres-h" style="margin-top:14px">Standard shifts</div><div class="help" style="margin:0 0 6px">These show in Quick add, typical weeks and “Fill a room.”</div>'+
-      (pre.length?'<div class="sc-list">'+pre.map(function(x){ return '<div class="sc-li"><span class="grow"><b>'+scT(x.s)+'–'+scT(x.e)+'</b></span><button type="button" class="sc-x" data-su="pdel" data-id="'+esc(x.id)+'" aria-label="Remove '+scT(x.s)+' to '+scT(x.e)+'">×</button></div>'; }).join('')+'</div>':'<div class="help" style="margin:0 0 6px">None yet.</div>')+
+    h+='<div class="sc-pres-h" style="margin-top:14px">Standard shifts</div><div class="help" style="margin:0 0 6px">“Needed” is how many people that shift needs each day. When you Generate, any needed shift nobody’s set schedule covers becomes an open shift. 0 means it’s just a quick pick.</div>'+
+      (pre.length?'<div class="sc-list">'+pre.map(function(x){ return '<div class="sc-li"><span class="grow"><b>'+scT(x.s)+'–'+scT(x.e)+'</b></span><span class="sc-step" role="group" aria-label="People needed each day"><button type="button" data-su="pneed" data-id="'+esc(x.id)+'" data-v="'+Math.max(0,(x.need||0)-1)+'" aria-label="Fewer"'+((x.need||0)?'':' disabled')+'>−</button><span><b>'+(x.need||0)+'</b><small>needed</small></span><button type="button" data-su="pneed" data-id="'+esc(x.id)+'" data-v="'+((x.need||0)+1)+'" aria-label="More">+</button></span><button type="button" class="sc-x" data-su="pdel" data-id="'+esc(x.id)+'" aria-label="Remove '+scT(x.s)+' to '+scT(x.e)+'">×</button></div>'; }).join('')+'</div>':'<div class="help" style="margin:0 0 6px">None yet.</div>')+
       '<div class="sc-blk" style="border:0"><input type="time" step="300" id="su-ps" aria-label="Start" value="07:00"><span>to</span><input type="time" step="300" id="su-pe" aria-label="End" value="17:00"><button type="button" class="pill" data-su="padd" style="grid-column:1 / 3">+ Add this shift</button></div>';
   } else h+='<div class="help">Save the room first, then add its standard shifts.</div>';
   h+='<div class="err" id="su-err" role="alert"></div><button type="button" class="btn" data-su="rsave" style="width:100%;margin-top:10px">Save</button>';
@@ -1239,6 +1265,7 @@ function suClick(t){
   if(a==='rsave'){ t.disabled=true; scPost({ action:'sched_pos_save', center:S.sc.center, week:S.sc.week, pos:r }).then(function(res){ if(!res||!res.ok){ t.disabled=false; $('su-err').textContent=(res&&res.error)||'That didn’t save.'; return; } var key=r.key; suApply(res); if(!key) toast('Saved. Open it again to add its standard shifts.'); }); return; }
   if(a==='padd'){ var ps=$('su-ps').value, pe=$('su-pe').value; if(!ps||!pe||pe<=ps){ $('su-err').textContent='The end time needs to be after the start time.'; return; }
     var keep=JSON.parse(JSON.stringify(r)); scPost({ action:'sched_preset_save', center:S.sc.center, week:S.sc.week, preset:{ s:ps, e:pe, p:r.key, centers:[S.sc.center] } }).then(function(res){ if(!res||!res.ok){ $('su-err').textContent=(res&&res.error)||'That didn’t save.'; return; } su.data=res; su.room=keep; render(); }); return; }
+  if(a==='pneed'){ var keep3=JSON.parse(JSON.stringify(r)); t.disabled=true; scPost({ action:'sched_preset_need', center:S.sc.center, week:S.sc.week, id:t.getAttribute('data-id'), need:+t.getAttribute('data-v') }).then(function(res){ if(res&&res.ok){ su.data=res; su.room=keep3; render(); } else { t.disabled=false; toast((res&&res.error)||'That didn’t work.'); } }); return; }
   if(a==='pdel'){ var keep2=JSON.parse(JSON.stringify(r)); scPost({ action:'sched_preset_del', center:S.sc.center, week:S.sc.week, id:t.getAttribute('data-id') }).then(function(res){ if(res&&res.ok){ su.data=res; su.room=keep2; render(); } else toast((res&&res.error)||'That didn’t work.'); }); return; }
 }
 
@@ -1246,25 +1273,23 @@ function suClick(t){
 function scBuild(){
   var d=S.sc.data, b=S.sc.bld, c=S.sc.center;
   var rooms=(d.positions||[]).filter(function(p){ return p.kind==='room' && p.centers.indexOf(c)>=0; });
-  var withTyp=(d.staff||[]).filter(function(x){ return x.center===c && SC_ALL_DAYS.some(function(k){ return ((x.typical||{})[k]||[]).length; }); }).length;
-  var h='<div class="sc-ch"><div><b>Build this week</b><div class="sm">Week of '+esc(scWeekLabel())+' · saved as a draft until you publish</div></div><button type="button" class="link" data-sc="bldclose">Done</button></div>';
-  h+='<div class="sc-pres-h">From typical weeks</div><div class="help" style="margin:0 0 8px">'+(withTyp?plural(withTyp,'person has','people have')+' a typical week set.':'Nobody has a typical week yet. Add them in Rooms &amp; staff.')+' Closed days are skipped.</div>';
-  h+='<div class="sc-modes" style="padding-top:0"><button type="button" class="sc-mode" data-sc="build" data-mode="fill"'+(withTyp?'':' disabled')+'><b>Fill in empty people</b><span>Only people with no shifts this week get their typical week. Nothing already scheduled changes.</span></button>'+
-    '<button type="button" class="sc-mode" data-sc="build" data-mode="replace"'+(withTyp?'':' disabled')+'><b>Rebuild everyone</b><span>Anyone with a typical week gets exactly that, replacing what they have this week.</span></button></div>';
-  h+='<div class="sc-pres-h" style="margin-top:14px">Fill a room with open shifts</div><div class="help" style="margin:0 0 8px">Adds the room’s standard shifts to Open shifts for the days you pick.</div>';
+  var h='<div class="sc-ch"><div><b>Fill a room</b><div class="sm">Week of '+esc(scWeekLabel())+' · saved as a draft until you publish</div></div><button type="button" class="link" data-sc="bldclose">Done</button></div>';
+  h+='<div class="help" style="margin:0 0 8px">Adds the room’s standard shifts to Open shifts for the days you pick.</div>';
   h+='<div class="sc-tags">'+rooms.map(function(p){ var on=b.room===p.key; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-sc="bldroom" data-key="'+p.key+'" aria-pressed="'+on+'"><i style="background:'+p.color+'"></i>'+esc(p.name)+'</button>'; }).join('')+'</div>';
   if(b.room){ var n=(d.presets||[]).filter(function(x){ return x.p===b.room; }).length;
     h+='<div class="sc-tags" style="margin-top:8px">'+SC_DAYS.map(function(dd){ var on=b.days.indexOf(dd[0])>=0; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-sc="bldday" data-day="'+dd[0]+'" aria-pressed="'+on+'">'+dd[1]+'</button>'; }).join('')+'</div>'+
       (n?'<button type="button" class="btn" data-sc="fillroom" style="width:100%;margin-top:10px"'+(b.days.length?'':' disabled')+'>Add '+plural(n,'shift','shifts')+' a day to Open shifts</button>':'<div class="help">This room has no standard shifts yet. Add them in Rooms &amp; staff.</div>'); }
   if(d.canSetup) h+='<button type="button" class="pill" data-sc="setup" style="margin-top:16px">Rooms &amp; staff…</button>';
-  return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Build this week"><div class="sc-card">'+h+'</div></div>';
+  return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Fill a room"><div class="sc-card">'+h+'</div></div>';
 }
+document.addEventListener('pointerdown',function(e){ var c=e.target.closest&&e.target.closest('.sc-split'); if(!c) return; var tm=setTimeout(function(){ S.sc.menu=true; render(); },450); var stop=function(){ clearTimeout(tm); document.removeEventListener('pointerup',stop); document.removeEventListener('pointercancel',stop); }; document.addEventListener('pointerup',stop); document.addEventListener('pointercancel',stop); });
+document.addEventListener('contextmenu',function(e){ if(e.target.closest&&e.target.closest('.sc-split')) e.preventDefault(); });
 // ---- press, hold and drag a shift block onto another person or day ----
 var SCD={ t:null, on:false, src:null, ghost:null, over:null, x0:0, y0:0, skipClick:false };
 function scDragEnd(){ clearTimeout(SCD.t); SCD.t=null; if(SCD.ghost){ SCD.ghost.remove(); SCD.ghost=null; } if(SCD.over){ SCD.over.classList.remove('sc-drop'); SCD.over=null; } if(SCD.src&&SCD.src.el) SCD.src.el.classList.remove('sc-lift'); document.body.classList.remove('sc-dragging'); SCD.on=false; SCD.src=null; }
 function scTargetAt(x,y){ if(SCD.ghost) SCD.ghost.style.display='none'; var el=document.elementFromPoint(x,y); if(SCD.ghost) SCD.ghost.style.display=''; return el && el.closest('.sc-hit[data-sc=edit]'); }
 document.addEventListener('pointerdown',function(e){
-  var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su) return;
+  var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su || S.sc.menu) return;
   if(e.pointerType==='mouse' && e.button!==0) return;
   SCD.x0=e.clientX; SCD.y0=e.clientY;
   SCD.src={ el:ch, id:ch.getAttribute('data-did'), day:ch.getAttribute('data-dday'), i:+ch.getAttribute('data-di') };
@@ -1320,6 +1345,8 @@ function scGrab(){
 }
 function schedClick(t){
   var a=t.getAttribute('data-sc'); scInit();
+  if(a==='main' && t.getAttribute('data-st')!=='generate') a=t.getAttribute('data-st');
+  if(S.sc.menu && ['copy','tpls','discard','unpublish','publish'].indexOf(a)>=0){ S.sc.menu=false; render(); }
   if(a==='prev'||a==='next'){ S.sc.week=scIso(scDate(S.sc.week,a==='prev'?-7:7)); S.sc.edit=null; scLoad(); return; }
   if(a==='today'){ S.sc.week=scIso(scMonday(new Date())); S.sc.edit=null; scLoad(); return; }
   if(a==='copy'){ if(!confirm('Copy last week’s shifts into this week? People who already have shifts this week are left alone.')) return; t.disabled=true; scPost({ action:'sched_copy', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
@@ -1338,13 +1365,14 @@ function schedClick(t){
     if(ed0.fresh){ ed0.blocks=[nb]; ed0.fresh=false; } else ed0.blocks.push(nb);
     ed0.blocks.sort(function(x,y){ return x.s<y.s?-1:1; }); render(); return; }
   if(a==='presmore'){ scGrab(); S.sc.presMore=!S.sc.presMore; render(); return; }
-  if(a==='setup'){ S.sc.bld=null; suOpen(); return; }
-  if(a==='bld'){ S.sc.bld={ room:null, days:SC_DAYS.map(function(x){ return x[0]; }) }; render(); return; }
-  if(a==='bldclose'){ S.sc.bld=null; render(); return; }
-  if(a==='bldroom'){ S.sc.bld.room=t.getAttribute('data-key'); render(); return; }
-  if(a==='bldday'){ var bd=S.sc.bld.days, bk=t.getAttribute('data-day'), bi=bd.indexOf(bk); if(bi>=0) bd.splice(bi,1); else bd.push(bk); render(); return; }
-  if(a==='build'){ var bm=t.getAttribute('data-mode'); if(bm==='replace' && !confirm('Rebuild everyone who has a typical week? Their shifts this week will be replaced.')) return;
-    t.disabled=true; scPost({ action:'sched_build', center:S.sc.center, week:S.sc.week, mode:bm }).then(function(r){ if(r&&r.ok) S.sc.bld=null; else t.disabled=false; scApply(r); }); return; }
+  if(a==='menu'){ S.sc.menu=true; render(); return; }
+  if(a==='menuclose'){ S.sc.menu=false; render(); return; }
+  if(a==='fill'){ S.sc.menu=false; S.sc.bld={ room:null, days:SC_DAYS.map(function(x){ return x[0]; }) }; render(); return; }
+  if(a==='gen' || (a==='main' && t.getAttribute('data-st')==='generate')){
+    if(scShiftCount() && !confirm('Generate this week again? Everyone with a set schedule gets it back, and open shifts are worked out again. People without a set schedule keep what they have.')) return;
+    t.disabled=true; S.sc.menu=false; scPost({ action:'sched_generate', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
+  if(a==='main'){ a=t.getAttribute('data-st'); }
+  if(a==='setup'){ S.sc.bld=null; S.sc.menu=false; suOpen(); return; }
   if(a==='fillroom'){ t.disabled=true; scPost({ action:'sched_fillroom', center:S.sc.center, week:S.sc.week, pos:S.sc.bld.room, days:S.sc.bld.days }).then(function(r){ if(r&&r.ok) S.sc.bld=null; else t.disabled=false; scApply(r); }); return; }
   if(a==='tpls'){ S.sc.tpl=true; S.sc.tplOpen=null; render(); return; }
   if(a==='tplclose'){ S.sc.tpl=false; render(); return; }
