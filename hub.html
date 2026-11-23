@@ -373,7 +373,10 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-icb{display:inline-flex;align-items:center;justify-content:center;color:#1d1d1f}.sc-icb .sc-svg{width:22px;height:22px}
 .sc-dico{color:#1d1d1f;display:inline-flex;justify-content:center}.sc-dico .sc-svg{width:20px;height:20px}
 .sc-tag .sc-svg{width:16px;height:16px}
-.sc-pay{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end;margin-top:12px}.sc-pay>div{min-width:0}.sc-pay input{box-sizing:border-box;width:100%}.sc-sal{white-space:nowrap;padding-right:4px}.sc-pay .sm{font-weight:400;color:var(--sub);font-size:12px}.sc-sal{margin:0 0 12px}
+.sc-pay{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end;margin-top:12px}.sc-pay>div{min-width:0}.sc-pay input{box-sizing:border-box;width:100%}.sc-salb{display:inline-flex;align-items:center;gap:8px;height:44px;margin-bottom:1px;padding:0 14px;border-radius:12px;border:1.5px solid #d2d2d7;background:#fff;font:inherit;font-size:15px;font-weight:600;color:#1d1d1f;cursor:pointer;white-space:nowrap}
+.sc-salb .sc-box{width:18px;height:18px;border:1.5px solid #8e8e93;border-radius:5px}
+.sc-salb.on{background:var(--blue);border-color:var(--blue);color:#fff}.sc-salb.on svg{width:18px;height:18px;stroke-width:3}
+.sc-pay input:disabled{background:#f2f2f6;color:var(--sub)}.sc-pay .sm{font-weight:400;color:var(--sub);font-size:12px}.sc-sal{margin:0 0 12px}
 </style>
 </head>
 <body>
@@ -1251,7 +1254,7 @@ function suStaffEdit(){
   h+='<div class="uform" style="padding:0"><label>Name<input id="su-name" maxlength="60" value="'+esc(e.name)+'"></label></div>';
   h+='<div class="sc-pres-h" style="margin-top:12px">Rooms they can work</div><div class="sc-tags">'+ps.filter(function(p){ return p.kind==='room'; }).map(function(p){ var on=e.positions.indexOf(p.key)>=0; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-su="tpos" data-key="'+p.key+'" aria-pressed="'+on+'"><i style="background:'+p.color+'"></i>'+esc(p.name)+'</button>'; }).join('')+'</div>';
   var sal=e.payType==='salaried';
-  h+='<div class="sc-pay"><div class="uform" style="padding:0"><label>Hourly rate <span class="sm">Only the office sees this</span><input id="su-rate" inputmode="decimal" placeholder="'+(sal?'Salaried':'0.00')+'" value="'+(sal||e.rate==null?'':e.rate)+'"'+(sal?' disabled':'')+'></label></div><label class="sc-rep sc-sal"><input type="checkbox" id="su-sal"'+(sal?' checked':'')+'> Salaried</label></div>';
+  h+='<div class="sc-pay"><div class="uform" style="padding:0"><label>Hourly rate <span class="sm">Only the office sees this</span><input id="su-rate" inputmode="decimal" placeholder="'+(sal?'Salaried':'0.00')+'" value="'+(sal||e.rate==null?'':e.rate)+'"'+(sal?' disabled':'')+'></label></div><button type="button" class="sc-salb'+(sal?' on':'')+'" data-su="sal" role="switch" aria-checked="'+sal+'">'+(sal?svg('check'):'<span class="sc-box" aria-hidden="true"></span>')+'Salaried</button></div>';
   h+='<label class="sc-rep" style="margin-top:12px"><input type="checkbox" id="su-both"'+(e.centers.indexOf(other)>=0?' checked':'')+'> Also works at '+(other==='SF'?'Sioux Falls':'Brandon')+'</label>';
   h+='<label class="sc-rep"><input type="checkbox" id="su-active"'+(e.active?' checked':'')+'> Active (shows on the schedule)</label>';
   // typical week
@@ -1317,6 +1320,7 @@ function suClick(t){
   if(a==='tbadd'){ var day=t.getAttribute('data-day'), list=(e.typical[day]=e.typical[day]||[]), last=list[list.length-1];
     list.push(t.getAttribute('data-s')?{ s:t.getAttribute('data-s'), e:t.getAttribute('data-e'), p:t.getAttribute('data-p') }:{ s:last?last.e:'07:00', e:last?(last.e<'17:00'?'17:00':'18:00'):'17:00', p:t.getAttribute('data-p')||(last?last.p:(e.positions[0]||'infant')) }); if(e.pick) delete e.pick[day];
     list.sort(function(x,y){ return x.s<y.s?-1:1; }); render(); return; }
+  if(a==='sal'){ e.payType=e.payType==='salaried'?'hourly':'salaried'; render(); return; }
   if(a==='tbclear'){ if(!confirm('Clear their whole set schedule? (Nothing changes until you tap Save.)')) return; e.typical={}; e.pick={}; render(); return; }
   if(a==='tdopen'){ var dk2=t.getAttribute('data-day')+':'+t.getAttribute('data-i'); e.dOpen=e.dOpen===dk2?null:dk2; render(); return; }
   if(a==='tdtog'){ var tb=(e.typical[t.getAttribute('data-day')]||[])[+t.getAttribute('data-i')]; if(!tb) return; tb.d=tb.d||[]; var tk=t.getAttribute('data-k'), ti=tb.d.indexOf(tk); if(ti>=0) tb.d.splice(ti,1); else tb.d.push(tk); render(); return; }
