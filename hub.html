@@ -1231,7 +1231,7 @@ function suView(){
   } else {
     var ps=(d.positions||[]).filter(function(p){ return p.centers.indexOf(c)>=0; });
     var prow=function(p){ var n=(d.presets||[]).filter(function(x){ return x.p===p.key && x.centers.indexOf(c)>=0; }).length;
-      return '<button type="button" class="sc-li'+(p.active?'':' sc-off')+'" data-su="room" data-key="'+esc(p.key)+'">'+(p.kind==='duty'?'<span class="sc-dico" aria-hidden="true">'+scIcon(p)+'</span>':'<span class="sc-dot" style="background:'+p.color+'"></span>')+'<span class="grow"><b>'+esc(p.name)+'</b><span class="sm">'+[p.ages, p.ratio?'1:'+p.ratio:'', plural(n,'standard shift','standard shifts')+(function(){ var nd=(d.presets||[]).filter(function(x){ return x.p===p.key && x.centers.indexOf(c)>=0; }).reduce(function(m,x){ return m+(x.need||0); },0); return nd?' · '+nd+' needed a day':''; })(), p.active?'':'Retired'].filter(Boolean).join(' · ')+'</span></span>'+svg('chev')+'</button>'; };
+      return '<button type="button" class="sc-li'+(p.active?'':' sc-off')+'" data-su="room" data-key="'+esc(p.key)+'">'+(p.kind==='duty'?'<span class="sc-dico" aria-hidden="true">'+scIcon(p)+'</span>':'<span class="sc-dot" style="background:'+p.color+'"></span>')+'<span class="grow"><b>'+esc(p.name)+'</b>'+(p.active?'':'<span class="sm">Retired</span>')+'</span>'+svg('chev')+'</button>'; };
     var duty=su.tab==='duties';
     h+='<div class="sc-list">'+ps.filter(function(p){ return duty?p.kind!=='room':p.kind==='room'; }).map(prow).join('')+'</div>';
     h+='<button type="button" class="pill go" data-su="room" data-key="new" data-kind="'+(duty?'duty':'room')+'" style="margin-top:12px">+ Add '+(duty?'duty':'room')+'</button>';
