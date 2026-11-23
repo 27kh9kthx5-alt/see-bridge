@@ -1502,7 +1502,7 @@ function suGrab(){
   if(su.room){ var r=su.room; if($('su-rname')) r.name=$('su-rname').value; if($('su-ages')) r.ages=$('su-ages').value; if($('su-ratio')) r.ratio=$('su-ratio').value; if($('su-ractive')) r.active=$('su-ractive').checked;
     if($('su-csf')) r.centers=[].concat($('su-csf').checked?['SF']:[]).concat($('su-cbv')&&$('su-cbv').checked?['BV']:[]); }
 }
-var SC_ABBR={ infant:'I', toddlers:'T', twos:'2’s', preschool:'PS', prek:'PK', schoolage:'SA', middle:'U' };
+var SC_ABBR={ infant:'I', toddlers:'T', twos:'2’s', preschool:'PS', prek:'PK', schoolage:'SA', middle:'F' };
 function scRoomIcon(p){ if(p.icon==='none') return ''; if(p.icon && SC_DI[p.icon]) return p.icon; var k=String(p.key||'').replace(/^bv/,''); return k==='middle'?'sparkles':''; }
 function scAbbr(p){ if(p.abbr) return p.abbr; var k=String(p.key||'').replace(/^bv/,''); return SC_ABBR[k]||String(p.name||'').split(/\s+/).map(function(w){ return w.charAt(0).toUpperCase(); }).join('').slice(0,3); }
 function roomsOnly(e){ var c=S.sc.center, d=S.sc.su.data; return (e.positions||[]).filter(function(k){ var p=((d&&d.positions)||[]).find(function(x){ return x.key===k; }); return p && p.kind==='room' && p.active && p.centers.indexOf(c)>=0; }); }
