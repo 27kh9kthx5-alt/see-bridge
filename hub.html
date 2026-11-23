@@ -1621,31 +1621,34 @@ document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.sc && 
 document.addEventListener('contextmenu',function(e){ if(e.target.closest&&e.target.closest('.sc-split')) e.preventDefault(); });
 // ---- press, hold and drag a shift block onto another person or day ----
 var SCD={ t:null, on:false, src:null, ghost:null, over:null, x0:0, y0:0, skipClick:false };
-function scDragEnd(){ clearTimeout(SCD.t); SCD.t=null; if(SCD.ghost){ SCD.ghost.remove(); SCD.ghost=null; } if(SCD.over){ SCD.over.classList.remove('sc-drop'); SCD.over=null; } if(SCD.src&&SCD.src.el) SCD.src.el.classList.remove('sc-lift'); document.body.classList.remove('sc-dragging'); SCD.on=false; SCD.src=null; }
+function scDragEnd(){ clearTimeout(SCD.t); SCD.t=null; SCD.lift=null; if(SCD.ghost){ SCD.ghost.remove(); SCD.ghost=null; } if(SCD.over){ SCD.over.classList.remove('sc-drop'); SCD.over=null; } if(SCD.src&&SCD.src.el) SCD.src.el.classList.remove('sc-lift'); document.body.classList.remove('sc-dragging'); SCD.on=false; SCD.src=null; }
 function scTargetAt(x,y){ if(SCD.ghost) SCD.ghost.style.display='none'; var el=document.elementFromPoint(x,y); if(SCD.ghost) SCD.ghost.style.display=''; return el && el.closest('.sc-hit[data-sc=edit]'); }
 document.addEventListener('pointerdown',function(e){
   var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su || S.sc.menu || S.sc.gear || S.sc.vmenu || S.sc.asg || S.sc.radd || S.sc.toOpen) return;
   if(e.pointerType==='mouse' && e.button!==0) return;
   SCD.x0=e.clientX; SCD.y0=e.clientY;
   SCD.src={ el:ch, id:ch.getAttribute('data-did'), day:ch.getAttribute('data-dday'), i:+ch.getAttribute('data-di') };
-  SCD.t=setTimeout(function(){
+  SCD.lift=function(){ SCD.lift=null;
     SCD.on=true; SCD.skipClick=true; ch.classList.add('sc-lift'); document.body.classList.add('sc-dragging');
     var r=ch.getBoundingClientRect(), g=ch.cloneNode(true); g.className='sc-chip sc-ghost'; g.style.width=r.width+'px'; g.style.left=(SCD.x0-r.width/2)+'px'; g.style.top=(SCD.y0-r.height/2)+'px';
     document.body.appendChild(g); SCD.ghost=g; try{ if(navigator.vibrate) navigator.vibrate(15); }catch(err){}
-  }, e.pointerType==='mouse'?250:400);
+  };
+  SCD.t=setTimeout(function(){ if(SCD.lift) SCD.lift(); }, e.pointerType==='mouse'?180:300);
 });
 document.addEventListener('pointermove',function(e){
   if(!SCD.src) return;
-  if(!SCD.on){ if(Math.abs(e.clientX-SCD.x0)>8 || Math.abs(e.clientY-SCD.y0)>8){ clearTimeout(SCD.t); SCD.src=null; } return; }
+  if(!SCD.on){ var far=Math.abs(e.clientX-SCD.x0)>5 || Math.abs(e.clientY-SCD.y0)>5;
+    if(far && e.pointerType==='mouse' && SCD.lift){ clearTimeout(SCD.t); SCD.lift(); }
+    else { if(Math.abs(e.clientX-SCD.x0)>8 || Math.abs(e.clientY-SCD.y0)>8){ clearTimeout(SCD.t); SCD.src=null; } return; } }
   e.preventDefault();
-  var g=SCD.ghost; g.style.left=(e.clientX-g.offsetWidth/2)+'px'; g.style.top=(e.clientY-g.offsetHeight/2)+'px';
+  var g=SCD.ghost; if(!g) return; g.style.left=(e.clientX-g.offsetWidth/2)+'px'; g.style.top=(e.clientY-g.offsetHeight/2)+'px';
   var tg=scTargetAt(e.clientX,e.clientY); if(tg!==SCD.over){ if(SCD.over) SCD.over.classList.remove('sc-drop'); SCD.over=tg; if(tg) tg.classList.add('sc-drop'); }
   // nudge the grid sideways near its edges
   var w=document.querySelector('.sc-wrap'); if(w){ var wr=w.getBoundingClientRect(); if(e.clientX>wr.right-40) w.scrollLeft+=12; else if(e.clientX<wr.left+110) w.scrollLeft-=12; }
 },{ passive:false });
 document.addEventListener('touchmove',function(e){ if(SCD.on) e.preventDefault(); },{ passive:false });
 document.addEventListener('pointerup',function(e){
-  if(!SCD.src) return; if(!SCD.on){ clearTimeout(SCD.t); SCD.src=null; return; }
+  if(!SCD.src) return; if(!SCD.on){ clearTimeout(SCD.t); SCD.src=null; SCD.lift=null; return; }
   var src=SCD.src, tg=scTargetAt(e.clientX,e.clientY); scDragEnd();
   setTimeout(function(){ SCD.skipClick=false; }, 350);
   if(!tg) return; scMove(src, tg.getAttribute('data-id'), tg.getAttribute('data-day'));
@@ -1673,9 +1676,10 @@ function scMove(src, toId, toDay){
   var ovr=!!S.sc.ovr; S.sc.ovr=false;
   var save=function(id,days,o){ var r=scRow(id); return scPost(Object.assign({ action:'sched_save', center:S.sc.center, week:S.sc.week, staffId:id, rev:r.rev||0, days:days }, o||{})); };
   if(!to){ save(src.id, fromDays).then(function(r1){ scApply(r1); if(r1&&r1.ok) toast('Moved to '+(SC_DAYS.find(function(x){ return x[0]===toDay; })||['',''])[1]+'.'); }); return; }
-  save(toId, toDays, ovr?{ override:true }:null).then(function(r1){
+  save(toId, toDays, Object.assign({ light:true }, ovr?{ override:true }:{})).then(function(r1){
     if(!r1 || !r1.ok){ scApply(r1); return; }
-    S.sc.data=r1; var fr=scRow(src.id), fd=JSON.parse(JSON.stringify(fr.days||{})), k=(fd[src.day]||[]).findIndex(function(b){ return b.s===blk.s && b.e===blk.e && b.p===blk.p; });
+    if(r1.light){ var tr=scRow(toId); tr.rev=r1.rev; tr.status=r1.status; } else S.sc.data=r1;
+    var fr=scRow(src.id), fd=JSON.parse(JSON.stringify(fr.days||{})), k=(fd[src.day]||[]).findIndex(function(b){ return b.s===blk.s && b.e===blk.e && b.p===blk.p; });
     if(k>=0) fd[src.day].splice(k,1);
     return save(src.id, fd).then(function(r2){ scApply(r2); if(r2&&r2.ok) toast('Moved to '+nm+'.'); });
   });
