@@ -1173,13 +1173,13 @@ function suApply(r){
   S.sc.su.data=r; S.sc.su.edit=null; S.sc.su.room=null; render();
 }
 function suPos(k){ var d=S.sc.su&&S.sc.su.data; return ((d&&d.positions)||[]).find(function(p){ return p.key===k; }) || scPos(k); }
-function suSheet(inner){ return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Rooms and staff"><div class="sc-card sc-wide-card">'+inner+'</div></div>'; }
+function suSheet(inner){ return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Setup"><div class="sc-card sc-wide-card">'+inner+'</div></div>'; }
 function suView(){
   var su=S.sc.su, d=su.data;
   if(su.edit) return suStaffEdit();
   if(su.room) return suRoomEdit();
-  var h='<div class="sc-ch"><div><b>Rooms, staff &amp; duties</b><div class="sm">'+(S.sc.center==='SF'?'Sioux Falls':'Brandon')+'</div></div><button type="button" class="link" data-su="close">Done</button></div>'+
-    '<div class="seg" role="group" aria-label="Show" style="margin-top:0"><button type="button" data-su="tab" data-v="staff" aria-pressed="'+(su.tab==='staff')+'">Staff</button><button type="button" data-su="tab" data-v="rooms" aria-pressed="'+(su.tab==='rooms')+'">Rooms</button><button type="button" data-su="tab" data-v="duties" aria-pressed="'+(su.tab==='duties')+'">Duties</button></div>';
+  var ttl={ staff:['Staff','Who works here, their rooms, pay and set schedule'], rooms:['Rooms','Ages, ratios and each room’s standard shifts'], duties:['Duties','Opener, Bus Run, Closer and their standard shifts'] }[su.tab]||['Staff',''];
+  var h='<div class="sc-ch"><div><b>'+ttl[0]+'</b><div class="sm">'+(S.sc.center==='SF'?'Sioux Falls':'Brandon')+' · '+ttl[1]+'</div></div><button type="button" class="link" data-su="close">Done</button></div>';
   if(!d) return suSheet(h+'<div class="empty"><span class="spin"></span> Loading…</div>');
   var c=S.sc.center;
   if(su.tab==='staff'){
