@@ -241,7 +241,7 @@ nav .badge{top:-2px;right:14px}
 .sc-tot{border-top:1px solid var(--line);padding:8px 14px 8px 6px;white-space:nowrap;vertical-align:top;font-variant-numeric:tabular-nums}
 .sc-tot b{display:block;font-size:14px}
 .sc-ot{display:block;color:#b3261e;font-weight:700;font-size:12px}
-.sc-open th,.sc-open td{background:#fffbeb}
+.sc-open th,.sc-open td{background:#fff}.sc-open td,.sc-open th{border-bottom:1px solid #d1d1d6}
 .sc-foot th,.sc-foot td{border-top:1px solid #d8d8dd;padding:8px 6px;font-size:12px;color:var(--sub);font-weight:600;font-variant-numeric:tabular-nums}
 .sc-foot th{padding-left:14px;text-align:left}
 .sc-dh{vertical-align:bottom;padding:8px 8px 8px!important}
@@ -409,17 +409,19 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-radd:hover{border-color:var(--blue);color:var(--blue)}
 .sc-pre-on{outline:2px solid var(--blue);background:#e8f0fe}
 /* Open shifts: white with gray stripes until published, plain white once published. Time off / approved requests will be solid gray. */
-tr.sc-open .sc-chip,.sc-gopen,.sc-tl-open{background-color:#fff!important;background-image:none!important;border:1px solid #d2d2d7;border-left:3px solid var(--c)}
-.sc-chip.sc-timeoff,.sc-tl-b.sc-timeoff{background:#e5e5ea!important;border-left:3px solid #8e8e93!important;color:#3a3a3f}
-/* Published shifts: solid room color. Unpublished (draft): light tint with a solid room-color border. */
-.sc-chip:not(.sc-other):not(.sc-timeoff),.sc-tl-b:not(.sc-timeoff){background:var(--c)!important;color:var(--on,#fff);border:1.5px solid var(--c)!important;background-image:none!important}
-.sc-chip:not(.sc-other) span,.sc-chip:not(.sc-other) b{color:inherit}.sc-chip:not(.sc-other) span{opacity:.92}
-.sc-tl-b em{color:inherit}
-.sc-di{color:inherit}
-.sc-cell.sc-chg .sc-chip:not(.sc-other),.sc-chip.sc-ichg,.sc-tl-b.sc-tl-chg{background:color-mix(in srgb,var(--c) 16%,#fff)!important;color:#1d1d1f!important}
-/* Open shifts: white. Draft = solid gray border; published = light border. Room color shows as the left edge. */
-tr.sc-open .sc-cell .sc-chip.sc-chip:not(.sc-other):not(.sc-timeoff),.sc-chip.sc-gopen:not(.sc-other):not(.sc-timeoff):not(.x),.sc-tl-b.sc-tl-open:not(.sc-timeoff):not(.x){background:#fff!important;color:#1d1d1f!important;border:1px solid #e0e0e5!important;border-left:4px solid var(--c)!important}
-tr.sc-open .sc-cell.sc-chg .sc-chip.sc-chip:not(.sc-other):not(.sc-timeoff),.sc-chip.sc-gopen.sc-ochg:not(.sc-other):not(.sc-timeoff),.sc-tl-b.sc-tl-open.sc-ochg:not(.sc-timeoff){border:1.5px solid #8e8e93!important;border-left:4px solid var(--c)!important}
+.sc-chip.sc-timeoff,.sc-tl-b.sc-timeoff{background:#d1d1d6!important;border-left:4px solid #8e8e93!important;color:#1d1d1f}
+/* Shift blocks, in the style of Apple Calendar (deference: soft tints, color as an accent, labels stay readable).
+   Published: soft tint of the room color with a solid color bar on the left.
+   Unpublished (draft): white with a solid outline in the room color, like a calendar invite you haven't accepted yet. */
+.sc-chip:not(.sc-other):not(.sc-timeoff),.sc-tl-b:not(.sc-timeoff){background:color-mix(in srgb,var(--c) 22%,#fff)!important;background-image:none!important;color:#1d1d1f!important;border:0!important;border-left:4px solid var(--c)!important;border-radius:6px}
+.sc-chip:not(.sc-other) b{color:#1d1d1f}.sc-chip:not(.sc-other) span{color:#3c3c43;opacity:1}
+.sc-tl-b em{color:#1d1d1f}
+.sc-di{color:#1d1d1f}
+.sc-cell.sc-chg .sc-chip:not(.sc-other):not(.sc-timeoff),.sc-chip.sc-ichg:not(.sc-other):not(.sc-timeoff),.sc-tl-b.sc-tl-chg:not(.sc-timeoff){background:#fff!important;box-shadow:inset 0 0 0 1.5px var(--c);border-left:4px solid var(--c)!important}
+.sc-cell.sc-chg .sc-chip:not(.sc-other) span,.sc-chip.sc-ichg span{color:#6e6e73}
+/* Open shifts: no one assigned, so they stay neutral (system gray), with the room shown only by the left bar. */
+tr.sc-open .sc-cell .sc-chip.sc-chip:not(.sc-other):not(.sc-timeoff),.sc-chip.sc-gopen:not(.sc-other):not(.sc-timeoff):not(.x),.sc-tl-b.sc-tl-open:not(.sc-timeoff):not(.x){background:#f2f2f7!important;box-shadow:none;border:0!important;border-left:4px solid var(--c)!important}
+tr.sc-open .sc-cell.sc-chg .sc-chip.sc-chip:not(.sc-other):not(.sc-timeoff),.sc-chip.sc-gopen.sc-ochg:not(.sc-other):not(.sc-timeoff),.sc-tl-b.sc-tl-open.sc-ochg:not(.sc-timeoff){background:#fff!important;box-shadow:inset 0 0 0 1.5px #aeaeb2;border-left:4px solid var(--c)!important}
 </style>
 </head>
 <body>
