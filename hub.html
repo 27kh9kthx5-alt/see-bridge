@@ -377,6 +377,28 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-salb .sc-box{width:18px;height:18px;border:1.5px solid #8e8e93;border-radius:5px}
 .sc-salb.on{background:var(--blue);border-color:var(--blue);color:#fff}.sc-salb.on svg{width:18px;height:18px;stroke-width:3}
 .sc-pay input:disabled{background:#f2f2f6;color:var(--sub)}.sc-pay .sm{font-weight:400;color:var(--sub);font-size:12px}.sc-sal{margin:0 0 12px}
+.sc-views{margin:10px 0 0}
+.sc-gt th[scope=row]{text-align:left;padding:8px 10px;vertical-align:top;border-top:1px solid var(--line);position:sticky;left:0;background:var(--card);z-index:1;min-width:120px}
+.sc-gname{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink,#1d1d1f)}.sc-gname small{display:block;font-size:11px;color:var(--sub);font-weight:400}
+.sc-gchip{width:100%;border:0;text-align:left;font:inherit;cursor:pointer;margin-bottom:3px}
+.sc-gchip.sc-gopen{border-style:dashed}
+.sc-none{display:block;text-align:center;color:#c7c7cc;padding:8px 0}
+.sc-dpick{margin:12px 0 4px}
+.sc-tl{background:var(--card);border-radius:16px;padding:8px 10px 10px;margin-top:8px;overflow-x:auto}
+.sc-tl-r{display:flex;align-items:center;gap:8px;min-width:640px;height:34px}
+.sc-tl-h{height:20px}
+.sc-tl-n{width:82px;flex:none;border:0;background:none;font:inherit;font-size:13px;font-weight:600;text-align:left;cursor:pointer;color:inherit;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-tl-t{position:relative;flex:1;height:100%}
+.sc-tl-h .sc-tl-t span{position:absolute;transform:translateX(-50%);font-size:10px;color:var(--sub);top:3px}
+.sc-tl-t>i{position:absolute;top:0;bottom:0;border-left:1px solid var(--line)}
+.sc-tl-b{position:absolute;top:5px;bottom:5px;border-radius:6px;background:color-mix(in srgb,var(--c) 30%,#fff);border-left:3px solid var(--c);display:flex;align-items:center;gap:2px;padding:0 4px;overflow:hidden;font-size:11px;white-space:nowrap}
+.sc-tl-b em{font-style:normal;color:#3a3a3f}.sc-tl-b i{display:inline-flex;font-size:11px}
+.sc-tl-chg{background-image:repeating-linear-gradient(135deg,color-mix(in srgb,var(--c) 30%,transparent) 0 5px,transparent 5px 10px)}
+.sc-cnt{border-collapse:collapse;font-size:12px;min-width:640px;width:100%}
+.sc-cnt th{font-weight:600;color:var(--sub);font-size:10px;padding:6px 2px;white-space:nowrap;text-align:left}
+.sc-cnt tbody th{font-size:12px;color:var(--ink,#1d1d1f);display:flex;align-items:center;gap:6px;padding:6px 8px;position:sticky;left:0;background:var(--card)}
+.sc-cnt td{text-align:center;border-left:1px solid #fff;height:26px;min-width:22px;font-weight:600}
+.sc-cnt td.sc-z{background:#f6f6f8}
 </style>
 </head>
 <body>
@@ -1111,6 +1133,55 @@ function scMenu(){
   if(has) h+=(d.unpublished && scHasPub()?'':'<hr>')+it('clear','Clear this week','','sc-ddr');
   return '<div class="sc-dd" role="menu" aria-label="This week">'+h+'</div>';
 }
+// ---- other views: by room, by duty, one day as a timeline ----
+function scShortName(p){ if(!p||p.id==='open') return 'Open'; var nm=String(p.name||'').trim().split(/\s+/); return nm[0]+(nm.length>1?' '+nm[nm.length-1].charAt(0)+'.':''); }
+function scAllShifts(dayKey){ // every shift this day at this center: {who, id, b, i, chg}
+  var d=S.sc.data, out=[];
+  ((d&&d.rows)||[]).forEach(function(r){ var list=(r.days||{})[dayKey]||[], pub=((r.published||{})[dayKey])||[], chg=JSON.stringify(list)!==JSON.stringify(pub) && !(list.length===0&&!pub.length);
+    var who=r.staffId==='open'?{ id:'open', name:'Open' }:(d.staff||[]).find(function(x){ return x.id===r.staffId; }); if(!who) return;
+    list.forEach(function(b,i){ out.push({ who:who, id:r.staffId, b:b, i:i, chg:chg }); }); });
+  return out.sort(function(a,b){ return a.b.s<b.b.s?-1:a.b.s>b.b.s?1:0; });
+}
+function scGroupView(vw,cols,closed){
+  var d=S.sc.data, c=S.sc.center;
+  var groups=(d.positions||[]).filter(function(p){ return p.active && p.centers.indexOf(c)>=0 && (vw==='rooms'?p.kind==='room':p.kind==='duty'); });
+  var match=function(x,g){ return vw==='rooms'? x.b.p===g.key : (x.b.p===g.key || (x.b.d||[]).indexOf(g.key)>=0); };
+  var head='<tr><th class="sc-wk"><span class="sc-nm">'+(vw==='rooms'?'Room':'Duty')+'</span></th>'+cols.map(function(cc){ var dt=scDate(cc.date); return '<th class="sc-dh">'+cc.label+' '+dt.getDate()+(closed[cc.date]?'<small>'+esc(closed[cc.date])+'</small>':'')+'</th>'; }).join('')+'</tr>';
+  var per={}; cols.forEach(function(cc){ per[cc.key]=scAllShifts(cc.key); });
+  var rows=groups.map(function(g){
+    var cells=cols.map(function(cc){
+      if(closed[cc.date]) return '<td class="sc-cell sc-closed"></td>';
+      var list=per[cc.key].filter(function(x){ return match(x,g); });
+      if(!list.length) return '<td class="sc-cell"><span class="sc-none">—</span></td>';
+      return '<td class="sc-cell'+(list.some(function(x){ return x.chg; })?' sc-chg':'')+'">'+list.map(function(x){ var ps=scPos(x.b.p);
+        return '<button type="button" class="sc-chip sc-gchip'+(x.id==='open'?' sc-gopen':'')+'" data-sc="edit" data-id="'+esc(x.id)+'" data-day="'+cc.key+'" style="--c:'+ps.color+';background-color:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+esc(scShortName(x.who))+(x.b.d&&x.b.d.length?'<span class="sc-di">'+scDutyIcons(x.b)+'</span>':'')+'</b><span>'+scT(x.b.s)+'–'+scT(x.b.e)+(vw==='duties'&&x.b.p!==g.key?' · '+esc(ps.name):'')+'</span></button>'; }).join('')+'</td>'; }).join('');
+    var lab=vw==='rooms'?'<span class="sc-dot" style="background:'+g.color+'"></span>':'<span class="sc-dico">'+scIcon(g)+'</span>';
+    return '<tr><th scope="row"><span class="sc-gname">'+lab+'<span>'+esc(g.name)+(g.ratio&&vw==='rooms'?'<small>1:'+g.ratio+'</small>':'')+'</span></span></th>'+cells+'</tr>'; }).join('');
+  return '<div class="sc-wrap"><table class="sc-t sc-gt"><thead>'+head+'</thead><tbody>'+(rows||'<tr><td class="sc-cell" colspan="6">Nothing set up yet.</td></tr>')+'</tbody></table></div>'+
+    '<p class="help">'+(vw==='rooms'?'Who’s in each room each day. Tap a name to change that person’s day.':'Who has each duty each day, as a tag on their shift or its own block. Tap a name to change it.')+' Striped days have unpublished changes.</p>';
+}
+function scDayView(cols,closed){
+  var d=S.sc.data, c=S.sc.center, dk=S.sc.dayPick||cols[0].key, col=cols.find(function(x){ return x.key===dk; })||cols[0];
+  var h='<div class="sc-tags sc-dpick">'+cols.map(function(cc){ var on=cc.key===col.key; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-sc="dpick" data-v="'+cc.key+'" aria-pressed="'+on+'">'+cc.label+' '+scDate(cc.date).getDate()+'</button>'; }).join('')+'</div>';
+  if(closed[col.date]) return h+'<div class="empty">'+esc(closed[col.date])+'. The center is closed.</div>';
+  var start=6*60+30, end=18*60+15, span=end-start, pct=function(t){ return Math.max(0,Math.min(100,(scMins(t)-start)/span*100)); };
+  var all=scAllShifts(col.key), ids=[]; all.forEach(function(x){ if(ids.indexOf(x.id)<0) ids.push(x.id); });
+  var hours=''; for(var m=7*60;m<=18*60;m+=60){ hours+='<span style="left:'+((m-start)/span*100)+'%">'+scT(('0'+Math.floor(m/60)).slice(-2)+':00')+'</span>'; }
+  var lines=''; for(var m2=7*60;m2<=18*60;m2+=60){ lines+='<i style="left:'+((m2-start)/span*100)+'%"></i>'; }
+  var rows=ids.map(function(id){ var mine=all.filter(function(x){ return x.id===id; }), who=mine[0].who;
+    return '<div class="sc-tl-r"><button type="button" class="sc-tl-n" data-sc="edit" data-id="'+esc(id)+'" data-day="'+col.key+'">'+esc(scShortName(who))+'</button><div class="sc-tl-t">'+lines+mine.map(function(x){ var ps=scPos(x.b.p), l=pct(x.b.s), w=pct(x.b.e)-l;
+      return '<span class="sc-tl-b'+(x.chg?' sc-tl-chg':'')+'" style="left:'+l+'%;width:'+w+'%;--c:'+ps.color+'" title="'+esc(ps.name+' '+scT(x.b.s)+'–'+scT(x.b.e))+'">'+(x.b.d&&x.b.d.length?scDutyIcons(x.b):'')+'<em>'+scT(x.b.s)+'–'+scT(x.b.e)+'</em></span>'; }).join('')+'</div></div>'; }).join('');
+  // staff in each room, every half hour
+  var rooms=(d.positions||[]).filter(function(p){ return p.active && p.kind==='room' && p.centers.indexOf(c)>=0; });
+  var slots=[]; for(var t=7*60;t<18*60;t+=30) slots.push(t);
+  var hm=function(t){ return ('0'+Math.floor(t/60)).slice(-2)+':'+('0'+t%60).slice(-2); };
+  var cnt='<table class="sc-cnt"><thead><tr><th></th>'+slots.map(function(t){ return '<th>'+(t%60?'':scT(hm(t)))+'</th>'; }).join('')+'</tr></thead><tbody>'+rooms.map(function(r){
+    return '<tr><th scope="row"><span class="sc-dot" style="background:'+r.color+'"></span>'+esc(r.name)+'</th>'+slots.map(function(t){ var n=all.filter(function(x){ return x.id!=='open' && x.b.p===r.key && scMins(x.b.s)<=t && scMins(x.b.e)>=t+30; }).length;
+      return '<td class="'+(n?'':'sc-z')+'" style="'+(n?'background:'+r.color+(n>1?'55':'2e'):'')+'">'+(n||'')+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table>';
+  return h+(rows?'<div class="sc-tl"><div class="sc-tl-r sc-tl-h"><span class="sc-tl-n"></span><div class="sc-tl-t">'+hours+'</div></div>'+rows+'</div>':'<div class="empty">Nobody is scheduled this day.</div>')+
+    '<div class="sc-pres-h" style="margin-top:16px">Teachers in each room</div><div class="sc-wrap" style="margin-top:6px">'+cnt+'</div>'+
+    '<p class="help">The count is people scheduled in the room for the whole half hour (open shifts not counted). Tap a name to change their day.</p>';
+}
 function schedView(){
   scInit(); var d=S.sc.data;
   var h='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button>'+
@@ -1118,9 +1189,13 @@ function schedView(){
     '<div class="sc-bar"><button type="button" class="round" data-sc="prev" aria-label="Previous week">'+svg('back')+'</button><button type="button" class="pill" data-sc="today">This week</button><button type="button" class="round" data-sc="next" aria-label="Next week">'+svg('chev')+'</button>'+
     '<span style="flex:1"></span>'+(d? scMainBtn():'')+'</div>';
   if(!d) return h+'<div class="empty"><span class="spin"></span> Loading…</div>';
+  var vw=S.sc.view||'people';
+  h+='<div class="seg sc-views" role="group" aria-label="View">'+[['people','People'],['rooms','Rooms'],['duties','Duties'],['day','Day']].map(function(x){ return '<button type="button" data-sc="view" data-v="'+x[0]+'" aria-pressed="'+(vw===x[0])+'">'+x[1]+'</button>'; }).join('')+'</div>';
   if(d.unpublished) h+='<div class="note">Draft: '+plural(d.unpublished,'person’s week has','people’s weeks have')+' changes that aren’t published yet (striped shifts).</div>';
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
   var cols=SC_DAYS.map(function(dd,i){ return { key:dd[0], label:dd[1], date:scIso(scDate(S.sc.week,i)) }; });
+  if(vw!=='people'){ h+=vw==='day'?scDayView(cols,closed):scGroupView(vw,cols,closed);
+    if(S.sc.edit) h+=scEditor(); if(S.sc.tpl) h+=scTemplates(); if(S.sc.bld) h+=scBuild(); if(S.sc.su) h+=suView(); return h; }
   var dayTot={}, dayCost={}; cols.forEach(function(c){ dayTot[c.key]=0; dayCost[c.key]=0; });
   // This center's own people, plus anyone from the other center who has shifts here this week.
   var hasHere=function(id){ var r=scRow(id); return SC_ALL_DAYS.some(function(k){ return ((r.days||{})[k]||[]).length || (((r.published||{})[k])||[]).length; }); };
@@ -1445,6 +1520,8 @@ function schedClick(t){
     t.disabled=true; S.sc.menu=false; scPost({ action:'sched_generate', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
   if(a==='main'){ a=t.getAttribute('data-st'); }
   if(a==='clear'){ S.sc.menu=false; render(); if(!confirm('Clear every shift this week, including open shifts?')) return; scPost({ action:'sched_clear', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
+  if(a==='view'){ S.sc.view=t.getAttribute('data-v'); S.sc.menu=false; render(); return; }
+  if(a==='dpick'){ S.sc.dayPick=t.getAttribute('data-v'); render(); return; }
   if(a==='gear'){ S.sc.gear=!S.sc.gear; S.sc.menu=false; render(); return; }
   if(a==='setup'){ S.sc.bld=null; S.sc.menu=false; S.sc.gear=false; suOpen(t.getAttribute('data-v')); return; }
   if(a==='fillroom'){ t.disabled=true; scPost({ action:'sched_fillroom', center:S.sc.center, week:S.sc.week, pos:S.sc.bld.room, days:S.sc.bld.days }).then(function(r){ if(r&&r.ok) S.sc.bld=null; else t.disabled=false; scApply(r); }); return; }
