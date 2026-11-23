@@ -1358,7 +1358,7 @@ function scTemplates(){
     '</div></div>';
 }
 // ---------- Rooms & staff setup (office only): rooms, their standard shifts, staff profiles with a typical week ----------
-var SC_COLORS=[['#ef3930','Infant red'],['#f58c1f','Toddler orange'],['#f4c217','2’s yellow'],['#40b549','Preschool green'],['#0B6BEB','Pre-K blue'],['#7B3FE4','Purple'],['#0e7490','Teal'],['#475569','Slate'],['#64748b','Gray'],['#1f2937','Charcoal']];
+var SC_COLORS=[['#ef3930','Infant red'],['#f58c1f','Toddler orange'],['#FFD60A','2’s yellow'],['#40b549','Preschool green'],['#0B6BEB','Pre-K blue'],['#7B3FE4','Purple'],['#0e7490','Teal'],['#475569','Slate'],['#64748b','Gray'],['#1f2937','Charcoal']];
 function suOpen(tab){ S.sc.su={ tab:tab||'staff', data:null, edit:null, room:null }; render(); suLoad(); }
 function suLoad(){ return scPost({ action:'sched_setup', center:S.sc.center, week:S.sc.week }).then(suApply); }
 function suApply(r){
