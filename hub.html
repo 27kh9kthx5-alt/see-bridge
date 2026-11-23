@@ -358,6 +358,16 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-dd .sc-ddr b{color:#b3261e}
 .sc-dd hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
 .sc-gearw{position:relative}.sc-gearw .round svg{width:22px;height:22px}.sc-gearw .sc-dd{min-width:250px}
+.sc-di{margin-left:3px;font-style:normal}.sc-di i{font-style:normal;font-size:11px}
+.sc-dut{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 10px;border-bottom:1px solid var(--line)}
+.sc-dut .sc-tag{min-height:32px;font-size:13px;padding:0 10px}
+.sc-tbm{flex:1;display:flex;align-items:center;gap:8px;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;padding:0;min-width:0}
+.sc-tbm span{flex:1;font-size:13px;color:var(--sub)}.sc-tbm span i{font-style:normal}
+.sc-tbm em{font-style:normal;font-size:12px;color:var(--blue);font-weight:600}
+.sc-dlink{font-size:13px;margin:2px 0 6px}.sc-dlink i{font-style:normal}
+.sc-dico{width:22px;text-align:center;font-size:18px;flex:none}
+.sc-icons{display:flex;flex-wrap:wrap;gap:6px}
+.sc-icb{width:42px;height:42px;border-radius:12px;border:1px solid #d2d2d7;background:#fff;font-size:22px;cursor:pointer}.sc-icb.on{border:2px solid var(--blue);background:#e8f0fe}
 </style>
 </head>
 <body>
@@ -1029,6 +1039,13 @@ function scPay(p,mins){ if(p.payType==='salaried') return null; if(typeof p.rate
 function scMoney(n){ return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function scBlocksMins(list){ return (list||[]).reduce(function(s,b){ return s+Math.max(0,scMins(b.e)-scMins(b.s)); },0); }
 function scWeekMins(days){ return SC_ALL_DAYS.reduce(function(s,k){ return s+scBlocksMins((days||{})[k]); },0); }
+var SC_ICONS=['🌅','🌙','🚌','🔑','🧹','🍎','🥪','📋','🧸','🚪','🧺','🩹','📞','⭐','🛝','🧼'];
+var SC_ICON_DEF={ opener:'🌅', closer:'🌙', busrun:'🚌' };
+function scIcon(p){ return (p&&p.icon)||SC_ICON_DEF[p&&p.key]||'⭐'; }
+function scDuties(){ var src=(S.sc.su&&S.sc.su.data)||S.sc.data; return ((src&&src.positions)||[]).filter(function(p){ return p.kind==='duty' && p.active && p.centers.indexOf(S.sc.center)>=0; }); }
+function scDutyIcons(b){ return (b.d||[]).map(function(k){ return '<i title="'+esc(scPos(k).name)+'">'+scIcon(scPos(k))+'</i>'; }).join(''); }
+function scDutyPick(b, attr, extra){ var ds=scDuties(); if(!ds.length) return '';
+  return '<div class="sc-dut" role="group" aria-label="Duties on this shift">'+ds.map(function(p){ var on=(b.d||[]).indexOf(p.key)>=0; return '<button type="button" class="sc-tag'+(on?' on':'')+'" '+attr+' data-k="'+p.key+'"'+extra+' aria-pressed="'+on+'"><span aria-hidden="true">'+scIcon(p)+'</span>'+esc(p.name)+'</button>'; }).join('')+'</div>'; }
 function scPos(k){ return ((S.sc.data&&S.sc.data.positions)||[]).find(function(p){ return p.key===k; }) || { key:k, name:k, color:'#8e8e93', kind:'room' }; }
 function scRow(id){ return ((S.sc.data&&S.sc.data.rows)||[]).find(function(r){ return r.staffId===id; }) || { staffId:id, days:{}, published:null, rev:0 }; }
 function scInit(){ if(!S.sc){ var nw=scMonday(new Date()); nw.setDate(nw.getDate()+7); S.sc={ center:'SF', week:scIso(nw), data:null, busy:false, edit:null }; } }
@@ -1091,7 +1108,7 @@ function schedView(){
       var list=days[c.key]||[], changed=JSON.stringify(list)!==JSON.stringify(pub[c.key]||[]) && !(list.length===0 && !(pub[c.key]||[]).length);
       if(!p.open && p.payType!=='salaried') dayTot[c.key]+=scBlocksMins(list);
       var od=d.other&&d.other[p.id]&&(d.other[p.id].days||{})[c.key]||[];
-      var chips=list.map(function(b,bi){ var ps=scPos(b.p); return '<span class="sc-chip sc-drag" data-did="'+esc(p.id)+'" data-dday="'+c.key+'" data-di="'+bi+'" style="--c:'+ps.color+';background-color:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+scT(b.s)+'–'+scT(b.e)+'</b><span>'+esc(ps.name)+'</span></span>'; }).join('');
+      var chips=list.map(function(b,bi){ var ps=scPos(b.p); return '<span class="sc-chip sc-drag" data-did="'+esc(p.id)+'" data-dday="'+c.key+'" data-di="'+bi+'" style="--c:'+ps.color+';background-color:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+scT(b.s)+'–'+scT(b.e)+(b.d&&b.d.length?'<span class="sc-di">'+scDutyIcons(b)+'</span>':'')+'</b><span>'+esc(ps.name)+'</span></span>'; }).join('');
       if(od.length) chips+='<span class="sc-chip sc-other"><b>'+scT(od[0].s)+'–'+scT(od[od.length-1].e)+'</b><span>at Brandon</span></span>';
       if(closed[c.date]) return '<td class="sc-cell sc-closed"><span class="sc-cl">'+(p.open?esc(closed[c.date]):'')+'</span></td>';
       return '<td class="sc-cell'+(changed?' sc-chg':'')+'"><button type="button" class="sc-hit" data-sc="edit" data-id="'+esc(p.id)+'" data-day="'+c.key+'" aria-label="'+esc(p.name+', '+c.label)+'">'+(chips||'<span class="sc-plus">+</span>')+'</button></td>';
@@ -1124,11 +1141,11 @@ function schedView(){
 function scEditor(){
   var e=S.sc.edit, d=S.sc.data, p=e.id==='open'?{ id:'open', name:'Open shift', positions:[] }:(d.staff||[]).find(function(x){ return x.id===e.id; })||{ name:'', positions:[] };
   var dayName=(SC_DAYS.find(function(x){ return x[0]===e.day; })||['',''])[1], date=scDate(S.sc.week,SC_DAYS.findIndex(function(x){ return x[0]===e.day; }));
-  var opts=function(sel){ var mine=(d.positions||[]).filter(function(ps){ return ps.centers.indexOf(S.sc.center)>=0; });
+  var opts=function(sel){ var mine=(d.positions||[]).filter(function(ps){ return ps.centers.indexOf(S.sc.center)>=0 && (ps.kind==='room' || ps.key===sel); });
     var ok=mine.filter(function(ps){ return e.id==='open' || p.positions.indexOf(ps.key)>=0; }), rest=mine.filter(function(ps){ return ok.indexOf(ps)<0; });
     var o=function(ps){ return '<option value="'+ps.key+'"'+(ps.key===sel?' selected':'')+'>'+esc(ps.name)+'</option>'; };
     return ok.map(o).join('')+(rest.length?'<optgroup label="Not usually theirs">'+rest.map(o).join('')+'</optgroup>':''); };
-  var rows=e.blocks.map(function(b,i){ return '<div class="sc-blk"><input type="time" step="300" aria-label="Start" data-sb="s" data-i="'+i+'" value="'+b.s+'"><span>to</span><input type="time" step="300" aria-label="End" data-sb="e" data-i="'+i+'" value="'+b.e+'"><select aria-label="Room or duty" data-sb="p" data-i="'+i+'">'+opts(b.p)+'</select><button type="button" class="sc-x" data-sc="del" data-i="'+i+'" aria-label="Remove this block">×</button></div>'; }).join('');
+  var rows=e.blocks.map(function(b,i){ return '<div class="sc-blk"><input type="time" step="300" aria-label="Start" data-sb="s" data-i="'+i+'" value="'+b.s+'"><span>to</span><input type="time" step="300" aria-label="End" data-sb="e" data-i="'+i+'" value="'+b.e+'"><select aria-label="Room" data-sb="p" data-i="'+i+'">'+opts(b.p)+'</select><button type="button" class="sc-x" data-sc="del" data-i="'+i+'" aria-label="Remove this block">×</button></div>'+scDutyPick(b,'data-sc="dtog"',' data-i="'+i+'"'); }).join('');
   var mins=scBlocksMins(e.blocks.filter(function(b){ return b.s&&b.e&&b.e>b.s; }));
   return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Edit shifts"><div class="sc-card">'+
     '<div class="sc-ch"><div><b>'+esc(p.name)+'</b><div class="sm">'+dayName+' '+date.toLocaleDateString('en-US',{month:'short',day:'numeric'})+(mins?' · '+h2(mins/60):'')+'</div></div><button type="button" class="link" data-sc="close">Cancel</button></div>'+
@@ -1192,7 +1209,7 @@ function suView(){
   } else {
     var ps=(d.positions||[]).filter(function(p){ return p.centers.indexOf(c)>=0; });
     var prow=function(p){ var n=(d.presets||[]).filter(function(x){ return x.p===p.key && x.centers.indexOf(c)>=0; }).length;
-      return '<button type="button" class="sc-li'+(p.active?'':' sc-off')+'" data-su="room" data-key="'+esc(p.key)+'"><span class="sc-dot" style="background:'+p.color+'"></span><span class="grow"><b>'+esc(p.name)+'</b><span class="sm">'+[p.ages, p.ratio?'1:'+p.ratio:'', plural(n,'standard shift','standard shifts')+(function(){ var nd=(d.presets||[]).filter(function(x){ return x.p===p.key && x.centers.indexOf(c)>=0; }).reduce(function(m,x){ return m+(x.need||0); },0); return nd?' · '+nd+' needed a day':''; })(), p.active?'':'Retired'].filter(Boolean).join(' · ')+'</span></span>'+svg('chev')+'</button>'; };
+      return '<button type="button" class="sc-li'+(p.active?'':' sc-off')+'" data-su="room" data-key="'+esc(p.key)+'">'+(p.kind==='duty'?'<span class="sc-dico" aria-hidden="true">'+scIcon(p)+'</span>':'<span class="sc-dot" style="background:'+p.color+'"></span>')+'<span class="grow"><b>'+esc(p.name)+'</b><span class="sm">'+[p.ages, p.ratio?'1:'+p.ratio:'', plural(n,'standard shift','standard shifts')+(function(){ var nd=(d.presets||[]).filter(function(x){ return x.p===p.key && x.centers.indexOf(c)>=0; }).reduce(function(m,x){ return m+(x.need||0); },0); return nd?' · '+nd+' needed a day':''; })(), p.active?'':'Retired'].filter(Boolean).join(' · ')+'</span></span>'+svg('chev')+'</button>'; };
     var duty=su.tab==='duties';
     h+='<div class="sc-list">'+ps.filter(function(p){ return duty?p.kind!=='room':p.kind==='room'; }).map(prow).join('')+'</div>';
     h+='<button type="button" class="pill go" data-su="room" data-key="new" data-kind="'+(duty?'duty':'room')+'" style="margin-top:12px">+ Add '+(duty?'duty':'room')+'</button>';
@@ -1200,7 +1217,7 @@ function suView(){
   return suSheet(h);
 }
 function suBlockRows(day, list){
-  var posOpts=function(sel){ var c=S.sc.center, ps=((S.sc.su.data&&S.sc.su.data.positions)||[]).filter(function(p){ return p.active && p.centers.indexOf(c)>=0; });
+  var posOpts=function(sel){ var c=S.sc.center, ps=((S.sc.su.data&&S.sc.su.data.positions)||[]).filter(function(p){ return p.active && p.centers.indexOf(c)>=0 && (p.kind==='room' || p.key===sel); });
     return ps.map(function(p){ return '<option value="'+p.key+'"'+(p.key===sel?' selected':'')+'>'+esc(p.name)+'</option>'; }).join(''); };
   return list.map(function(b,i){ return '<div class="sc-blk"><input type="time" step="300" aria-label="Start" data-tb="s" data-day="'+day+'" data-i="'+i+'" value="'+b.s+'"><span>to</span><input type="time" step="300" aria-label="End" data-tb="e" data-day="'+day+'" data-i="'+i+'" value="'+b.e+'"><select aria-label="Room or duty" data-tb="p" data-day="'+day+'" data-i="'+i+'">'+posOpts(b.p)+'</select><button type="button" class="sc-x" data-su="tbdel" data-day="'+day+'" data-i="'+i+'" aria-label="Remove">×</button></div>'; }).join('');
 }
@@ -1209,14 +1226,14 @@ function suStaffEdit(){
   var ps=(d.positions||[]).filter(function(p){ return p.active && p.centers.indexOf(c)>=0; });
   var h='<div class="sc-ch"><div><b>'+(e.id?esc(e.name):'Add person')+'</b><div class="sm">Profile and set schedule</div></div><button type="button" class="link" data-su="back">Cancel</button></div>';
   h+='<div class="uform" style="padding:0"><label>Name<input id="su-name" maxlength="60" value="'+esc(e.name)+'"></label></div>';
-  h+='<div class="sc-pres-h" style="margin-top:12px">Rooms and duties they can work</div><div class="sc-tags">'+ps.map(function(p){ var on=e.positions.indexOf(p.key)>=0; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-su="tpos" data-key="'+p.key+'" aria-pressed="'+on+'"><i style="background:'+p.color+'"></i>'+esc(p.name)+'</button>'; }).join('')+'</div>';
+  h+='<div class="sc-pres-h" style="margin-top:12px">Rooms they can work</div><div class="sc-tags">'+ps.filter(function(p){ return p.kind==='room'; }).map(function(p){ var on=e.positions.indexOf(p.key)>=0; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-su="tpos" data-key="'+p.key+'" aria-pressed="'+on+'"><i style="background:'+p.color+'"></i>'+esc(p.name)+'</button>'; }).join('')+'</div>';
   h+='<div class="sc-pres-h" style="margin-top:12px">Pay</div><div class="seg" style="margin-top:0"><button type="button" data-su="pay" data-v="hourly" aria-pressed="'+(e.payType!=='salaried')+'">Hourly</button><button type="button" data-su="pay" data-v="salaried" aria-pressed="'+(e.payType==='salaried')+'">Salaried</button></div>';
   if(e.payType!=='salaried') h+='<div class="uform" style="padding:8px 0 0"><label>Hourly rate (only the office sees this)<input id="su-rate" inputmode="decimal" placeholder="0.00" value="'+(e.rate==null?'':e.rate)+'"></label></div>';
   h+='<label class="sc-rep" style="margin-top:12px"><input type="checkbox" id="su-both"'+(e.centers.indexOf(other)>=0?' checked':'')+'> Also works at '+(other==='SF'?'Sioux Falls':'Brandon')+'</label>';
   h+='<label class="sc-rep"><input type="checkbox" id="su-active"'+(e.active?' checked':'')+'> Active (shows on the schedule)</label>';
   // typical week
   h+='<div class="sc-pres-h sc-ssh" style="margin-top:16px">Set schedule'+(SC_ALL_DAYS.some(function(k){ return (e.typical[k]||[]).length; })?'<button type="button" class="link" data-su="tbclear">Clear all</button>':'')+'</div><div class="help" style="margin:0 0 6px">What they normally work. Generate uses it every week. Leave a day empty if they’re usually off.</div>';
-  var atC=(d.positions||[]).filter(function(p){ return p.active && p.centers.indexOf(c)>=0; });
+  var atC=(d.positions||[]).filter(function(p){ return p.active && p.kind==='room' && p.centers.indexOf(c)>=0; });
   var roomsFor=e.positions.length?atC.filter(function(p){ return e.positions.indexOf(p.key)>=0; }):atC;
   var preAt=(d.presets||[]).filter(function(x){ return x.centers.indexOf(c)>=0; }).sort(function(a,b){ return a.s<b.s?-1:a.s>b.s?1:(a.e<b.e?-1:1); });
   var isPre=function(b){ return preAt.some(function(x){ return x.p===b.p && x.s===b.s && x.e===b.e; }); };
@@ -1224,7 +1241,9 @@ function suStaffEdit(){
   SC_DAYS.forEach(function(dd){ var k=dd[0], list=(e.typical[k]||[]), pk=e.pick[k];
     h+='<div class="sc-tday"><div class="sc-tdh"><b>'+dd[1]+'</b>'+(list.length?'':'<span class="sm">Off</span>')+(list.length?'<button type="button" class="link sc-tcopy" data-su="tbcopy" data-day="'+k+'">Copy to all days</button>':'')+'</div>';
     list.forEach(function(b,i){ var p=suPos(b.p);
-      h+=isPre(b)?'<div class="sc-tb" style="border-left-color:'+p.color+'"><b>'+scT(b.s)+'–'+scT(b.e)+'</b><span>'+esc(p.name)+'</span><button type="button" class="sc-tbx" data-su="tbdel" data-day="'+k+'" data-i="'+i+'" aria-label="Remove '+scT(b.s)+' to '+scT(b.e)+' '+esc(p.name)+' on '+dd[1]+'">×</button></div>':suBlockRows(k,[b]).replace(/data-i="0"/g,'data-i="'+i+'"'); });
+      var dOpen=e.dOpen===k+':'+i;
+      h+=isPre(b)?'<div class="sc-tb" style="border-left-color:'+p.color+'"><button type="button" class="sc-tbm" data-su="tdopen" data-day="'+k+'" data-i="'+i+'" aria-expanded="'+dOpen+'"><b>'+scT(b.s)+'–'+scT(b.e)+'</b><span>'+esc(p.name)+(b.d&&b.d.length?' '+scDutyIcons(b):'')+'</span><em>'+(dOpen?'Done':'Duties')+'</em></button><button type="button" class="sc-tbx" data-su="tbdel" data-day="'+k+'" data-i="'+i+'" aria-label="Remove '+scT(b.s)+' to '+scT(b.e)+' '+esc(p.name)+' on '+dd[1]+'">×</button></div>':suBlockRows(k,[b]).replace(/data-i="0"/g,'data-i="'+i+'"')+'<button type="button" class="link sc-dlink" data-su="tdopen" data-day="'+k+'" data-i="'+i+'">'+(dOpen?'Done':'Duties'+(b.d&&b.d.length?' '+scDutyIcons(b):''))+'</button>';
+      if(dOpen) h+=scDutyPick(b,'data-su="tdtog"',' data-day="'+k+'" data-i="'+i+'"'); });
     h+='<div class="sc-tpick"><select data-tsel="'+k+'" aria-label="Add a shift on '+dd[1]+': pick a room"><option value="">'+(list.length?'+ Add another shift…':'+ Add a shift…')+'</option>'+roomsFor.map(function(p){ return '<option value="'+p.key+'"'+(pk===p.key?' selected':'')+'>'+esc(p.name)+'</option>'; }).join('')+'</select></div>';
     if(pk){ var rp=suPos(pk), opts=preAt.filter(function(x){ return x.p===pk; });
       h+='<div class="sc-pres">'+opts.map(function(x){ return '<button type="button" class="sc-pre" data-su="tbadd" data-day="'+k+'" data-s="'+x.s+'" data-e="'+x.e+'" data-p="'+x.p+'" style="border-left:3px solid '+rp.color+'"><b>'+scT(x.s)+'–'+scT(x.e)+'</b></button>'; }).join('')+
@@ -1238,7 +1257,8 @@ function suRoomEdit(){
   var pre=(d.presets||[]).filter(function(x){ return r.key && x.p===r.key && x.centers.indexOf(c)>=0; }).sort(function(a,b){ return a.s<b.s?-1:1; });
   var h='<div class="sc-ch"><div><b>'+(r.key?esc(r.name):r.kind==='duty'?'Add duty':'Add room')+'</b></div><button type="button" class="link" data-su="back">Cancel</button></div>';
   h+='<div class="uform" style="padding:0"><label>Name<input id="su-rname" maxlength="40" value="'+esc(r.name)+'"></label></div>';
-  h+='<div class="sc-pres-h" style="margin-top:12px">Color</div><div class="sc-sw">'+SC_COLORS.map(function(x){ return '<button type="button" class="sc-swb'+(r.color.toLowerCase()===x[0].toLowerCase()?' on':'')+'" data-su="rcolor" data-v="'+x[0]+'" style="background:'+x[0]+'" aria-label="'+esc(x[1])+'"></button>'; }).join('')+'</div>';
+  if(r.kind==='duty') h+='<div class="sc-pres-h" style="margin-top:12px">Icon</div><div class="sc-icons">'+SC_ICONS.map(function(x){ var on=scIcon(r)===x; return '<button type="button" class="sc-icb'+(on?' on':'')+'" data-su="ricon" data-v="'+x+'" aria-pressed="'+on+'">'+x+'</button>'; }).join('')+'</div>';
+  else h+='<div class="sc-pres-h" style="margin-top:12px">Color</div><div class="sc-sw">'+SC_COLORS.map(function(x){ return '<button type="button" class="sc-swb'+(r.color.toLowerCase()===x[0].toLowerCase()?' on':'')+'" data-su="rcolor" data-v="'+x[0]+'" style="background:'+x[0]+'" aria-label="'+esc(x[1])+'"></button>'; }).join('')+'</div>';
   if(r.kind!=='duty') h+='<div class="sc-two"><div class="uform" style="padding:0"><label>Ages<input id="su-ages" maxlength="40" placeholder="e.g. 2 – 3 yrs" value="'+esc(r.ages||'')+'"></label></div><div class="uform" style="padding:0"><label>Children per teacher<input id="su-ratio" inputmode="numeric" placeholder="e.g. 5" value="'+(r.ratio||'')+'"></label></div></div>';
   h+='<div class="sc-pres-h" style="margin-top:12px">Centers</div><label class="sc-rep"><input type="checkbox" id="su-csf"'+(r.centers.indexOf('SF')>=0?' checked':'')+'> Sioux Falls</label><label class="sc-rep"><input type="checkbox" id="su-cbv"'+(r.centers.indexOf('BV')>=0?' checked':'')+'> Brandon</label>';
   h+='<label class="sc-rep"><input type="checkbox" id="su-ractive"'+(r.active?' checked':'')+'> In use (uncheck to retire it; past weeks keep it)</label>';
@@ -1276,12 +1296,15 @@ function suClick(t){
     list.push(t.getAttribute('data-s')?{ s:t.getAttribute('data-s'), e:t.getAttribute('data-e'), p:t.getAttribute('data-p') }:{ s:last?last.e:'07:00', e:last?(last.e<'17:00'?'17:00':'18:00'):'17:00', p:t.getAttribute('data-p')||(last?last.p:(e.positions[0]||'infant')) }); if(e.pick) delete e.pick[day];
     list.sort(function(x,y){ return x.s<y.s?-1:1; }); render(); return; }
   if(a==='tbclear'){ if(!confirm('Clear their whole set schedule? (Nothing changes until you tap Save.)')) return; e.typical={}; e.pick={}; render(); return; }
-  if(a==='tbdel'){ e.typical[t.getAttribute('data-day')].splice(+t.getAttribute('data-i'),1); render(); return; }
+  if(a==='tdopen'){ var dk2=t.getAttribute('data-day')+':'+t.getAttribute('data-i'); e.dOpen=e.dOpen===dk2?null:dk2; render(); return; }
+  if(a==='tdtog'){ var tb=(e.typical[t.getAttribute('data-day')]||[])[+t.getAttribute('data-i')]; if(!tb) return; tb.d=tb.d||[]; var tk=t.getAttribute('data-k'), ti=tb.d.indexOf(tk); if(ti>=0) tb.d.splice(ti,1); else tb.d.push(tk); render(); return; }
+  if(a==='tbdel'){ e.dOpen=null; e.typical[t.getAttribute('data-day')].splice(+t.getAttribute('data-i'),1); render(); return; }
   if(a==='tbcopy'){ var src2=e.typical[t.getAttribute('data-day')]||[]; if(!confirm('Use this day for Monday–Friday?')) return; SC_DAYS.forEach(function(dd){ e.typical[dd[0]]=JSON.parse(JSON.stringify(src2)); }); render(); return; }
   if(a==='ssave'){ var bad=false; SC_ALL_DAYS.forEach(function(k){ (e.typical[k]||[]).forEach(function(b){ if(!b.s||!b.e||b.e<=b.s) bad=true; }); });
     if(bad){ $('su-err').textContent='Each shift needs an end time after its start time.'; return; }
     t.disabled=true; scPost({ action:'sched_staff_save', center:S.sc.center, week:S.sc.week, staff:e }).then(function(res){ if(!res||!res.ok){ t.disabled=false; $('su-err').textContent=(res&&res.error)||'That didn’t save.'; return; } suApply(res); }); return; }
   if(a==='rkind'){ r.kind=t.getAttribute('data-v'); render(); return; }
+  if(a==='ricon'){ r.icon=t.getAttribute('data-v'); render(); return; }
   if(a==='rcolor'){ r.color=t.getAttribute('data-v'); render(); return; }
   if(a==='rsave'){ t.disabled=true; scPost({ action:'sched_pos_save', center:S.sc.center, week:S.sc.week, pos:r }).then(function(res){ if(!res||!res.ok){ t.disabled=false; $('su-err').textContent=(res&&res.error)||'That didn’t save.'; return; } var key=r.key; suApply(res); if(!key) toast('Saved. Open it again to add its standard shifts.'); }); return; }
   if(a==='padd'){ var ps=$('su-ps').value, pe=$('su-pe').value; if(!ps||!pe||pe<=ps){ $('su-err').textContent='The end time needs to be after the start time.'; return; }
@@ -1420,10 +1443,11 @@ function schedClick(t){
   if(a==='add'){ scGrab(); S.sc.edit.fresh=false; var e=S.sc.edit, last=e.blocks[e.blocks.length-1]; e.blocks.push({ s:last?last.e:'07:00', e:last?(last.e<'17:00'?'17:00':'18:00'):'17:00', p:last?last.p:'infant' }); render(); return; }
   if(a==='del'){ scGrab(); S.sc.edit.blocks.splice(+t.getAttribute('data-i'),1); render(); return; }
   if(a==='clear'){ scGrab(); S.sc.edit.blocks=[]; render(); return; }
+  if(a==='dtog'){ scGrab(); var db=S.sc.edit.blocks[+t.getAttribute('data-i')], dk=t.getAttribute('data-k'); db.d=db.d||[]; var di=db.d.indexOf(dk); if(di>=0) db.d.splice(di,1); else db.d.push(dk); render(); return; }
   if(a==='save'){
     scGrab(); var ed=S.sc.edit, bad=ed.blocks.find(function(b){ return !b.s||!b.e||b.e<=b.s; });
     if(bad){ $('sc-err').textContent='Each block needs an end time after its start time.'; return; }
-    var row=scRow(ed.id), days=JSON.parse(JSON.stringify(row.days||{})), clean=ed.blocks.map(function(b){ return { s:b.s, e:b.e, p:b.p }; }).sort(function(x,y){ return x.s<y.s?-1:1; });
+    var row=scRow(ed.id), days=JSON.parse(JSON.stringify(row.days||{})), clean=ed.blocks.map(function(b){ var o={ s:b.s, e:b.e, p:b.p }; if(b.n) o.n=b.n; if(b.d&&b.d.length) o.d=b.d.slice(); return o; }).sort(function(x,y){ return x.s<y.s?-1:1; });
     if(ed.rep) SC_DAYS.forEach(function(dd){ days[dd[0]]=JSON.parse(JSON.stringify(clean)); }); else days[ed.day]=clean;
     t.disabled=true; t.textContent='Saving…';
     scPost({ action:'sched_save', center:S.sc.center, week:S.sc.week, staffId:ed.id, rev:row.rev||0, days:days }).then(function(r){ if(r&&r.ok) S.sc.edit=null; else if(r&&r.conflict) S.sc.edit=null; scApply(r); if(r&&!r.ok&&!r.conflict&&$('sc-err')){ $('sc-err').textContent=r.error||'That didn’t save.'; t.disabled=false; t.textContent='Save'; } });
