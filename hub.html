@@ -381,7 +381,6 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-gt th[scope=row]{text-align:left;padding:8px 10px;vertical-align:top;border-top:1px solid var(--line);position:sticky;left:0;background:var(--card);z-index:1;min-width:120px}
 .sc-gname{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink,#1d1d1f)}.sc-gname small{display:block;font-size:11px;color:var(--sub);font-weight:400}
 .sc-gchip{width:100%;border:0;text-align:left;font:inherit;cursor:pointer;margin-bottom:3px}
-.sc-gchip.sc-gopen{border-style:dashed}
 .sc-none{display:block;text-align:center;color:#c7c7cc;padding:8px 0}
 .sc-dpick{margin:12px 0 4px}
 .sc-tl{background:var(--card);border-radius:16px;padding:8px 10px 10px;margin-top:8px;overflow-x:auto}
@@ -410,6 +409,10 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-radd{display:block;width:100%;border:1px dashed #d2d2d7;background:none;border-radius:6px;color:#8e8e93;font-size:16px;line-height:1;padding:5px 0;cursor:pointer;margin-top:2px}
 .sc-radd:hover{border-color:var(--blue);color:var(--blue)}
 .sc-pre-on{outline:2px solid var(--blue);background:#e8f0fe}
+/* Open shifts: white with gray stripes until published, plain white once published. Time off / approved requests will be solid gray. */
+tr.sc-open .sc-chip,.sc-gopen,.sc-tl-open{background-color:#fff!important;background-image:none!important;border:1px solid #d2d2d7;border-left:3px solid var(--c)}
+tr.sc-open .sc-cell.sc-chg .sc-chip,.sc-gopen.sc-ochg,.sc-tl-open.sc-ochg{background-image:repeating-linear-gradient(135deg,#e5e5ea 0 5px,#fff 5px 10px)!important}
+.sc-chip.sc-timeoff,.sc-tl-b.sc-timeoff{background:#e5e5ea!important;border-left:3px solid #8e8e93!important;color:#3a3a3f}
 </style>
 </head>
 <body>
@@ -1173,7 +1176,7 @@ function scGroupView(vw,cols,closed){
       var addB=vw==='rooms'?'<button type="button" class="sc-radd" data-sc="radd" data-key="'+g.key+'" data-day="'+cc.key+'" aria-label="Add a shift to '+esc(g.name)+', '+cc.label+'">+</button>':'';
       if(!list.length) return '<td class="sc-cell">'+(addB||'<span class="sc-none">—</span>')+'</td>';
       return '<td class="sc-cell'+(list.some(function(x){ return x.chg; })?' sc-chg':'')+'">'+list.map(function(x){ var ps=scPos(x.b.p);
-        return '<button type="button" class="sc-chip sc-gchip'+(x.id==='open'?' sc-gopen':'')+'" data-sc="'+(x.id==='open'?'asg':'edit')+'" data-i="'+x.i+'" data-id="'+esc(x.id)+'" data-day="'+cc.key+'" style="--c:'+ps.color+';background-color:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+(x.id==='open'?'Open · Assign':esc(scShortName(x.who)))+(x.b.d&&x.b.d.length?'<span class="sc-di">'+scDutyIcons(x.b)+'</span>':'')+'</b><span>'+scT(x.b.s)+'–'+scT(x.b.e)+(vw==='duties'&&x.b.p!==g.key?' · '+esc(ps.name):'')+'</span></button>'; }).join('')+addB+'</td>'; }).join('');
+        return '<button type="button" class="sc-chip sc-gchip'+(x.id==='open'?' sc-gopen'+(x.chg?' sc-ochg':''):'')+'" data-sc="'+(x.id==='open'?'asg':'edit')+'" data-i="'+x.i+'" data-id="'+esc(x.id)+'" data-day="'+cc.key+'" style="--c:'+ps.color+';background-color:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+(x.id==='open'?'Open · Assign':esc(scShortName(x.who)))+(x.b.d&&x.b.d.length?'<span class="sc-di">'+scDutyIcons(x.b)+'</span>':'')+'</b><span>'+scT(x.b.s)+'–'+scT(x.b.e)+(vw==='duties'&&x.b.p!==g.key?' · '+esc(ps.name):'')+'</span></button>'; }).join('')+addB+'</td>'; }).join('');
     var lab=vw==='rooms'?'<span class="sc-dot" style="background:'+g.color+'"></span>':'<span class="sc-dico">'+scIcon(g)+'</span>';
     return '<tr><th scope="row"><span class="sc-gname">'+lab+'<span>'+esc(g.name)+(g.ratio&&vw==='rooms'?'<small>1:'+g.ratio+'</small>':'')+'</span></span></th>'+cells+'</tr>'; }).join('');
   return '<div class="sc-wrap"><table class="sc-t sc-gt"><thead>'+head+'</thead><tbody>'+(rows||'<tr><td class="sc-cell" colspan="6">Nothing set up yet.</td></tr>')+'</tbody></table></div>'+
@@ -1229,7 +1232,7 @@ function scDayView(cols,closed){
   var rows=ids.map(function(id){ var mine=all.filter(function(x){ return x.id===id; }), who=mine[0].who;
     return '<div class="sc-tl-r"><button type="button" class="sc-tl-n" data-sc="edit" data-id="'+esc(id)+'" data-day="'+col.key+'">'+esc(scShortName(who))+'</button><div class="sc-tl-t">'+lines+mine.map(function(x){ var ps=scPos(x.b.p), l=pct(x.b.s), w=pct(x.b.e)-l;
       var tag=x.id==='open'?'button':'span';
-      return '<'+tag+(x.id==='open'?' type="button" data-sc="asg" data-day="'+col.key+'" data-i="'+x.i+'" aria-label="Assign open shift '+esc(ps.name+' '+scT(x.b.s)+' to '+scT(x.b.e))+'"':'')+' class="sc-tl-b'+(x.chg?' sc-tl-chg':'')+(x.id==='open'?' sc-tl-open':'')+'" style="left:'+l+'%;width:'+w+'%;--c:'+ps.color+'" title="'+esc(ps.name+' '+scT(x.b.s)+'–'+scT(x.b.e))+'">'+(x.b.d&&x.b.d.length?scDutyIcons(x.b):'')+'<em>'+scT(x.b.s)+'–'+scT(x.b.e)+'</em></'+tag+'>'; }).join('')+'</div></div>'; }).join('');
+      return '<'+tag+(x.id==='open'?' type="button" data-sc="asg" data-day="'+col.key+'" data-i="'+x.i+'" aria-label="Assign open shift '+esc(ps.name+' '+scT(x.b.s)+' to '+scT(x.b.e))+'"':'')+' class="sc-tl-b'+(x.chg?' sc-tl-chg':'')+(x.id==='open'?' sc-tl-open'+(x.chg?' sc-ochg':''):'')+'" style="left:'+l+'%;width:'+w+'%;--c:'+ps.color+'" title="'+esc(ps.name+' '+scT(x.b.s)+'–'+scT(x.b.e))+'">'+(x.b.d&&x.b.d.length?scDutyIcons(x.b):'')+'<em>'+scT(x.b.s)+'–'+scT(x.b.e)+'</em></'+tag+'>'; }).join('')+'</div></div>'; }).join('');
   // staff in each room, every half hour
   var rooms=(d.positions||[]).filter(function(p){ return p.active && p.kind==='room' && p.centers.indexOf(c)>=0; });
   var slots=[]; for(var t=7*60;t<18*60;t+=30) slots.push(t);
