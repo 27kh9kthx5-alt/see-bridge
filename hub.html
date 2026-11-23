@@ -350,6 +350,13 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-tpick select{width:100%;min-height:40px;border:1px solid #d2d2d7;border-radius:10px;padding:0 10px;font:inherit;font-size:15px;background:#fff;color:var(--blue);margin:6px 0 4px}
 .sc-tcopy{margin-left:auto;font-size:13px}
 .sc-ssh{display:flex;justify-content:space-between;align-items:baseline}.sc-ssh .link{text-transform:none;letter-spacing:0;font-size:13px}
+.sc-split{position:relative;overflow:visible}.sc-split>button:first-child{border-radius:18px 0 0 18px}.sc-split .sc-chev{border-radius:0 18px 18px 0}
+.sc-dd{position:absolute;top:calc(100% + 6px);right:0;z-index:40;min-width:230px;background:var(--card);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.05);padding:6px;display:flex;flex-direction:column}
+.sc-dd .sc-ddi{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;text-align:left;border:0;background:none;border-radius:9px;padding:9px 10px;font:inherit;color:var(--ink,#1d1d1f);cursor:pointer;min-height:0}
+.sc-dd .sc-ddi:hover,.sc-dd .sc-ddi:focus-visible{background:#f2f2f6}
+.sc-dd .sc-ddi b{font-size:15px;font-weight:500}.sc-dd .sc-ddi span{font-size:12px;color:var(--sub);font-weight:400}
+.sc-dd .sc-ddr b{color:#b3261e}
+.sc-dd hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
 </style>
 </head>
 <body>
@@ -935,6 +942,8 @@ document.addEventListener('submit',function(e){
     post({action:'changepw', old:$('pw-0').value, password:n1}).then(function(r){ pb.disabled=false; if(r.ok){ toast(r.message); setView('settings'); } else $('pw-err').textContent=r.error||'That didn’t work.'; }); return; }
 });
 document.addEventListener('click',function(e){
+  if(S.sc&&S.sc.menuHeld){ S.sc.menuHeld=false; return; }
+  if(S.sc&&S.sc.menu && !(e.target.closest&&e.target.closest('.sc-dd'))){ S.sc.menu=false; render(); return; }
   var t=e.target.closest('button,a,.item'); if(!t) return;
   if(t.hasAttribute('data-su')){ suClick(t); return; }
   if(t.hasAttribute('data-tab')){ setView(t.getAttribute('data-tab')); if(t.getAttribute('data-tab')!=='settings') refresh(true); return; }
@@ -1047,20 +1056,17 @@ function scShiftCount(){ return ((S.sc.data&&S.sc.data.rows)||[]).reduce(functio
 function scMainState(){ var d=S.sc.data; if(d.unpublished) return 'publish'; if(scHasPub()) return 'unpublish'; return scShiftCount()?'publish':'generate'; }
 function scMainBtn(){ var d=S.sc.data, st=scMainState();
   var lab=st==='generate'?'Generate':st==='unpublish'?'Unpublish':'Publish'+(d.unpublished?' ('+d.unpublished+')':'');
-  return '<span class="sc-split'+(st==='unpublish'?' sc-quiet':'')+'"><button type="button" data-sc="main" data-st="'+st+'"'+(st==='publish'&&!d.unpublished?' disabled':'')+'>'+lab+'</button><button type="button" class="sc-chev" data-sc="menu" aria-label="More ways to fill this week" aria-haspopup="dialog">'+svg('chev')+'</button></span>'; }
+  return '<span class="sc-split'+(st==='unpublish'?' sc-quiet':'')+'"><button type="button" data-sc="main" data-st="'+st+'"'+(st==='publish'&&!d.unpublished?' disabled':'')+'>'+lab+'</button><button type="button" class="sc-chev" data-sc="menu" aria-label="More ways to fill this week" aria-haspopup="menu" aria-expanded="'+!!S.sc.menu+'">'+svg('chev')+'</button>'+(S.sc.menu?scMenu():'')+'</span>'; }
 function scMenu(){
   var d=S.sc.data, st=scMainState(), has=scShiftCount()>0;
-  var it=function(a,t,sub,extra){ return '<button type="button" class="sc-mode" data-sc="'+a+'"'+(extra||'')+'><b>'+t+'</b><span>'+sub+'</span></button>'; };
-  var h='<div class="sc-ch"><div><b>This week</b><div class="sm">Week of '+esc(scWeekLabel())+'</div></div><button type="button" class="link" data-sc="menuclose">Done</button></div><div class="sc-modes" style="padding-top:0;border:0">';
-  h+=it('gen', has?'Generate again':'Generate','Everyone gets their set schedule, minus closed days and time off. Standard shifts nobody covers become open shifts.');
-  h+=it('copy','Copy last week','Bring last week’s shifts into this week as a draft.');
-  h+=it('tpls','Templates…','Load a saved week, or save this one.');
-  h+=it('fill','Fill a room…','Add a room’s standard shifts to Open shifts on the days you pick.');
-  if(d.unpublished && scHasPub()) h+=it('discard','Discard changes','Go back to what was last published.');
-  if(st==='publish' && scHasPub()) h+=it('unpublish','Unpublish','Take the published schedule down. It stays here as a draft.');
-  if(has) h+=it('clear','Clear this week','Remove every shift this week, open shifts too. If it was published, Discard changes brings it back until you publish.');
-  if(d.canSetup) h+=it('setup','Rooms &amp; staff…','Rooms, their standard shifts, and each person’s set schedule.');
-  return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="This week"><div class="sc-card">'+h+'</div></div></div>';
+  var it=function(a,t,sub,cls){ return '<button type="button" role="menuitem" class="sc-ddi'+(cls?' '+cls:'')+'" data-sc="'+a+'"><b>'+t+'</b>'+(sub?'<span>'+sub+'</span>':'')+'</button>'; };
+  var h=it('gen', has?'Generate again':'Generate','From everyone’s set schedule');
+  h+=it('copy','Copy last week')+it('tpls','Templates…')+it('fill','Fill a room…');
+  if(d.unpublished && scHasPub()) h+='<hr>'+it('discard','Discard changes','Back to what was last published');
+  if(st==='publish' && scHasPub()) h+=it('unpublish','Unpublish');
+  if(has) h+=(d.unpublished && scHasPub()?'':'<hr>')+it('clear','Clear this week','','sc-ddr');
+  if(d.canSetup) h+='<hr>'+it('setup','Rooms &amp; staff…');
+  return '<div class="sc-dd" role="menu" aria-label="This week">'+h+'</div>';
 }
 function schedView(){
   scInit(); var d=S.sc.data;
@@ -1111,7 +1117,6 @@ function schedView(){
   if(S.sc.edit) h+=scEditor();
   if(S.sc.tpl) h+=scTemplates();
   if(S.sc.bld) h+=scBuild();
-  if(S.sc.menu) h+=scMenu();
   if(S.sc.su) h+=suView();
   return h;
 }
@@ -1299,8 +1304,9 @@ function scBuild(){
   if(d.canSetup) h+='<button type="button" class="pill" data-sc="setup" style="margin-top:16px">Rooms &amp; staff…</button>';
   return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Fill a room"><div class="sc-card">'+h+'</div></div>';
 }
-document.addEventListener('pointerdown',function(e){ var c=e.target.closest&&e.target.closest('.sc-split'); if(!c) return; var tm=setTimeout(function(){ S.sc.menu=true; render(); },450); var stop=function(){ clearTimeout(tm); document.removeEventListener('pointerup',stop); document.removeEventListener('pointercancel',stop); }; document.addEventListener('pointerup',stop); document.addEventListener('pointercancel',stop); });
+document.addEventListener('pointerdown',function(e){ var c=e.target.closest&&e.target.closest('.sc-split'); if(!c) return; var tm=setTimeout(function(){ S.sc.menu=true; S.sc.menuHeld=true; render(); },450); var stop=function(){ clearTimeout(tm); if(S.sc.menuHeld) setTimeout(function(){ S.sc.menuHeld=false; },350); document.removeEventListener('pointerup',stop); document.removeEventListener('pointercancel',stop); }; document.addEventListener('pointerup',stop); document.addEventListener('pointercancel',stop); });
 document.addEventListener('change',function(ev){ var el=ev.target; if(!el.hasAttribute||!el.hasAttribute('data-tsel')||!S.sc.su||!S.sc.su.edit) return; suGrab(); var ed=S.sc.su.edit; ed.pick=ed.pick||{}; if(el.value) ed.pick[el.getAttribute('data-tsel')]=el.value; else delete ed.pick[el.getAttribute('data-tsel')]; render(); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.sc && S.sc.menu){ S.sc.menu=false; render(); } });
 document.addEventListener('contextmenu',function(e){ if(e.target.closest&&e.target.closest('.sc-split')) e.preventDefault(); });
 // ---- press, hold and drag a shift block onto another person or day ----
 var SCD={ t:null, on:false, src:null, ghost:null, over:null, x0:0, y0:0, skipClick:false };
@@ -1336,6 +1342,7 @@ document.addEventListener('pointerup',function(e){
 document.addEventListener('pointercancel',function(){ if(SCD.src) scDragEnd(); });
 document.addEventListener('click',function(e){ if(SCD.skipClick){ e.stopPropagation(); e.preventDefault(); SCD.skipClick=false; } }, true);
 document.addEventListener('change',function(ev){ var el=ev.target; if(!el.hasAttribute||!el.hasAttribute('data-tsel')||!S.sc.su||!S.sc.su.edit) return; suGrab(); var ed=S.sc.su.edit; ed.pick=ed.pick||{}; if(el.value) ed.pick[el.getAttribute('data-tsel')]=el.value; else delete ed.pick[el.getAttribute('data-tsel')]; render(); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.sc && S.sc.menu){ S.sc.menu=false; render(); } });
 document.addEventListener('contextmenu',function(e){ if(e.target.closest && e.target.closest('.sc-drag')) e.preventDefault(); });
 function scMove(src, toId, toDay){
   if(!toId || (src.id===toId && src.day===toDay)) return;
@@ -1384,7 +1391,7 @@ function schedClick(t){
     if(ed0.fresh){ ed0.blocks=[nb]; ed0.fresh=false; } else ed0.blocks.push(nb);
     ed0.blocks.sort(function(x,y){ return x.s<y.s?-1:1; }); render(); return; }
   if(a==='presmore'){ scGrab(); S.sc.presMore=!S.sc.presMore; render(); return; }
-  if(a==='menu'){ S.sc.menu=true; render(); return; }
+  if(a==='menu'){ S.sc.menu=!S.sc.menu; render(); return; }
   if(a==='menuclose'){ S.sc.menu=false; render(); return; }
   if(a==='fill'){ S.sc.menu=false; S.sc.bld={ room:null, days:SC_DAYS.map(function(x){ return x[0]; }) }; render(); return; }
   if(a==='gen' || (a==='main' && t.getAttribute('data-st')==='generate')){
