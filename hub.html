@@ -1140,9 +1140,11 @@ function scHasPub(){ return ((S.sc.data&&S.sc.data.rows)||[]).some(function(r){ 
 function scWeekLabel(){ var a=scDate(S.sc.week), b=scDate(S.sc.week,4), f=function(d){ return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }; return f(a)+' – '+f(b); }
 
 function scShiftCount(){ return ((S.sc.data&&S.sc.data.rows)||[]).reduce(function(n,r){ return n+SC_ALL_DAYS.reduce(function(m,k){ return m+((r.days||{})[k]||[]).length; },0); },0); }
+function scDayKey(days){ return SC_ALL_DAYS.map(function(k){ return ((days||{})[k]||[]).map(function(x){ return x.s+'-'+x.e+'-'+x.p+'-'+(x.d||[]).join('+')+'-'+(x.n||''); }).join(','); }).join('|'); }
+function scChg(){ var out={ people:0, open:false }; ((S.sc.data&&S.sc.data.rows)||[]).forEach(function(r){ if(scDayKey(r.days)===scDayKey(r.published)) return; if(r.staffId==='open') out.open=true; else out.people++; }); return out; }
 function scMainState(){ var d=S.sc.data; if(d.unpublished) return 'publish'; if(scHasPub()) return 'unpublish'; return scShiftCount()?'publish':'generate'; }
 function scMainBtn(){ var d=S.sc.data, st=scMainState();
-  var lab=st==='generate'?'Generate':st==='unpublish'?'Unpublish':'Publish'+(d.unpublished?' ('+d.unpublished+')':'');
+  var cg=scChg(), lab=st==='generate'?'Generate':st==='unpublish'?'Unpublish':'Publish'+(cg.people?' ('+cg.people+')':'');
   return '<span class="sc-split'+(st==='unpublish'?' sc-quiet':'')+'"><button type="button" data-sc="main" data-st="'+st+'"'+(st==='publish'&&!d.unpublished?' disabled':'')+'>'+lab+'</button><button type="button" class="sc-chev" data-sc="menu" aria-label="More ways to fill this week" aria-haspopup="menu" aria-expanded="'+!!S.sc.menu+'">'+svg('chev')+'</button>'+(S.sc.menu?scMenu():'')+'</span>'; }
 function scMenu(){
   var d=S.sc.data, st=scMainState(), has=scShiftCount()>0;
@@ -1252,7 +1254,8 @@ function schedView(){
     '<span style="flex:1"></span>'+(d? scMainBtn():'')+'</div>';
   if(!d) return h+'<div class="empty"><span class="spin"></span> Loading…</div>';
   var vw=S.sc.view||'people';
-  if(d.unpublished) h+='<div class="note">Draft: '+plural(d.unpublished,'person’s week has','people’s weeks have')+' changes that aren’t published yet (striped shifts).</div>';
+  if(d.unpublished){ var cg2=scChg(), who=[]; if(cg2.people) who.push(plural(cg2.people,'person’s week','people’s weeks')); if(cg2.open) who.push('open shifts');
+    h+='<div class="note">Draft: '+(who.length?who.join(' and ')+(cg2.people+(cg2.open?1:0)>1?' have':' has'):'this week has')+' changes that aren’t published yet (striped shifts).</div>'; }
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
   var cols=SC_DAYS.map(function(dd,i){ return { key:dd[0], label:dd[1], date:scIso(scDate(S.sc.week,i)) }; });
   if(vw!=='people'){ h+=vw==='day'?scDayView(cols,closed):scGroupView(vw,cols,closed);
