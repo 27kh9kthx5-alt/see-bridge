@@ -373,6 +373,7 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-icb{display:inline-flex;align-items:center;justify-content:center;color:#1d1d1f}.sc-icb .sc-svg{width:22px;height:22px}
 .sc-dico{color:#1d1d1f;display:inline-flex;justify-content:center}.sc-dico .sc-svg{width:20px;height:20px}
 .sc-tag .sc-svg{width:16px;height:16px}
+.sc-pay{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end;margin-top:12px}.sc-pay>div{min-width:0}.sc-pay input{box-sizing:border-box;width:100%}.sc-sal{white-space:nowrap;padding-right:4px}.sc-pay .sm{font-weight:400;color:var(--sub);font-size:12px}.sc-sal{margin:0 0 12px}
 </style>
 </head>
 <body>
@@ -1249,8 +1250,8 @@ function suStaffEdit(){
   var h='<div class="sc-ch"><div><b>'+(e.id?esc(e.name):'Add person')+'</b><div class="sm">Profile and set schedule</div></div><button type="button" class="link" data-su="back">Cancel</button></div>';
   h+='<div class="uform" style="padding:0"><label>Name<input id="su-name" maxlength="60" value="'+esc(e.name)+'"></label></div>';
   h+='<div class="sc-pres-h" style="margin-top:12px">Rooms they can work</div><div class="sc-tags">'+ps.filter(function(p){ return p.kind==='room'; }).map(function(p){ var on=e.positions.indexOf(p.key)>=0; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-su="tpos" data-key="'+p.key+'" aria-pressed="'+on+'"><i style="background:'+p.color+'"></i>'+esc(p.name)+'</button>'; }).join('')+'</div>';
-  h+='<div class="sc-pres-h" style="margin-top:12px">Pay</div><div class="seg" style="margin-top:0"><button type="button" data-su="pay" data-v="hourly" aria-pressed="'+(e.payType!=='salaried')+'">Hourly</button><button type="button" data-su="pay" data-v="salaried" aria-pressed="'+(e.payType==='salaried')+'">Salaried</button></div>';
-  if(e.payType!=='salaried') h+='<div class="uform" style="padding:8px 0 0"><label>Hourly rate (only the office sees this)<input id="su-rate" inputmode="decimal" placeholder="0.00" value="'+(e.rate==null?'':e.rate)+'"></label></div>';
+  var sal=e.payType==='salaried';
+  h+='<div class="sc-pay"><div class="uform" style="padding:0"><label>Hourly rate <span class="sm">Only the office sees this</span><input id="su-rate" inputmode="decimal" placeholder="'+(sal?'Salaried':'0.00')+'" value="'+(sal||e.rate==null?'':e.rate)+'"'+(sal?' disabled':'')+'></label></div><label class="sc-rep sc-sal"><input type="checkbox" id="su-sal"'+(sal?' checked':'')+'> Salaried</label></div>';
   h+='<label class="sc-rep" style="margin-top:12px"><input type="checkbox" id="su-both"'+(e.centers.indexOf(other)>=0?' checked':'')+'> Also works at '+(other==='SF'?'Sioux Falls':'Brandon')+'</label>';
   h+='<label class="sc-rep"><input type="checkbox" id="su-active"'+(e.active?' checked':'')+'> Active (shows on the schedule)</label>';
   // typical week
@@ -1294,7 +1295,7 @@ function suRoomEdit(){
 }
 function suGrab(){
   var su=S.sc.su; if(!su) return;
-  if(su.edit){ var e=su.edit; if($('su-name')) e.name=$('su-name').value; if($('su-rate')) e.rate=$('su-rate').value; if($('su-active')) e.active=$('su-active').checked;
+  if(su.edit){ var e=su.edit; if($('su-name')) e.name=$('su-name').value; if($('su-rate')&&!$('su-rate').disabled) e.rate=$('su-rate').value; if($('su-active')) e.active=$('su-active').checked;
     if($('su-both')){ var other=S.sc.center==='SF'?'BV':'SF'; e.centers=[S.sc.center].concat($('su-both').checked?[other]:[]); }
     Array.prototype.forEach.call(document.querySelectorAll('[data-tb]'),function(el){ var b=(e.typical[el.getAttribute('data-day')]||[])[+el.getAttribute('data-i')]; if(b) b[el.getAttribute('data-tb')]=el.value; }); }
   if(su.room){ var r=su.room; if($('su-rname')) r.name=$('su-rname').value; if($('su-ages')) r.ages=$('su-ages').value; if($('su-ratio')) r.ratio=$('su-ratio').value; if($('su-ractive')) r.active=$('su-ractive').checked;
@@ -1313,7 +1314,6 @@ function suClick(t){
   suGrab();
   var e=su.edit, r=su.room;
   if(a==='tpos'){ var kk=t.getAttribute('data-key'), i=e.positions.indexOf(kk); if(i>=0) e.positions.splice(i,1); else e.positions.push(kk); render(); return; }
-  if(a==='pay'){ e.payType=t.getAttribute('data-v'); render(); return; }
   if(a==='tbadd'){ var day=t.getAttribute('data-day'), list=(e.typical[day]=e.typical[day]||[]), last=list[list.length-1];
     list.push(t.getAttribute('data-s')?{ s:t.getAttribute('data-s'), e:t.getAttribute('data-e'), p:t.getAttribute('data-p') }:{ s:last?last.e:'07:00', e:last?(last.e<'17:00'?'17:00':'18:00'):'17:00', p:t.getAttribute('data-p')||(last?last.p:(e.positions[0]||'infant')) }); if(e.pick) delete e.pick[day];
     list.sort(function(x,y){ return x.s<y.s?-1:1; }); render(); return; }
@@ -1348,6 +1348,7 @@ function scBuild(){
   return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Fill a room"><div class="sc-card">'+h+'</div></div>';
 }
 document.addEventListener('pointerdown',function(e){ var c=e.target.closest&&e.target.closest('.sc-split'); if(!c) return; var tm=setTimeout(function(){ S.sc.menu=true; S.sc.menuHeld=true; render(); },450); var stop=function(){ clearTimeout(tm); if(S.sc.menuHeld) setTimeout(function(){ S.sc.menuHeld=false; },350); document.removeEventListener('pointerup',stop); document.removeEventListener('pointercancel',stop); }; document.addEventListener('pointerup',stop); document.addEventListener('pointercancel',stop); });
+document.addEventListener('change',function(ev){ if(ev.target.id==='su-sal' && S.sc.su && S.sc.su.edit){ suGrab(); S.sc.su.edit.payType=ev.target.checked?'salaried':'hourly'; render(); return; } });
 document.addEventListener('change',function(ev){ var el=ev.target; if(!el.hasAttribute||!el.hasAttribute('data-tsel')||!S.sc.su||!S.sc.su.edit) return; suGrab(); var ed=S.sc.su.edit; ed.pick=ed.pick||{}; if(el.value) ed.pick[el.getAttribute('data-tsel')]=el.value; else delete ed.pick[el.getAttribute('data-tsel')]; render(); });
 document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.sc && (S.sc.menu||S.sc.gear)){ S.sc.menu=false; S.sc.gear=false; render(); } });
 document.addEventListener('contextmenu',function(e){ if(e.target.closest&&e.target.closest('.sc-split')) e.preventDefault(); });
