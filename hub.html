@@ -459,6 +459,11 @@ tr.sc-open .sc-cell.sc-chg .sc-chip.sc-chip:not(.sc-other):not(.sc-timeoff),.sc-
 .my-tm .sm i{font-style:normal}
 .sc-cf{display:inline-flex;width:16px;height:16px;border-radius:50%;background:#34c759;color:#fff;margin-left:5px;vertical-align:-2px;align-items:center;justify-content:center}.sc-cf svg{width:11px;height:11px;stroke-width:3.5}
 .uform select{min-height:44px;border:1px solid #d2d2d7;border-radius:12px;padding:0 12px;font-size:16px;background:#fff;color:var(--ink,#1d1d1f);width:100%}
+.to-st{font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;white-space:nowrap;margin-left:8px}
+.to-pending{background:#fff4d6;color:#8a5a00}.to-approved{background:#e8f7ee;color:#1b7a3d}.to-denied{background:#fde8e7;color:#b3261e}
+.to-row .grow{gap:2px}.to-btns{display:flex;gap:6px;flex:none}
+.sc-tobtn{position:relative}.sc-tobtn svg{width:20px;height:20px}.sc-tobtn .badge{top:-2px;right:-2px}
+.sc-chip.sc-topend{background:#fff!important;border:1.5px dashed #aeaeb2!important;color:#6e6e73!important}
 </style>
 </head>
 <body>
@@ -1270,12 +1275,13 @@ function scRank(day, b){
     var r=scRow(p.id), today=(r.days||{})[day]||[], oth=d.other&&d.other[p.id]?d.other[p.id].minutes:0;
     var wk=scWeekMins(r.days||{})+oth, after=wk+len, clash=today.find(function(x){ return scMins(x.s)<scMins(b.e) && scMins(x.e)>scMins(b.s); });
     var fits=p.positions.indexOf(b.p)>=0, sal=p.payType==='salaried';
-    var un=(p.unavail||[]).indexOf(day)>=0;
-    return { p:p, un:un, day:day, wk:wk, after:after, clash:clash, fits:fits, today:today, sal:sal, score:(un?1000:0)+(clash?100:0)+(fits?0:10)+(!sal&&after>2400?5:0) }; })
+    var un=(p.unavail||[]).indexOf(day)>=0, off=scOffFull(p.id,day);
+    return { p:p, un:un, off:off, day:day, wk:wk, after:after, clash:clash, fits:fits, today:today, sal:sal, score:(un?1000:0)+(off?500:0)+(clash?100:0)+(fits?0:10)+(!sal&&after>2400?5:0) }; })
     .sort(function(x,y){ return x.score-y.score || x.wk-y.wk; });
 }
 function scRankRow(x, roomName, act){ var bits=[];
   if(x.un) return '<button type="button" class="sc-li sc-asg sc-off" data-sc="'+act+'" data-id="'+esc(x.p.id)+'"><span class="grow"><b>'+esc(x.p.name)+'</b><span class="sm"><span class="sc-bad">Unavailable on '+SC_DAYS_PL[x.day]+'</span></span></span>'+svg('chev')+'</button>';
+  if(x.off) bits.push('<span class="sc-bad">Off that day ('+(x.off.kind==='pto'?'PTO':esc(String(x.off.reason||'').toLowerCase()))+')</span>');
   if(x.clash) bits.push('<span class="sc-bad">Already working '+scT(x.clash.s)+'–'+scT(x.clash.e)+'</span>');
   else if(x.today.length) bits.push('Also working '+x.today.map(function(t){ return scT(t.s)+'–'+scT(t.e); }).join(', '));
   else bits.push('Off that day');
@@ -1331,7 +1337,7 @@ function scDayView(cols,closed){
 function schedView(){
   scInit(); var d=S.sc.data;
   var h='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button>'+
-    '<div class="top"><div><div class="eyebrow">Preview · only you can see this</div><h1>Schedule</h1><div class="help" style="margin:2px 0 0">Sioux Falls · Week of '+esc(scWeekLabel())+'</div></div>'+'<span class="sc-tops">'+(d?scViewBtn():'')+(d&&d.canSetup?'<span class="sc-gearw"><button type="button" class="round" data-sc="gear" aria-label="Rooms, staff and duties" aria-haspopup="menu" aria-expanded="'+!!S.sc.gear+'">'+svg('gear')+'</button>'+(S.sc.gear?'<div class="sc-dd" role="menu" aria-label="Setup"><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="rooms"><b>Rooms</b><span>Ages, ratios, standard shifts</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="staff"><b>Staff</b><span>Rooms they work, pay, set schedule</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="duties"><b>Duties</b><span>Opener, Bus Run, Closer…</span></button></div>':'')+'</span>':'')+'</span></div>'+
+    '<div class="top"><div><div class="eyebrow">Preview · only you can see this</div><h1>Schedule</h1><div class="help" style="margin:2px 0 0">Sioux Falls · Week of '+esc(scWeekLabel())+'</div></div>'+'<span class="sc-tops">'+(d?'<button type="button" class="round sc-tobtn" data-sc="toopen" aria-label="Time off requests'+(d.pendingOff?', '+d.pendingOff+' waiting':'')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M10 14l4 4M14 14l-4 4"/></svg>'+(d.pendingOff?'<span class="badge">'+d.pendingOff+'</span>':'')+'</button>':'')+(d?scViewBtn():'')+(d&&d.canSetup?'<span class="sc-gearw"><button type="button" class="round" data-sc="gear" aria-label="Rooms, staff and duties" aria-haspopup="menu" aria-expanded="'+!!S.sc.gear+'">'+svg('gear')+'</button>'+(S.sc.gear?'<div class="sc-dd" role="menu" aria-label="Setup"><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="rooms"><b>Rooms</b><span>Ages, ratios, standard shifts</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="staff"><b>Staff</b><span>Rooms they work, pay, set schedule</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="duties"><b>Duties</b><span>Opener, Bus Run, Closer…</span></button></div>':'')+'</span>':'')+'</span></div>'+
     '<div class="sc-bar"><button type="button" class="round" data-sc="prev" aria-label="Previous week">'+svg('back')+'</button><button type="button" class="pill" data-sc="today">This week</button><button type="button" class="round" data-sc="next" aria-label="Next week">'+svg('chev')+'</button>'+
     '<span style="flex:1"></span>'+(d? scMainBtn():'')+'</div>';
   if(!d) return h+'<div class="empty"><span class="spin"></span> Loading…</div>';
@@ -1341,7 +1347,7 @@ function schedView(){
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
   var cols=SC_DAYS.map(function(dd,i){ return { key:dd[0], label:dd[1], date:scIso(scDate(S.sc.week,i)) }; });
   if(vw!=='people'){ h+=vw==='day'?scDayView(cols,closed):scGroupView(vw,cols,closed);
-    if(S.sc.edit) h+=scEditor(); if(S.sc.tpl) h+=scTemplates(); if(S.sc.bld) h+=scBuild(); if(S.sc.su) h+=suView(); if(S.sc.asg) h+=scAssign(); if(S.sc.radd) h+=scRoomAdd(); return h; }
+    if(S.sc.edit) h+=scEditor(); if(S.sc.tpl) h+=scTemplates(); if(S.sc.bld) h+=scBuild(); if(S.sc.su) h+=suView(); if(S.sc.asg) h+=scAssign(); if(S.sc.radd) h+=scRoomAdd(); if(S.sc.toOpen) h+=scToSheet(); return h; }
   var dayTot={}, dayCost={}; cols.forEach(function(c){ dayTot[c.key]=0; dayCost[c.key]=0; });
   // This center's own people, plus anyone from the other center who has shifts here this week.
   var hasHere=function(id){ var r=scRow(id); return SC_ALL_DAYS.some(function(k){ return ((r.days||{})[k]||[]).length || (((r.published||{})[k])||[]).length; }); };
@@ -1356,6 +1362,7 @@ function schedView(){
       if(!p.open && p.payType!=='salaried') dayTot[c.key]+=scBlocksMins(list);
       var od=d.other&&d.other[p.id]&&(d.other[p.id].days||{})[c.key]||[];
       var chips=list.map(function(b,bi){ var ps=scPos(b.p); return '<span class="sc-chip sc-drag" data-did="'+esc(p.id)+'" data-dday="'+c.key+'" data-di="'+bi+'" style="--c:'+ps.color+';--on:'+scOn(ps.color)+';background-color:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+scT(b.s)+'–'+scT(b.e)+(b.d&&b.d.length?'<span class="sc-di">'+scDutyIcons(b)+'</span>':'')+'</b><span>'+esc(ps.name)+'</span></span>'; }).join('');
+      chips+=p.open?'':scOffChips(p.id,c.key);
       if(od.length) chips+='<span class="sc-chip sc-other"><b>'+scT(od[0].s)+'–'+scT(od[od.length-1].e)+'</b><span>at Brandon</span></span>';
       if(closed[c.date]) return '<td class="sc-cell sc-closed"><span class="sc-cl">'+(p.open?esc(closed[c.date]):'')+'</span></td>';
       return '<td class="sc-cell'+(changed?' sc-chg':'')+'"><button type="button" class="sc-hit" data-sc="edit" data-id="'+esc(p.id)+'" data-day="'+c.key+'" aria-label="'+esc(p.name+', '+c.label)+'">'+(chips||(scUnavail(p.id,c.key)?'<span class="sc-unav">Unavailable</span>':'<span class="sc-plus">+</span>'))+'</button></td>';
@@ -1384,6 +1391,7 @@ function schedView(){
   if(S.sc.su) h+=suView();
   if(S.sc.asg) h+=scAssign();
   if(S.sc.radd) h+=scRoomAdd();
+  if(S.sc.toOpen) h+=scToSheet();
   return h;
 }
 
@@ -1602,6 +1610,7 @@ function scBuild(){
   return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Fill a room"><div class="sc-card">'+h+'</div></div>';
 }
 document.addEventListener('pointerdown',function(e){ var c=e.target.closest&&e.target.closest('.sc-split'); if(!c) return; var tm=setTimeout(function(){ S.sc.menu=true; S.sc.menuHeld=true; render(); },450); var stop=function(){ clearTimeout(tm); if(S.sc.menuHeld) setTimeout(function(){ S.sc.menuHeld=false; },350); document.removeEventListener('pointerup',stop); document.removeEventListener('pointercancel',stop); }; document.addEventListener('pointerup',stop); document.addEventListener('pointercancel',stop); });
+document.addEventListener('change',function(ev){ if((ev.target.id==='to-start'||ev.target.id==='to-end') && S.my && S.my.req){ myToGrab(); render(); } });
 document.addEventListener('change',function(ev){ if(ev.target.id==='su-sal' && S.sc.su && S.sc.su.edit){ suGrab(); S.sc.su.edit.payType=ev.target.checked?'salaried':'hourly'; render(); return; } });
 document.addEventListener('change',function(ev){ var el=ev.target; if(!el.hasAttribute||!el.hasAttribute('data-tsel')||!S.sc.su||!S.sc.su.edit) return; suGrab(); var ed=S.sc.su.edit; ed.pick=ed.pick||{}; if(el.value) ed.pick[el.getAttribute('data-tsel')]=el.value; else delete ed.pick[el.getAttribute('data-tsel')]; render(); });
 document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.sc && (S.sc.menu||S.sc.gear||S.sc.vmenu)){ S.sc.menu=false; S.sc.gear=false; S.sc.vmenu=false; render(); } });
@@ -1611,7 +1620,7 @@ var SCD={ t:null, on:false, src:null, ghost:null, over:null, x0:0, y0:0, skipCli
 function scDragEnd(){ clearTimeout(SCD.t); SCD.t=null; if(SCD.ghost){ SCD.ghost.remove(); SCD.ghost=null; } if(SCD.over){ SCD.over.classList.remove('sc-drop'); SCD.over=null; } if(SCD.src&&SCD.src.el) SCD.src.el.classList.remove('sc-lift'); document.body.classList.remove('sc-dragging'); SCD.on=false; SCD.src=null; }
 function scTargetAt(x,y){ if(SCD.ghost) SCD.ghost.style.display='none'; var el=document.elementFromPoint(x,y); if(SCD.ghost) SCD.ghost.style.display=''; return el && el.closest('.sc-hit[data-sc=edit]'); }
 document.addEventListener('pointerdown',function(e){
-  var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su || S.sc.menu || S.sc.gear || S.sc.vmenu || S.sc.asg || S.sc.radd) return;
+  var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su || S.sc.menu || S.sc.gear || S.sc.vmenu || S.sc.asg || S.sc.radd || S.sc.toOpen) return;
   if(e.pointerType==='mouse' && e.button!==0) return;
   SCD.x0=e.clientX; SCD.y0=e.clientY;
   SCD.src={ el:ch, id:ch.getAttribute('data-did'), day:ch.getAttribute('data-dday'), i:+ch.getAttribute('data-di') };
@@ -1643,6 +1652,7 @@ document.addEventListener('contextmenu',function(e){ if(e.target.closest && e.ta
 function scMove(src, toId, toDay){
   if(!toId || (src.id===toId && src.day===toDay)) return;
   if(!scUnavailOk(toId,toDay)){ render(); return; }
+  if(toId!=='open' && !scOffOk(toId,toDay)){ render(); return; }
   if(src.id!==toId && toId!=='open'){ var tgt=((scRow(toId).days||{})[toDay]||[]).concat([((scRow(src.id).days||{})[src.day]||[])[src.i]]).filter(Boolean), twho=((S.sc.data.staff||[]).find(function(x){ return x.id===toId; })||{}).name||'They';
     if(!scOverlapOk(twho,tgt)){ render(); return; } }
   var d=S.sc.data, from=scRow(src.id), fromDays=JSON.parse(JSON.stringify(from.days||{})), blk=(fromDays[src.day]||[])[src.i];
@@ -1682,6 +1692,7 @@ function schedClick(t){
     return; }
   if(a==='edit'){ var id=t.getAttribute('data-id'), day=t.getAttribute('data-day'), r=scRow(id), unp=scUnavail(id,day);
     if(unp && !(((r.days||{})[day])||[]).length && !scUnavailOk(id,day)) return;
+    if(id!=='open' && !(((r.days||{})[day])||[]).length && !scOffOk(id,day)) return;
     var st=(S.sc.data.staff||[]).find(function(x){ return x.id===id; }), firstRoom=st&&st.positions.find(function(k){ return scPos(k).kind==='room'; });
     var blocks=JSON.parse(JSON.stringify((r.days||{})[day]||[]));
     if(!blocks.length) blocks=[{ s:'07:00', e:'17:00', p:firstRoom||(st&&st.positions[0])||'infant' }];
@@ -1699,6 +1710,11 @@ function schedClick(t){
     t.disabled=true; S.sc.menu=false; scPost({ action:'sched_generate', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
   if(a==='main'){ a=t.getAttribute('data-st'); }
   if(a==='clear'){ S.sc.menu=false; render(); if(!confirm('Clear every shift this week, including open shifts?')) return; scPost({ action:'sched_clear', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
+  if(a==='toopen'){ S.sc.toOpen=true; S.sc.toa=null; render(); scToLoad(); return; }
+  if(a==='toclose'){ S.sc.toOpen=false; scLoad(); return; }
+  if(a==='tomax'){ t.disabled=true; scPost({ action:'sched_settings_save', center:S.sc.center, week:S.sc.week, maxOff:+t.getAttribute('data-v') }).then(function(r){ if(r&&r.ok){ S.sc.toa=r; toast(r.message); } else toast((r&&r.error)||'That didn’t work.'); render(); }); return; }
+  if(a==='took'||a==='todeny'){ if(a==='todeny' && !confirm('Deny this request? They’ll get an alert and an email.')) return; t.disabled=true;
+    scPost({ action:'sched_toff_decide', center:S.sc.center, week:S.sc.week, id:t.getAttribute('data-id'), decision:a==='took'?'approve':'deny' }).then(function(r){ if(r&&r.ok){ S.sc.toa=r; toast(r.message); } else toast((r&&r.error)||'That didn’t work.'); render(); }); return; }
   if(a==='radd'){ var rk=t.getAttribute('data-key'), first=(S.sc.data.presets||[]).find(function(x){ return x.p===rk; });
     S.sc.radd={ room:rk, day:t.getAttribute('data-day'), s:first?first.s:'07:00', e:first?first.e:'17:00', custom:!first, d:[] }; render(); return; }
   if(S.sc.radd && a!=='raddclose'){ var ra=S.sc.radd; if($('sc-rs')){ ra.s=$('sc-rs').value; ra.e=$('sc-re').value; } }
@@ -1708,7 +1724,7 @@ function schedClick(t){
   if(a==='rduty'){ var rd=S.sc.radd.d, rkk=t.getAttribute('data-k'), rx=rd.indexOf(rkk); if(rx>=0) rd.splice(rx,1); else rd.push(rkk); render(); return; }
   if(a==='raddto'){ var A=S.sc.radd, toId=t.getAttribute('data-id');
     if(!A.s||!A.e||A.e<=A.s){ $('sc-err').textContent='The end time needs to be after the start time.'; return; }
-    if(toId!=='open'){ if(!scUnavailOk(toId,A.day)) return; var rnm=((S.sc.data.staff||[]).find(function(x){ return x.id===toId; })||{}).name; if(!scOverlapOk(rnm, ((scRow(toId).days||{})[A.day]||[]).concat([{ s:A.s, e:A.e, p:A.room }]))) return; }
+    if(toId!=='open'){ if(!scUnavailOk(toId,A.day)) return; if(!scOffOk(toId,A.day)) return; var rnm=((S.sc.data.staff||[]).find(function(x){ return x.id===toId; })||{}).name; if(!scOverlapOk(rnm, ((scRow(toId).days||{})[A.day]||[]).concat([{ s:A.s, e:A.e, p:A.room }]))) return; }
     var row=scRow(toId), days=JSON.parse(JSON.stringify(row.days||{})), blk={ s:A.s, e:A.e, p:A.room }; if(A.d.length) blk.d=A.d.slice();
     days[A.day]=(days[A.day]||[]).concat([blk]).sort(function(x,y){ return x.s<y.s?-1:1; });
     var who=toId==='open'?'Open shifts':((S.sc.data.staff||[]).find(function(x){ return x.id===toId; })||{}).name;
@@ -1757,6 +1773,59 @@ function schedClick(t){
     return; }
 }
 
+// ---------- time off: staff request it, managers approve it ----------
+var TO_TYPE={ pto:'Paid PTO', unpaid:'Day off', partial:'Partial day' };
+function toNice(iso){ return scDate(iso).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
+function toWhen(t){ return t.type==='partial'||t.kind==='partial' ? toNice(t.start)+' · '+scT(t.from)+'–'+scT(t.to) : t.start===t.end ? toNice(t.start) : toNice(t.start)+' – '+toNice(t.end); }
+function toStatus(s){ return '<span class="to-st to-'+String(s).toLowerCase()+'">'+(s==='Pending'?'Waiting':s)+'</span>'; }
+function myToLoad(){ myInit(); return scPost({ action:'sched_toff_list' }).then(function(r){ if(r&&r.ok){ S.my.to=r; render(); } }); }
+function myToSection(){
+  var T=S.my.to; if(!T){ myToLoad(); return ''; }
+  var h='<div class="grp" style="display:flex;justify-content:space-between;align-items:center"><span>Time off</span>'+(T.pto&&!T.pto.expired?'<span class="sm" style="text-transform:none;letter-spacing:0">'+T.pto.remaining+' PTO hrs left</span>':'')+'</div>';
+  h+='<div class="card">'+(T.requests.length?T.requests.map(function(r){ return '<div class="set"><span class="grow"><span style="font-weight:600;display:block">'+esc(toWhen(r))+'</span><span class="sm">'+TO_TYPE[r.type]+(r.hours?' · '+r.hours+' hrs':'')+(r.reason&&r.type!=='pto'?' · '+esc(r.reason):'')+'</span></span>'+toStatus(r.status)+(r.canCancel?'<button type="button" class="link" data-my="tocancel" data-id="'+esc(r.id)+'" data-src="'+r.src+'" style="color:#b3261e">Cancel</button>':'')+'</div>'; }).join(''):'<div class="set"><span class="grow sm">No requests yet.</span></div>')+
+    '<button type="button" class="set urow" data-my="toask"><span class="grow" style="color:var(--blue);font-weight:600">Request time off</span>'+svg('chev')+'</button></div>';
+  return h;
+}
+function myToSheet(){
+  var T=S.my.to||{}, f=S.my.req, hasPto=T.hasPto&&T.pto&&!T.pto.expired;
+  var types=[['pto','Paid PTO'],['unpaid','Day off'],['partial','Partial day']].filter(function(x){ return x[0]!=='pto'||hasPto; });
+  if(!types.some(function(x){ return x[0]===f.type; })) f.type=types[0][0];
+  var h='<div class="sc-ch"><div><b>Request time off</b><div class="sm">'+(T.maxOff?'Up to '+plural(T.maxOff,'person','people')+' can be off on a day':'Your manager will let you know')+'</div></div><button type="button" class="link" data-my="toclose">Cancel</button></div>';
+  h+='<div class="seg" role="group" aria-label="Kind of time off" style="margin:0 0 12px">'+types.map(function(x){ return '<button type="button" data-my="totype" data-v="'+x[0]+'" aria-pressed="'+(f.type===x[0])+'">'+x[1]+'</button>'; }).join('')+'</div>';
+  if(f.type==='partial') h+='<div class="uform" style="padding:0"><label>Day<input type="date" id="to-start" value="'+esc(f.start)+'"></label></div><div class="sc-two"><div class="uform" style="padding:0"><label>Gone from<input type="time" step="300" id="to-from" value="'+esc(f.from)+'"></label></div><div class="uform" style="padding:0"><label>Until<input type="time" step="300" id="to-to" value="'+esc(f.to)+'"></label></div></div>';
+  else h+='<div class="sc-two" style="margin-top:0"><div class="uform" style="padding:0"><label>First day off<input type="date" id="to-start" value="'+esc(f.start)+'"></label></div><div class="uform" style="padding:0"><label>Last day off<input type="date" id="to-end" value="'+esc(f.end)+'"></label></div></div>';
+  if(f.type==='pto') h+='<div class="uform" style="padding:12px 0 0"><label>PTO hours <span class="sm">'+(T.pto?T.pto.remaining+' left · up to 10 a day':'')+'</span><input id="to-hours" inputmode="decimal" value="'+esc(f.hours)+'" placeholder="e.g. 8"></label></div>';
+  else { var rs=f.type==='partial'?['Appointment','Personal','Sick','Other']:['Personal','Sick','Holiday','Other'];
+    h+='<div class="sc-pres-h" style="margin-top:12px">Reason</div><div class="sc-tags">'+rs.map(function(x){ var on=f.reason===x; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-my="toreason" data-v="'+x+'" aria-pressed="'+on+'">'+x+'</button>'; }).join('')+'</div>'; }
+  h+='<div class="uform" style="padding:12px 0 0"><label>Note <span class="sm">optional</span><input id="to-note" maxlength="300" value="'+esc(f.note)+'" placeholder="Anything your manager should know"></label></div>';
+  h+='<div class="err" id="to-err" role="alert">'+esc(f.err||'')+'</div><button type="button" class="btn" data-my="tosend" style="width:100%;margin-top:8px">Send request</button>';
+  if(f.type==='pto') h+='<p class="help">Paid PTO goes to Chelsea like always, and the hours come off your balance once it’s approved.</p>';
+  return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Request time off"><div class="sc-card">'+h+'</div></div>';
+}
+function myToGrab(){ var f=S.my.req; if(!f) return; var os=f.start, oe=f.end; ['start','end','from','to','hours','note'].forEach(function(k){ var el=$('to-'+k); if(el) f[k]=el.value; }); if(f.type==='pto' && (os!==f.start||oe!==f.end)) f.hours=String(8*toWeekdays(f.start, f.end<f.start?f.start:f.end));
+  if(f.type!=='partial' && f.start && (!f.end || f.end<f.start)) f.end=f.start; }
+function toWeekdays(a,b){ var n=0, d=scDate(a), e=scDate(b||a); for(var i=0;i<400&&d<=e;i++){ var g=d.getDay(); if(g>=1&&g<=5) n++; d.setDate(d.getDate()+1); } return n; }
+// managers: the requests sheet in the scheduler
+function scToLoad(){ return scPost({ action:'sched_toff_admin', center:S.sc.center, week:S.sc.week }).then(function(r){ if(r&&r.ok){ S.sc.toa=r; render(); } else toast((r&&r.error)||'Couldn’t load requests.'); }); }
+function scToSheet(){
+  var A=S.sc.toa, d=S.sc.data;
+  var h='<div class="sc-ch"><div><b>Time off</b><div class="sm">'+(S.sc.center==='SF'?'Sioux Falls':'Brandon')+'</div></div><button type="button" class="link" data-sc="toclose">Done</button></div>';
+  if(!A) return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Time off"><div class="sc-card">'+h+'<div class="empty"><span class="spin"></span> Loading…</div></div></div>';
+  if(d&&d.canSetup) h+='<div class="sc-li" style="cursor:default"><span class="grow"><b>Daily limit</b><span class="sm">'+(A.maxOff?'Up to '+plural(A.maxOff,'person','people')+' off on a day. Staff can’t request a full day.':'No limit. Every request comes to you.')+'</span></span><span class="sc-step"><button type="button" data-sc="tomax" data-v="'+Math.max(0,A.maxOff-1)+'" aria-label="Fewer"'+(A.maxOff?'':' disabled')+'>−</button><span><b>'+(A.maxOff||'—')+'</b><small>'+(A.maxOff?'max':'no limit')+'</small></span><button type="button" data-sc="tomax" data-v="'+(A.maxOff+1)+'" aria-label="More">+</button></span></div>';
+  var pend=A.requests.filter(function(t){ return t.status==='Pending'; }), appr=A.requests.filter(function(t){ return t.status==='Approved'; });
+  var row=function(t){ var pto=t.kind==='pto';
+    var sub=[TO_TYPE[t.kind]+(t.hours?' · '+t.hours+' hrs':''), t.kind!=='pto'&&t.reason?t.reason:'', t.status==='Pending'&&t.notice!=null?(t.notice<=0?'today':t.notice+' day'+(t.notice===1?'':'s')+' notice'):'', t.alsoOff&&t.alsoOff.length?'also off: '+t.alsoOff.join(', '):'', t.note?'“'+t.note+'”':''].filter(Boolean).join(' · ');
+    var act=t.status==='Pending' ? (pto?'<span class="sm" style="max-width:120px;text-align:right">Chelsea approves PTO</span>':'<span class="to-btns"><button type="button" class="pill" data-sc="todeny" data-id="'+esc(t.id)+'">Deny</button><button type="button" class="pill go" data-sc="took" data-id="'+esc(t.id)+'">Approve</button></span>') : toStatus(t.status);
+    return '<div class="sc-li to-row" style="cursor:default"><span class="grow"><b>'+esc(t.name)+'</b><span class="sm" style="color:var(--ink,#1d1d1f);font-weight:500">'+esc(toWhen(t))+'</span><span class="sm">'+esc(sub)+'</span></span>'+act+'</div>'; };
+  h+='<div class="sc-pres-h" style="margin-top:14px">Waiting · '+pend.length+'</div>'+(pend.length?'<div class="sc-list">'+pend.map(row).join('')+'</div>':'<p class="help">Nothing waiting.</p>');
+  h+='<div class="sc-pres-h" style="margin-top:14px">Coming up</div>'+(appr.length?'<div class="sc-list">'+appr.map(row).join('')+'</div>':'<p class="help">No approved time off coming up.</p>');
+  return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Time off"><div class="sc-card sc-tall">'+h+'</div></div>';
+}
+function scOffOn(id, day){ var t=((S.sc.data&&S.sc.data.timeoff)||{})[id]; return (t&&t[day])||[]; }
+function scOffFull(id, day){ return scOffOn(id,day).find(function(x){ return x.status==='Approved' && x.kind!=='partial'; }); }
+function scOffOk(id, day){ var o=scOffFull(id,day); if(!o) return true; var p=((S.sc.data&&S.sc.data.staff)||[]).find(function(x){ return x.id===id; })||{ name:'They' };
+  return confirm(p.name+' has approved time off that day ('+(o.kind==='pto'?'PTO':String(o.reason||'day off').toLowerCase())+').\n\nSchedule them anyway?'); }
+function scOffChips(id, day){ return scOffOn(id,day).map(function(o){ var lab=o.kind==='pto'?'PTO':o.kind==='partial'?'Off '+scT(o.from)+'–'+scT(o.to):'Off'; return '<span class="sc-chip sc-timeoff'+(o.status==='Pending'?' sc-topend':'')+'"><b>'+(o.status==='Pending'?'Asked: ':'')+esc(lab)+'</b><span>'+esc(o.kind==='pto'?'Paid time off':o.reason||'')+'</span></span>'; }).join(''); }
 // ---------- staff: My schedule (only published shifts; staff never see drafts, pay or anyone's hours) ----------
 function myInit(){ if(!S.my) S.my={ base:scIso(scMonday(new Date())), off:0, tab:'mine', day:null, data:null, busy:false }; }
 function myWeek(){ return scIso(scDate(S.my.base, 7*S.my.off)); }
@@ -1793,6 +1862,7 @@ function myView(){
     var later=(d.my||[]).slice(1);
     h+='<div class="grp">Coming up</div><div class="card">'+later.map(function(x,i){ var n=x.parts.reduce(function(t,p){ return t+SC_ALL_DAYS.reduce(function(m,k){ return m+((p.days||{})[k]||[]).length; },0); },0), conf=x.parts.length&&x.parts.every(function(p){ return p.confirmed; });
       return '<button type="button" class="set urow" data-my="go" data-v="'+(M.off+i+1)+'"'+(M.off+i+1>3?' disabled':'')+'><span class="grow"><span style="font-weight:600;display:block">Week of '+esc(myLabel(x.week))+'</span><span class="sm">'+(x.parts.length?plural(n,'shift','shifts')+(conf?' · confirmed':' · needs confirming'):'Not posted yet')+'</span></span>'+svg('chev')+'</button>'; }).join('')+'</div>';
+    h+=myToSection();
   } else {
     var dk=M.day||(function(){ var t=SC_DAYS.find(function(dd,i){ return scIso(scDate(wk,i))===scIso(new Date()); }); return t?t[0]:'mon'; })();
     h+='<div class="sc-tags my-dpick">'+SC_DAYS.map(function(dd,i){ var on=dd[0]===dk; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-my="day" data-v="'+dd[0]+'" aria-pressed="'+on+'">'+dd[1]+' '+scDate(wk,i).getDate()+'</button>'; }).join('')+'</div>';
@@ -1805,6 +1875,7 @@ function myView(){
       return '<div class="set my-tm'+(mine?' me':'')+'"><span class="my-bar" style="background:'+(open?'#fff':p.color)+';box-shadow:inset 0 0 0 2px '+p.color+'"></span><span class="grow"><span style="font-weight:600;display:block">'+(open?'Open shift':esc(x.t.name))+'</span><span class="sm">'+esc(p.name)+(x.b.d&&x.b.d.length?' '+myIcons(x.b):'')+'</span></span><span class="my-tt">'+scT(x.b.s)+'–'+scT(x.b.e)+'</span></div>'; }).join('')+'</div>';
     h+='<p class="help">Only the posted schedule shows here.</p>';
   }
+  if(M.req) h+=myToSheet();
   return h;
 }
 function myClick(t){
@@ -1814,6 +1885,16 @@ function myClick(t){
   if(a==='go'){ M.off=Math.min(3,+t.getAttribute('data-v')); M.tab='mine'; M.data=null; myLoad(); render(); window.scrollTo(0,0); return; }
   if(a==='tab'){ M.tab=t.getAttribute('data-v'); render(); return; }
   if(a==='day'){ M.day=t.getAttribute('data-v'); render(); return; }
+  if(a==='toask'){ var nx=scIso(scDate(scIso(new Date()),1)); M.req={ type:'', start:nx, end:nx, from:'13:00', to:'18:00', hours:'8', reason:'Personal', note:'' }; render(); return; }
+  if(a==='toclose'){ M.req=null; render(); return; }
+  if(M.req) myToGrab();
+  if(a==='totype'){ M.req.type=t.getAttribute('data-v'); M.req.reason=M.req.type==='partial'?'Appointment':'Personal'; M.req.err=''; render(); return; }
+  if(a==='toreason'){ M.req.reason=t.getAttribute('data-v'); render(); return; }
+  if(a==='tosend'){ var f=M.req; if(f.type==='pto' && (!f.hours || isNaN(+f.hours) || +f.hours<=0)){ f.err='Please enter how many PTO hours.'; render(); return; }
+    t.disabled=true; t.textContent='Sending…';
+    scPost({ action:'sched_toff_request', type:f.type, start:f.start, end:f.type==='partial'?f.start:f.end, from:f.from, to:f.to, hours:+f.hours, reason:f.reason, note:f.note }).then(function(r){
+      if(r&&r.ok){ M.req=null; M.to=r; toast(r.message||'Sent.'); } else { f.err=(r&&r.error)||'That didn’t go through.'; } render(); }); return; }
+  if(a==='tocancel'){ if(!confirm('Cancel this request?')) return; scPost({ action:'sched_toff_cancel', id:t.getAttribute('data-id'), src:t.getAttribute('data-src') }).then(function(r){ if(r&&r.ok){ M.to=r; toast(r.message||'Cancelled.'); } else toast((r&&r.error)||'That didn’t work.'); render(); }); return; }
   if(a==='confirm'){ var parts=((M.data.my||[])[0]||{}).parts||[], todo=parts.filter(function(p){ return !p.confirmed; }); t.disabled=true; t.textContent='Confirming…';
     todo.reduce(function(pr,p){ return pr.then(function(){ return scPost({ action:'sched_confirm', week:myWeek(), center:p.center }); }); }, Promise.resolve())
       .then(function(r){ if(r&&r.ok){ M.data=r; toast('Thanks! Your manager will see that you confirmed.'); } else toast((r&&r.error)||'That didn’t work.'); render(); }); return; }
