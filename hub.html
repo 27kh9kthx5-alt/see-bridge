@@ -1841,7 +1841,7 @@ function myView(){
   myInit(); var M=S.my, d=M.data, wk=myWeek(), first=String(S.data.name||'').split(' ')[0];
   var h='<div class="top"><div><div class="eyebrow">'+esc(new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'}))+'</div><h1>My schedule</h1><div class="help" style="margin:2px 0 0">Hi '+esc(first)+(d&&d.me?' · '+esc(CNAME[d.me.center]||''):'')+'</div></div></div>';
   h+='<div class="my-wk"><button type="button" class="round" data-my="prev" aria-label="Previous week"'+(M.off<=0?' disabled':'')+'>'+svg('back')+'</button><div class="my-wkl"><b>'+(M.off===0?'This week':M.off===1?'Next week':'Week of '+esc(myLabel(wk).split(' – ')[0]))+'</b><span>'+esc(myLabel(wk))+'</span></div><button type="button" class="round" data-my="next" aria-label="Next week"'+(M.off>=3?' disabled':'')+'>'+svg('chev')+'</button></div>';
-  h+='<div class="seg" role="group" aria-label="Show" style="margin-top:12px"><button type="button" data-my="tab" data-v="mine" aria-pressed="'+(M.tab==='mine')+'">My shifts</button><button type="button" data-my="tab" data-v="center" aria-pressed="'+(M.tab==='center')+'">Who’s working</button></div>';
+  M.tab='mine';
   if(M.err) return h+'<div class="empty">'+esc(M.err)+'</div>';
   if(!d || d.week!==wk) { if(!M.busy) myLoad(); return h+'<div class="empty"><span class="spin"></span> Loading…</div>'; }
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
