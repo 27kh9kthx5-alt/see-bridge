@@ -1009,6 +1009,7 @@ function scApply(r){
   if(r.message) toast(r.message);
   S.sc.data=r; if(S.view==='sched') render();
 }
+function scHasPub(){ return ((S.sc.data&&S.sc.data.rows)||[]).some(function(r){ return r.published && SC_ALL_DAYS.some(function(k){ return ((r.published||{})[k]||[]).length; }); }); }
 function scWeekLabel(){ var a=scDate(S.sc.week), b=scDate(S.sc.week,4), f=function(d){ return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }; return f(a)+' – '+f(b); }
 
 function schedView(){
@@ -1017,6 +1018,8 @@ function schedView(){
     '<div class="top"><div><div class="eyebrow">Preview · only you can see this</div><h1>Schedule</h1><div class="help" style="margin:2px 0 0">Sioux Falls · Week of '+esc(scWeekLabel())+'</div></div></div>'+
     '<div class="sc-bar"><button type="button" class="round" data-sc="prev" aria-label="Previous week">'+svg('back')+'</button><button type="button" class="pill" data-sc="today">This week</button><button type="button" class="round" data-sc="next" aria-label="Next week">'+svg('chev')+'</button>'+
     '<span style="flex:1"></span><button type="button" class="pill" data-sc="tpls">Templates</button><button type="button" class="pill" data-sc="copy">Copy last week</button>'+
+    (d && d.unpublished && scHasPub()? '<button type="button" class="pill" data-sc="discard">Discard changes</button>':'')+
+    (d && scHasPub()? '<button type="button" class="pill" data-sc="unpublish">Unpublish</button>':'')+
     (d? '<button type="button" class="pill go" data-sc="publish"'+(d.unpublished?'':' disabled')+'>'+(d.unpublished?'Publish ('+d.unpublished+')':'Published')+'</button>':'')+'</div>';
   if(!d) return h+'<div class="empty"><span class="spin"></span> Loading…</div>';
   if(d.unpublished) h+='<div class="note">Draft: '+plural(d.unpublished,'person’s week has','people’s weeks have')+' changes that aren’t published yet (striped shifts).</div>';
@@ -1199,6 +1202,8 @@ function schedClick(t){
       if(r && !r.ok){ t.disabled=false; $('sc-terr').textContent=r.error||'That didn’t save.'; return; }
       scApply(r); });
     return; }
+  if(a==='discard'){ if(!confirm('Discard all unpublished changes this week? Everyone’s shifts go back to what was last published. Shifts that were never published are removed.')) return; t.disabled=true; scPost({ action:'sched_discard', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
+  if(a==='unpublish'){ if(!confirm('Unpublish this week? Staff will no longer see it, and all its shifts go back to drafts until you publish again.')) return; t.disabled=true; scPost({ action:'sched_unpublish', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
   if(a==='close'){ S.sc.edit=null; render(); return; }
   if(a==='add'){ scGrab(); S.sc.edit.fresh=false; var e=S.sc.edit, last=e.blocks[e.blocks.length-1]; e.blocks.push({ s:last?last.e:'07:00', e:last?(last.e<'17:00'?'17:00':'18:00'):'17:00', p:last?last.p:'infant' }); render(); return; }
   if(a==='del'){ scGrab(); S.sc.edit.blocks.splice(+t.getAttribute('data-i'),1); render(); return; }
