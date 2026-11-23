@@ -440,6 +440,25 @@ tr.sc-open .sc-cell.sc-chg .sc-chip.sc-chip:not(.sc-other):not(.sc-timeoff),.sc-
 .sc-dot2.on{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--c)}
 .sc-card.sc-tall{min-height:min(680px,82vh);display:flex;flex-direction:column}.sc-card.sc-tall>.btn[data-su=ssave],.sc-card.sc-tall>.btn[data-su=rsave]{margin-top:auto!important}
 .sc-dot2 .sc-svg{width:20px;height:20px;stroke-width:2.2}.sc-icl{font-size:14px;font-weight:700}
+.my-wk{display:flex;align-items:center;gap:10px;margin-top:8px}.my-wkl{flex:1;text-align:center;display:flex;flex-direction:column}.my-wkl span{font-size:13px;color:var(--sub)}
+.my-wk .round[disabled]{opacity:.35}
+.my-days{margin-top:12px;padding:0}
+.my-day{display:flex;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}.my-day:last-child{border-bottom:0}
+.my-day.today{background:#f5f9ff}
+.my-dl{width:44px;flex:none;display:flex;flex-direction:column;align-items:center}.my-dl b{font-size:13px;color:var(--sub);font-weight:600}.my-dl span{font-size:22px;font-weight:700;line-height:1.1}
+.my-day.today .my-dl span{color:var(--blue)}
+.my-dr{flex:1;display:flex;flex-direction:column;gap:6px;justify-content:center;min-width:0}
+.my-sh{background:var(--c);color:var(--on,#fff);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column}
+.my-sh b{font-size:16px}.my-sh span{font-size:13px;opacity:.92}.my-sh .sc-di{color:inherit}
+.my-off{color:var(--sub);font-size:15px}
+.my-conf{width:100%;margin-top:14px}
+.my-ok{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;padding:12px;border-radius:12px;background:#e8f7ee;color:#1b7a3d;font-weight:600}.my-ok svg{width:20px;height:20px}
+.my-dpick{margin:12px 0 10px}
+.my-tm .my-bar{width:6px;align-self:stretch;border-radius:3px;flex:none}
+.my-tm.me{background:#f5f9ff}.my-tt{font-weight:600;font-size:14px;white-space:nowrap}
+.my-tm .sm i{font-style:normal}
+.sc-cf{display:inline-flex;width:16px;height:16px;border-radius:50%;background:#34c759;color:#fff;margin-left:5px;vertical-align:-2px;align-items:center;justify-content:center}.sc-cf svg{width:11px;height:11px;stroke-width:3.5}
+.uform select{min-height:44px;border:1px solid #d2d2d7;border-radius:12px;padding:0 12px;font-size:16px;background:#fff;color:var(--ink,#1d1d1f);width:100%}
 </style>
 </head>
 <body>
@@ -500,6 +519,7 @@ function apply(r){
   if(!r || !r.ok){ toast((r&&r.error)||'Something went wrong.'); return false; }
   (r.feed||[]).forEach(function(x){ if(x.kind==='term' && x.id.indexOf('toc:')===0) x.kind='termcare'; });
   S.data=r; S.prefs=r.prefs;
+  var ib=document.querySelector('nav [data-tab=inbox]'); if(ib) ib.classList.toggle('hidden', !!r.staff);
   var n=(r.feed||[]).filter(function(x){ return x.unread||x.needs; }).length;
   var b=$('nav-badge'); b.textContent=n>99?'99+':n; b.classList.toggle('hidden',!n);
   try{ if(navigator.setAppBadge){ if(n) navigator.setAppBadge(n); else navigator.clearAppBadge(); } }catch(e){}
@@ -556,7 +576,8 @@ function paintCenter(){ var c=!S.data?'all':(S.data.role==='ALL'?(S.view==='list
 function render(){
   var v=$('view'); paintCenter();
   if(!S.data){ v.innerHTML='<div class="empty"><span class="spin"></span> Loading…</div>'; return; }
-  if(S.view==='home') v.innerHTML=home();
+  if(S.data.staff && ['inbox','list','users','useredit','overtime','sched'].indexOf(S.view)>=0) S.view='home';
+  if(S.view==='home') v.innerHTML=S.data.staff?myView():home();
   else if(S.view==='inbox') v.innerHTML=inbox();
   else if(S.view==='list') v.innerHTML=listView(S.list);
   else if(S.view==='settings') v.innerHTML=settings();
@@ -799,6 +820,7 @@ function settings(){
   if(d.owner) h+='<div class="grp">People</div><div class="card"><button type="button" class="set urow" data-go="users"><span class="grow">Users<div class="sm">Add people, roles, areas and password resets</div></span>'+svg('chev')+'</button></div>';
   h+='<div class="grp">Phone alerts on this device</div><div class="card"><div class="set"><div class="grow" id="push-state">'+pushStateHtml()+'</div></div></div>';
   var rows=function(list){ list=list.filter(function(r){ return can(r[2]) && (r[0]!=='pto'||isOffice()) && (r[0]!=='pto_ok'||!isOffice()); }); if(!list.length) return ''; return '<div class="card">'+list.map(function(r){ return '<div class="set"><span class="mark" style="background:var(--c-'+r[2]+')"></span><span class="grow">'+r[1]+'</span>'+sw('pf-'+r[0], p[r[0]]!==false, r[1])+'</div>'; }).join('')+'</div>'; };
+  if(d.staff){ h+='<p class="help">You’ll get an alert here when a new schedule is posted for you.</p>'; return h; }
   h+='<div class="grp">Alert me about team members</div>'+rows(PREF_TEAM)+'<div class="grp">Alert me about families</div>'+rows(PREF_FAM);
   h+='<div class="card" style="margin-top:12px"><div class="set"><div class="grow">Quiet nights &amp; weekends<div class="sm">No alerts 8 PM – 6 AM, Saturday or Sunday. They still show in the inbox. The overtime report still alerts at night.</div></div>'+sw('pf-quiet', p.quiet!==false, 'Quiet nights and weekends')+'</div></div>';
   h+='<p class="help">These switches are just for your phone alerts. The emails keep coming the same way they do now.</p>';
@@ -889,7 +911,7 @@ function openEmbed(which){
 
 // ---------- your password, and the Users screen (owner only) ----------
 var AREA_LIST=[['pto','PTO'],['hiring','Hiring'],['onboard','On Board'],['term','Termination of Employment'],['overtime','Overtime'],['enroll','Enrollment'],['careplan','Care Plans'],['vacation','Family Vacations'],['termcare','Termination of Care']];
-var ROLE_LIST=[['owner','Owner'],['office','Office'],['manager','Center Manager']];
+var ROLE_LIST=[['owner','Owner'],['office','Office'],['manager','Manager'],['staff','Staff']];
 var CNAME={SF:'Sioux Falls',BV:'Brandon'};
 function can(k){ return !S.data || !S.data.areas || S.data.areas[k]!==false; }
 function isOffice(){ return S.data && (S.data.office!==undefined ? S.data.office : S.data.role==='ALL'); }
@@ -911,13 +933,13 @@ function usersView(){
   if(!S.data.account) h+='<div class="note">Start by adding <b>yourself</b> as the Owner. You’ll get an email to choose your password. Then sign in with your username and add everyone else.</div>';
   h+= U.users.length ? '<div class="card">'+U.users.map(function(u){
     var st = !u.active ? '<span class="tag bad">Off</span>' : !u.hasPassword ? '<span class="tag need">'+(u.invited?'Invite sent':'No password yet')+'</span>' : '';
-    var where = u.role==='manager' ? CNAME[u.center]||'' : 'Both centers';
-    return '<button type="button" class="set urow" data-uedit="'+esc(u.id)+'"><span class="round" style="background:'+(u.role==='owner'?'var(--ink)':u.role==='office'?'#0a5bd3':'#0e7490')+';color:#fff;font-weight:700">'+esc((u.name||'?').charAt(0).toUpperCase())+'</span><span class="grow"><span style="font-weight:600;display:block">'+esc(u.name)+'</span><span class="sm" style="display:block">'+esc(u.username)+' · '+esc((ROLE_LIST.find(function(r){ return r[0]===u.role; })||['',''])[1])+' · '+esc(where)+'</span></span>'+st+svg('chev')+'</button>'; }).join('')+'</div>'
+    var where = u.role==='manager' ? CNAME[u.center]||'' : u.role==='staff' ? 'Staff · '+(CNAME[u.center]||'') : 'Both centers';
+    return '<button type="button" class="set urow" data-uedit="'+esc(u.id)+'"><span class="round" style="background:'+(u.role==='owner'?'var(--ink)':u.role==='office'?'#0a5bd3':u.role==='staff'?'#8e8e93':'#0e7490')+';color:#fff;font-weight:700">'+esc((u.name||'?').charAt(0).toUpperCase())+'</span><span class="grow"><span style="font-weight:600;display:block">'+esc(u.name)+'</span><span class="sm" style="display:block">'+esc(u.username)+' · '+esc((ROLE_LIST.find(function(r){ return r[0]===u.role; })||['',''])[1])+' · '+esc(where)+'</span></span>'+st+svg('chev')+'</button>'; }).join('')+'</div>'
     : '<div class="empty">No users yet.</div>';
   h+='<div class="grp">Shared passcodes</div><div class="card"><div class="set"><div class="grow">Allow passcode sign-in<div class="sm">The old shared passcodes + first name. Turn this off once everyone has signed in with their own account.</div></div>'+sw('pc-on', U.passcodesOn, 'Allow passcode sign-in')+'</div></div>';
   return h;
 }
-function grabU(){ var u=S.uedit; if(!u) return; ['name','username','email'].forEach(function(k){ var el=$('u-'+k); if(el) u[k]=el.value; }); }
+function grabU(){ var u=S.uedit; if(!u) return; ['name','username','email'].forEach(function(k){ var el=$('u-'+k); if(el) u[k]=el.value; }); var sid=$('u-staffid'); if(sid){ u.staffId=sid.value; var pp=((S.users&&S.users.people)||[]).find(function(x){ return x.id===sid.value; }); if(pp){ u.center=pp.center; if(!u.name) u.name=pp.name; if(!u.username) u.username=String(pp.name).toLowerCase().replace(/[^a-z ]/g,'').trim().replace(/\s+/g,'.'); } } }
 function userEdit(){
   var u=S.uedit, isNew=!u.id, mgr=u.role==='manager';
   var h='<button type="button" class="back" data-go="users">'+svg('back')+'Users</button><div class="top"><h1>'+(isNew?'Add user':esc(u.name))+'</h1></div>';
@@ -925,7 +947,16 @@ function userEdit(){
     '<label>Username<input id="u-username" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="30" value="'+esc(u.username)+'" placeholder="e.g. chelsea"></label>'+
     '<label>Email<input id="u-email" type="email" autocomplete="off" maxlength="120" value="'+esc(u.email)+'" placeholder="For invites and password resets"></label></div>';
   h+='<div class="grp">Role</div><div class="seg" role="group" aria-label="Role">'+ROLE_LIST.map(function(r){ return '<button type="button" data-urole="'+r[0]+'" aria-pressed="'+(u.role===r[0])+'">'+r[1]+'</button>'; }).join('')+'</div>';
-  h+='<p class="help">'+(u.role==='owner'?'Everything at both centers, plus this Users screen.':u.role==='office'?'Everything at both centers, including the office-only checklist steps and PTO approvals.':'Their own center. Everything below that’s switched on, except the office-only steps.')+'</p>';
+  h+='<p class="help">'+(u.role==='owner'?'Everything at both centers, plus this Users screen.':u.role==='office'?'Everything at both centers, including the office-only checklist steps and PTO approvals.':u.role==='staff'?'Only their own schedule: their shifts, confirming them, and who’s working at their center. No forms, pay or other admin.':'Their own center. Everything below that’s switched on, except the office-only steps.')+'</p>';
+  if(u.role==='staff'){ var ppl=(S.users&&S.users.people)||[];
+    h+='<div class="grp">Who they are on the schedule</div><div class="card uform"><label>Schedule name<select id="u-staffid"><option value="">Pick a person…</option>'+ppl.map(function(x){ return '<option value="'+esc(x.id)+'"'+(u.staffId===x.id?' selected':'')+'>'+esc(x.name)+' · '+(CNAME[x.center]||x.center)+'</option>'; }).join('')+'</select></label></div>';
+    if(!isNew) h+='<div class="card" style="margin-top:12px"><div class="set"><div class="grow">Access<div class="sm">Switch off to block sign-in right away. Their history stays.</div></div>'+sw('u-active', u.active!==false, 'Access')+'</div></div>';
+    h+='<div class="err" id="u-err" role="alert" style="margin:12px 4px 0"></div><div class="ubtns"><button type="button" class="btn" data-usave="1">'+(isNew?'Add & send invite':'Save')+'</button>';
+    if(!isNew && u.active!==false) h+='<button type="button" class="btn soft" data-ulink="1">'+(u.hasPassword?'Email a reset link':'Send the invite again')+'</button>';
+    h+='</div>';
+    if(isNew) h+='<p class="help">They’ll get an email with their username and a link to choose their own password.</p>';
+    else if(u.username!==S.data.username) h+='<p class="help" style="margin-top:22px"><button type="button" class="link" data-uremove="1" style="color:#b3261e">Remove this user</button></p>';
+    return h; }
   if(mgr) h+='<div class="grp">Center</div><div class="seg" role="group" aria-label="Center">'+[['SF','Sioux Falls'],['BV','Brandon']].map(function(c){ return '<button type="button" data-ucenter="'+c[0]+'" aria-pressed="'+(u.center===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>';
   h+='<div class="grp">Areas they can see</div><div class="card">'+AREA_LIST.map(function(a){
     var off = a[0]==='vacation' && mgr && u.center==='BV';
@@ -1029,6 +1060,7 @@ document.addEventListener('click',function(e){
   if(S.sc&&(S.sc.menu||S.sc.gear||S.sc.vmenu) && !(e.target.closest&&e.target.closest('.sc-dd'))){ S.sc.menu=false; S.sc.gear=false; S.sc.vmenu=false; render(); return; }
   var t=e.target.closest('button,a,.item'); if(!t) return;
   if(t.hasAttribute('data-su')){ suClick(t); return; }
+  if(t.hasAttribute('data-my')){ myClick(t); return; }
   if(t.hasAttribute('data-tab')){ setView(t.getAttribute('data-tab')); if(t.getAttribute('data-tab')!=='settings') refresh(true); return; }
   if(t.hasAttribute('data-sc')){ schedClick(t); return; }
   if(t.hasAttribute('data-read')) markRead([t.getAttribute('data-read')]);
@@ -1072,7 +1104,7 @@ document.addEventListener('click',function(e){
   if(t.hasAttribute('data-ucenter')){ grabU(); S.uedit.center=t.getAttribute('data-ucenter'); render(); return; }
   if(t.hasAttribute('data-usave')){
     grabU(); var su=S.uedit; t.disabled=true; t.textContent='Saving…';
-    post({action:'usersave', user:{ id:su.id, name:su.name, username:su.username, email:su.email, role:su.role, center:su.center, areas:su.areas, active:su.active!==false }}).then(function(r){
+    post({action:'usersave', user:{ id:su.id, name:su.name, username:su.username, email:su.email, role:su.role, center:su.center, staffId:su.staffId||'', areas:su.areas, active:su.active!==false }}).then(function(r){
       if(r.locked){ apply(r); return; }
       if(!r.ok){ t.disabled=false; t.textContent=su.id?'Save':'Add & send invite'; $('u-err').textContent=r.error||'That didn’t work.'; return; }
       S.users=r; toast(r.message||'Saved.'); setView('users');
@@ -1089,6 +1121,7 @@ document.addEventListener('change',function(e){
   if(t.id==='pc-on'){ var want=t.checked; if(!want && !confirm('Turn off the shared passcodes? Everyone will need their own username to sign in.')){ t.checked=true; return; } post({action:'passcodes', on:want}).then(function(r){ if(r.ok){ S.users=r; toast(r.message); } else { toast(r.error||'That didn’t work.'); t.checked=!want; } }); return; }
   if(t.id && t.id.indexOf('ua-')===0 && S.uedit){ S.uedit.areas=S.uedit.areas||{}; S.uedit.areas[t.id.slice(3)]=t.checked; return; }
   if(t.id==='u-active' && S.uedit){ S.uedit.active=t.checked; return; }
+  if(t.id==='u-staffid' && S.uedit){ grabU(); render(); return; }
   if(!t.id || t.id.indexOf('pf-')!==0) return;
   var k=t.id.slice(3), o={}; o[k]=t.checked; S.prefs[k]=t.checked;
   post({action:'prefs', prefs:o}).then(function(r){ if(r.ok) S.prefs=r.prefs; else { toast(r.error||'Couldn’t save that.'); t.checked=!t.checked; } });
@@ -1337,7 +1370,7 @@ function schedView(){
       sub=p.payType==='salaried'?'':'<span class="sc-sub"><small>'+(p.payType==='salaried'?'Salaried':pay!=null?scMoney(pay):'')+'</small><small class="sc-hr">'+(p.payType==='salaried'?h2(tot/60):(tot/60>=50?'<span class="ot-red">'+h2(tot/60)+'</span>':otSplit({ projected:tot/60 })))+'</small>'+warn+'</span>'+
         ''; }
     var nm=String(p.name||'').trim().split(/\s+/), ini=p.open?'+':(nm[0]||'').charAt(0)+(nm.length>1?nm[nm.length-1].charAt(0):''), short=p.open?'Open':nm[0]+(nm.length>1?' '+nm[nm.length-1].charAt(0)+'.':'');
-    return '<tr'+(p.open?' class="sc-open"':'')+'><th scope="row"><span class="sc-who"><span class="sc-av'+(p.open?' sc-av-open':'')+'"'+(p.photo?' style="background-image:url('+esc(p.photo)+')"':'')+' aria-hidden="true">'+(p.photo?'':esc(ini.toUpperCase()))+'</span><span class="sc-nm"><span class="sc-full">'+esc(p.name)+'</span><span class="sc-short">'+esc(short)+'</span></span></span>'+sub+'</th>'+cells+'</tr>';
+    return '<tr'+(p.open?' class="sc-open"':'')+'><th scope="row"><span class="sc-who"><span class="sc-av'+(p.open?' sc-av-open':'')+'"'+(p.photo?' style="background-image:url('+esc(p.photo)+')"':'')+' aria-hidden="true">'+(p.photo?'':esc(ini.toUpperCase()))+'</span><span class="sc-nm"><span class="sc-full">'+esc(p.name)+'</span>'+(!p.open && r.confirmedAt?'<span class="sc-cf" title="Confirmed '+esc(new Date(r.confirmedAt).toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit'}))+'" role="img" aria-label="Confirmed">'+svg('check')+'</span>':'')+'<span class="sc-short">'+esc(short)+'</span></span></span>'+sub+'</th>'+cells+'</tr>';
   }).join('');
   var weekTot=cols.reduce(function(s,c){ return s+dayTot[c.key]; },0), weekCost=cols.reduce(function(t,c){ return t+dayCost[c.key]; },0);
   var tots=function(cost,mins){ return '<span class="sc-sub"><small>'+scMoney(cost)+'</small><small class="sc-hr">'+h2(mins/60)+'</small></span>'; };
@@ -1724,6 +1757,67 @@ function schedClick(t){
     return; }
 }
 
+// ---------- staff: My schedule (only published shifts; staff never see drafts, pay or anyone's hours) ----------
+function myInit(){ if(!S.my) S.my={ base:scIso(scMonday(new Date())), off:0, tab:'mine', day:null, data:null, busy:false }; }
+function myWeek(){ return scIso(scDate(S.my.base, 7*S.my.off)); }
+function myLoad(extra){ myInit(); S.my.busy=true; var wk=myWeek();
+  return scPost(Object.assign({ action:'sched_my', week:wk }, extra||{})).then(function(r){ S.my.busy=false;
+    if(r && r.locked){ apply(r); return; }
+    if(!r || !r.ok){ S.my.err=(r&&r.error)||'Something went wrong.'; S.my.data=null; render(); return; }
+    S.my.err=''; if(myWeek()===wk){ S.my.data=r; } render(); }); }
+function myPos(k){ var p=((S.my.data&&S.my.data.positions)||[]).find(function(x){ return x.key===k; }); return p||{ key:k, name:k, color:'#8e8e93', kind:'room' }; }
+function myIcons(b){ return (b.d||[]).map(function(k){ var p=myPos(k); return '<i title="'+esc(p.name)+'" role="img" aria-label="'+esc(p.name)+'">'+scIcon(p)+'</i>'; }).join(''); }
+function myLabel(iso){ var a=scDate(iso), b=scDate(iso,4), f=function(d){ return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }; return f(a)+' – '+f(b); }
+function myView(){
+  myInit(); var M=S.my, d=M.data, wk=myWeek(), first=String(S.data.name||'').split(' ')[0];
+  var h='<div class="top"><div><div class="eyebrow">'+esc(new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'}))+'</div><h1>My schedule</h1><div class="help" style="margin:2px 0 0">Hi '+esc(first)+(d&&d.me?' · '+esc(CNAME[d.me.center]||''):'')+'</div></div></div>';
+  h+='<div class="my-wk"><button type="button" class="round" data-my="prev" aria-label="Previous week"'+(M.off<=0?' disabled':'')+'>'+svg('back')+'</button><div class="my-wkl"><b>'+(M.off===0?'This week':M.off===1?'Next week':'Week of '+esc(myLabel(wk).split(' – ')[0]))+'</b><span>'+esc(myLabel(wk))+'</span></div><button type="button" class="round" data-my="next" aria-label="Next week"'+(M.off>=3?' disabled':'')+'>'+svg('chev')+'</button></div>';
+  h+='<div class="seg" role="group" aria-label="Show" style="margin-top:12px"><button type="button" data-my="tab" data-v="mine" aria-pressed="'+(M.tab==='mine')+'">My shifts</button><button type="button" data-my="tab" data-v="center" aria-pressed="'+(M.tab==='center')+'">Who’s working</button></div>';
+  if(M.err) return h+'<div class="empty">'+esc(M.err)+'</div>';
+  if(!d || d.week!==wk) { if(!M.busy) myLoad(); return h+'<div class="empty"><span class="spin"></span> Loading…</div>'; }
+  var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
+  if(M.tab==='mine'){
+    var w=d.my[0]||{ parts:[] };
+    if(!w.parts.length) h+='<div class="empty">Nothing posted for this week yet.<div class="sm" style="margin-top:6px">You’ll get an alert when it is.</div></div>';
+    else {
+      h+='<div class="card my-days">'+SC_DAYS.map(function(dd,i){ var iso=scIso(scDate(wk,i)), blocks=[];
+        w.parts.forEach(function(p){ ((p.days||{})[dd[0]]||[]).forEach(function(b){ blocks.push({ b:b, c:p.center }); }); });
+        blocks.sort(function(x,y){ return x.b.s<y.b.s?-1:1; });
+        var today=iso===scIso(new Date());
+        var right = closed[iso] ? '<span class="my-off">Closed · '+esc(closed[iso])+'</span>' : blocks.length ? blocks.map(function(x){ var p=myPos(x.b.p); return '<div class="my-sh" style="--c:'+p.color+';--on:'+scOn(p.color)+'"><b>'+scT(x.b.s)+'–'+scT(x.b.e)+(x.b.d&&x.b.d.length?' <span class="sc-di">'+myIcons(x.b)+'</span>':'')+'</b><span>'+esc(p.name)+(d.me&&x.c!==d.me.center?' · at '+esc(CNAME[x.c]):'')+'</span></div>'; }).join('') : '<span class="my-off">Off</span>';
+        return '<div class="my-day'+(today?' today':'')+'"><div class="my-dl"><b>'+dd[1]+'</b><span>'+scDate(iso).getDate()+'</span></div><div class="my-dr">'+right+'</div></div>'; }).join('')+'</div>';
+      var unconf=w.parts.filter(function(p){ return !p.confirmed; });
+      if(unconf.length) h+='<button type="button" class="btn my-conf" data-my="confirm">Confirm my schedule</button><p class="help">Lets your manager know you’ve seen it.</p>';
+      else { var at=w.parts.map(function(p){ return p.confirmedAt; }).sort().pop(); h+='<div class="my-ok">'+svg('check')+'<span>Confirmed'+(at?' '+esc(new Date(at).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})):'')+'</span></div>'; }
+    }
+    var later=(d.my||[]).slice(1);
+    h+='<div class="grp">Coming up</div><div class="card">'+later.map(function(x,i){ var n=x.parts.reduce(function(t,p){ return t+SC_ALL_DAYS.reduce(function(m,k){ return m+((p.days||{})[k]||[]).length; },0); },0), conf=x.parts.length&&x.parts.every(function(p){ return p.confirmed; });
+      return '<button type="button" class="set urow" data-my="go" data-v="'+(M.off+i+1)+'"'+(M.off+i+1>3?' disabled':'')+'><span class="grow"><span style="font-weight:600;display:block">Week of '+esc(myLabel(x.week))+'</span><span class="sm">'+(x.parts.length?plural(n,'shift','shifts')+(conf?' · confirmed':' · needs confirming'):'Not posted yet')+'</span></span>'+svg('chev')+'</button>'; }).join('')+'</div>';
+  } else {
+    var dk=M.day||(function(){ var t=SC_DAYS.find(function(dd,i){ return scIso(scDate(wk,i))===scIso(new Date()); }); return t?t[0]:'mon'; })();
+    h+='<div class="sc-tags my-dpick">'+SC_DAYS.map(function(dd,i){ var on=dd[0]===dk; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-my="day" data-v="'+dd[0]+'" aria-pressed="'+on+'">'+dd[1]+' '+scDate(wk,i).getDate()+'</button>'; }).join('')+'</div>';
+    var iso2=scIso(scDate(wk,SC_DAYS.findIndex(function(x){ return x[0]===dk; })));
+    if(closed[iso2]) return h+'<div class="empty">The center is closed · '+esc(closed[iso2])+'</div>';
+    var list=[]; (d.team||[]).forEach(function(t){ ((t.days||{})[dk]||[]).forEach(function(b){ list.push({ t:t, b:b }); }); });
+    list.sort(function(a,b){ return a.b.s<b.b.s?-1:a.b.s>b.b.s?1:(a.t.name<b.t.name?-1:1); });
+    if(!list.length) h+='<div class="empty">Nothing posted for this day yet.</div>';
+    else h+='<div class="card">'+list.map(function(x){ var p=myPos(x.b.p), open=x.t.id==='open', mine=x.t.id==='me';
+      return '<div class="set my-tm'+(mine?' me':'')+'"><span class="my-bar" style="background:'+(open?'#fff':p.color)+';box-shadow:inset 0 0 0 2px '+p.color+'"></span><span class="grow"><span style="font-weight:600;display:block">'+(open?'Open shift':esc(x.t.name))+'</span><span class="sm">'+esc(p.name)+(x.b.d&&x.b.d.length?' '+myIcons(x.b):'')+'</span></span><span class="my-tt">'+scT(x.b.s)+'–'+scT(x.b.e)+'</span></div>'; }).join('')+'</div>';
+    h+='<p class="help">Only the posted schedule shows here.</p>';
+  }
+  return h;
+}
+function myClick(t){
+  var a=t.getAttribute('data-my'); myInit(); var M=S.my;
+  if(a==='prev'&&M.off>0){ M.off--; M.data=null; myLoad(); render(); return; }
+  if(a==='next'&&M.off<3){ M.off++; M.data=null; myLoad(); render(); return; }
+  if(a==='go'){ M.off=Math.min(3,+t.getAttribute('data-v')); M.tab='mine'; M.data=null; myLoad(); render(); window.scrollTo(0,0); return; }
+  if(a==='tab'){ M.tab=t.getAttribute('data-v'); render(); return; }
+  if(a==='day'){ M.day=t.getAttribute('data-v'); render(); return; }
+  if(a==='confirm'){ var parts=((M.data.my||[])[0]||{}).parts||[], todo=parts.filter(function(p){ return !p.confirmed; }); t.disabled=true; t.textContent='Confirming…';
+    todo.reduce(function(pr,p){ return pr.then(function(){ return scPost({ action:'sched_confirm', week:myWeek(), center:p.center }); }); }, Promise.resolve())
+      .then(function(r){ if(r&&r.ok){ M.data=r; toast('Thanks! Your manager will see that you confirmed.'); } else toast((r&&r.error)||'That didn’t work.'); render(); }); return; }
+}
 // ---------- go ----------
 if(/^#setpw=/.test(location.hash)){ save(null); showSetPw(location.hash.slice(7)); }
 else if(me && (me.session || (me.pass && me.name))){
