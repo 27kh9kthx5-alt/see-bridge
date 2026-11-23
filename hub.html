@@ -399,6 +399,12 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-cnt tbody th{font-size:12px;color:var(--ink,#1d1d1f);display:flex;align-items:center;gap:6px;padding:6px 8px;position:sticky;left:0;background:var(--card)}
 .sc-cnt td{text-align:center;border-left:1px solid #fff;height:26px;min-width:22px;font-weight:600}
 .sc-cnt td.sc-z{background:#f6f6f8}
+.sc-vw{position:relative}.sc-vbtn .sc-svg{width:20px;height:20px}
+.sc-dd.sc-ddl{min-width:240px}
+.sc-tops{display:flex;gap:8px;align-items:center}
+.sc-ddv{flex-direction:row!important;align-items:center!important;gap:10px!important}.sc-ddv>.sc-svg{width:20px;height:20px;flex:none;color:var(--sub)}
+.sc-ddv .grow{display:flex;flex-direction:column}.sc-ddv>svg:last-child{width:16px;height:16px;color:var(--blue);flex:none}
+.sc-ddv.on>.sc-svg,.sc-ddv.on b{color:var(--blue)}
 </style>
 </head>
 <body>
@@ -985,7 +991,7 @@ document.addEventListener('submit',function(e){
 });
 document.addEventListener('click',function(e){
   if(S.sc&&S.sc.menuHeld){ S.sc.menuHeld=false; return; }
-  if(S.sc&&(S.sc.menu||S.sc.gear) && !(e.target.closest&&e.target.closest('.sc-dd'))){ S.sc.menu=false; S.sc.gear=false; render(); return; }
+  if(S.sc&&(S.sc.menu||S.sc.gear||S.sc.vmenu) && !(e.target.closest&&e.target.closest('.sc-dd'))){ S.sc.menu=false; S.sc.gear=false; S.sc.vmenu=false; render(); return; }
   var t=e.target.closest('button,a,.item'); if(!t) return;
   if(t.hasAttribute('data-su')){ suClick(t); return; }
   if(t.hasAttribute('data-tab')){ setView(t.getAttribute('data-tab')); if(t.getAttribute('data-tab')!=='settings') refresh(true); return; }
@@ -1071,6 +1077,13 @@ function scMoney(n){ return '$'+n.toLocaleString('en-US',{minimumFractionDigits:
 function scBlocksMins(list){ return (list||[]).reduce(function(s,b){ return s+Math.max(0,scMins(b.e)-scMins(b.s)); },0); }
 function scWeekMins(days){ return SC_ALL_DAYS.reduce(function(s,k){ return s+scBlocksMins((days||{})[k]); },0); }
 // Duty icons: Lucide line icons (ISC license), matched to the SF Symbols Brent picked.
+var SC_VIEWS=[['people','People','<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 3.128a4 4 0 0 1 0 7.744M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>','One row per person'],
+  ['rooms','Rooms','<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>','Who’s in each room'],
+  ['duties','Duties','<path d="M13 5h8M13 12h8M13 19h8m-18-2 2 2 4-4M3 7l2 2 4-4"/>','Who has each duty'],
+  ['day','Day','<path d="M16 2v3M17 15.5v1.7l1 .625M21 8.936V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.935M3 9h9.873M8 2v3"/><circle cx="17" cy="17" r="5"/>','Timeline and room counts']];
+function scVSvg(x){ return '<svg class="sc-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+x[2]+'</svg>'; }
+function scViewBtn(){ var vw=S.sc.view||'people', cur=SC_VIEWS.find(function(x){ return x[0]===vw; })||SC_VIEWS[0];
+  return '<span class="sc-vw"><button type="button" class="round sc-vbtn" data-sc="vmenu" aria-label="View: '+cur[1]+'" aria-haspopup="menu" aria-expanded="'+!!S.sc.vmenu+'">'+scVSvg(cur)+'</button>'+(S.sc.vmenu?'<div class="sc-dd sc-ddl" role="menu" aria-label="View">'+SC_VIEWS.map(function(x){ var on=x[0]===vw; return '<button type="button" role="menuitemradio" aria-checked="'+on+'" class="sc-ddi sc-ddv'+(on?' on':'')+'" data-sc="view" data-v="'+x[0]+'">'+scVSvg(x)+'<span class="grow"><b>'+x[1]+'</b><span>'+x[3]+'</span></span>'+(on?svg('check'):'')+'</button>'; }).join('')+'</div>':'')+'</span>'; }
 var SC_DI={
   sun:['Sun','<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>'],
   moon:['Moon','<path fill="currentColor" d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/>'],
@@ -1185,12 +1198,11 @@ function scDayView(cols,closed){
 function schedView(){
   scInit(); var d=S.sc.data;
   var h='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button>'+
-    '<div class="top"><div><div class="eyebrow">Preview · only you can see this</div><h1>Schedule</h1><div class="help" style="margin:2px 0 0">Sioux Falls · Week of '+esc(scWeekLabel())+'</div></div>'+(d&&d.canSetup?'<span class="sc-gearw"><button type="button" class="round" data-sc="gear" aria-label="Rooms, staff and duties" aria-haspopup="menu" aria-expanded="'+!!S.sc.gear+'">'+svg('gear')+'</button>'+(S.sc.gear?'<div class="sc-dd" role="menu" aria-label="Setup"><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="rooms"><b>Rooms</b><span>Ages, ratios, standard shifts</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="staff"><b>Staff</b><span>Rooms they work, pay, set schedule</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="duties"><b>Duties</b><span>Opener, Bus Run, Closer…</span></button></div>':'')+'</span>':'')+'</div>'+
+    '<div class="top"><div><div class="eyebrow">Preview · only you can see this</div><h1>Schedule</h1><div class="help" style="margin:2px 0 0">Sioux Falls · Week of '+esc(scWeekLabel())+'</div></div>'+'<span class="sc-tops">'+(d?scViewBtn():'')+(d&&d.canSetup?'<span class="sc-gearw"><button type="button" class="round" data-sc="gear" aria-label="Rooms, staff and duties" aria-haspopup="menu" aria-expanded="'+!!S.sc.gear+'">'+svg('gear')+'</button>'+(S.sc.gear?'<div class="sc-dd" role="menu" aria-label="Setup"><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="rooms"><b>Rooms</b><span>Ages, ratios, standard shifts</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="staff"><b>Staff</b><span>Rooms they work, pay, set schedule</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="duties"><b>Duties</b><span>Opener, Bus Run, Closer…</span></button></div>':'')+'</span>':'')+'</span></div>'+
     '<div class="sc-bar"><button type="button" class="round" data-sc="prev" aria-label="Previous week">'+svg('back')+'</button><button type="button" class="pill" data-sc="today">This week</button><button type="button" class="round" data-sc="next" aria-label="Next week">'+svg('chev')+'</button>'+
     '<span style="flex:1"></span>'+(d? scMainBtn():'')+'</div>';
   if(!d) return h+'<div class="empty"><span class="spin"></span> Loading…</div>';
   var vw=S.sc.view||'people';
-  h+='<div class="seg sc-views" role="group" aria-label="View">'+[['people','People'],['rooms','Rooms'],['duties','Duties'],['day','Day']].map(function(x){ return '<button type="button" data-sc="view" data-v="'+x[0]+'" aria-pressed="'+(vw===x[0])+'">'+x[1]+'</button>'; }).join('')+'</div>';
   if(d.unpublished) h+='<div class="note">Draft: '+plural(d.unpublished,'person’s week has','people’s weeks have')+' changes that aren’t published yet (striped shifts).</div>';
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
   var cols=SC_DAYS.map(function(dd,i){ return { key:dd[0], label:dd[1], date:scIso(scDate(S.sc.week,i)) }; });
@@ -1429,14 +1441,14 @@ function scBuild(){
 document.addEventListener('pointerdown',function(e){ var c=e.target.closest&&e.target.closest('.sc-split'); if(!c) return; var tm=setTimeout(function(){ S.sc.menu=true; S.sc.menuHeld=true; render(); },450); var stop=function(){ clearTimeout(tm); if(S.sc.menuHeld) setTimeout(function(){ S.sc.menuHeld=false; },350); document.removeEventListener('pointerup',stop); document.removeEventListener('pointercancel',stop); }; document.addEventListener('pointerup',stop); document.addEventListener('pointercancel',stop); });
 document.addEventListener('change',function(ev){ if(ev.target.id==='su-sal' && S.sc.su && S.sc.su.edit){ suGrab(); S.sc.su.edit.payType=ev.target.checked?'salaried':'hourly'; render(); return; } });
 document.addEventListener('change',function(ev){ var el=ev.target; if(!el.hasAttribute||!el.hasAttribute('data-tsel')||!S.sc.su||!S.sc.su.edit) return; suGrab(); var ed=S.sc.su.edit; ed.pick=ed.pick||{}; if(el.value) ed.pick[el.getAttribute('data-tsel')]=el.value; else delete ed.pick[el.getAttribute('data-tsel')]; render(); });
-document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.sc && (S.sc.menu||S.sc.gear)){ S.sc.menu=false; S.sc.gear=false; render(); } });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.sc && (S.sc.menu||S.sc.gear||S.sc.vmenu)){ S.sc.menu=false; S.sc.gear=false; S.sc.vmenu=false; render(); } });
 document.addEventListener('contextmenu',function(e){ if(e.target.closest&&e.target.closest('.sc-split')) e.preventDefault(); });
 // ---- press, hold and drag a shift block onto another person or day ----
 var SCD={ t:null, on:false, src:null, ghost:null, over:null, x0:0, y0:0, skipClick:false };
 function scDragEnd(){ clearTimeout(SCD.t); SCD.t=null; if(SCD.ghost){ SCD.ghost.remove(); SCD.ghost=null; } if(SCD.over){ SCD.over.classList.remove('sc-drop'); SCD.over=null; } if(SCD.src&&SCD.src.el) SCD.src.el.classList.remove('sc-lift'); document.body.classList.remove('sc-dragging'); SCD.on=false; SCD.src=null; }
 function scTargetAt(x,y){ if(SCD.ghost) SCD.ghost.style.display='none'; var el=document.elementFromPoint(x,y); if(SCD.ghost) SCD.ghost.style.display=''; return el && el.closest('.sc-hit[data-sc=edit]'); }
 document.addEventListener('pointerdown',function(e){
-  var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su || S.sc.menu || S.sc.gear) return;
+  var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su || S.sc.menu || S.sc.gear || S.sc.vmenu) return;
   if(e.pointerType==='mouse' && e.button!==0) return;
   SCD.x0=e.clientX; SCD.y0=e.clientY;
   SCD.src={ el:ch, id:ch.getAttribute('data-did'), day:ch.getAttribute('data-dday'), i:+ch.getAttribute('data-di') };
@@ -1520,7 +1532,8 @@ function schedClick(t){
     t.disabled=true; S.sc.menu=false; scPost({ action:'sched_generate', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
   if(a==='main'){ a=t.getAttribute('data-st'); }
   if(a==='clear'){ S.sc.menu=false; render(); if(!confirm('Clear every shift this week, including open shifts?')) return; scPost({ action:'sched_clear', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
-  if(a==='view'){ S.sc.view=t.getAttribute('data-v'); S.sc.menu=false; render(); return; }
+  if(a==='vmenu'){ S.sc.vmenu=!S.sc.vmenu; S.sc.menu=false; S.sc.gear=false; render(); return; }
+  if(a==='view'){ S.sc.view=t.getAttribute('data-v'); S.sc.menu=false; S.sc.vmenu=false; render(); return; }
   if(a==='dpick'){ S.sc.dayPick=t.getAttribute('data-v'); render(); return; }
   if(a==='gear'){ S.sc.gear=!S.sc.gear; S.sc.menu=false; render(); return; }
   if(a==='setup'){ S.sc.bld=null; S.sc.menu=false; S.sc.gear=false; suOpen(t.getAttribute('data-v')); return; }
