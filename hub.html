@@ -368,6 +368,11 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-dico{width:22px;text-align:center;font-size:18px;flex:none}
 .sc-icons{display:flex;flex-wrap:wrap;gap:6px}
 .sc-icb{width:42px;height:42px;border-radius:12px;border:1px solid #d2d2d7;background:#fff;font-size:22px;cursor:pointer}.sc-icb.on{border:2px solid var(--blue);background:#e8f0fe}
+.sc-svg{width:1em;height:1em;vertical-align:-.15em}
+.sc-di{display:inline-flex;gap:2px;margin-left:4px;color:#1d1d1f}.sc-di i{display:inline-flex;font-size:12px}
+.sc-icb{display:inline-flex;align-items:center;justify-content:center;color:#1d1d1f}.sc-icb .sc-svg{width:22px;height:22px}
+.sc-dico{color:#1d1d1f;display:inline-flex;justify-content:center}.sc-dico .sc-svg{width:20px;height:20px}
+.sc-tag .sc-svg{width:16px;height:16px}
 </style>
 </head>
 <body>
@@ -1039,11 +1044,28 @@ function scPay(p,mins){ if(p.payType==='salaried') return null; if(typeof p.rate
 function scMoney(n){ return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function scBlocksMins(list){ return (list||[]).reduce(function(s,b){ return s+Math.max(0,scMins(b.e)-scMins(b.s)); },0); }
 function scWeekMins(days){ return SC_ALL_DAYS.reduce(function(s,k){ return s+scBlocksMins((days||{})[k]); },0); }
-var SC_ICONS=['🌅','🌙','🚌','🔑','🧹','🍎','🥪','📋','🧸','🚪','🧺','🩹','📞','⭐','🛝','🧼'];
-var SC_ICON_DEF={ opener:'🌅', closer:'🌙', busrun:'🚌' };
-function scIcon(p){ return (p&&p.icon)||SC_ICON_DEF[p&&p.key]||'⭐'; }
+// Duty icons: Lucide line icons (ISC license), matched to the SF Symbols Brent picked.
+var SC_DI={
+  sun:['Sun','<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>'],
+  moon:['Moon','<path fill="currentColor" d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/>'],
+  bus:['Bus','<path d="M8 6v6M15 6v6M2 12h19.6M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>'],
+  clip:['Clipboard','<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>'],
+  pencil:['Pencil','<path d="M13 21h8m-6-16 4 4"/><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>'],
+  lunch:['Fork and knife','<circle cx="12" cy="12" r="10"/><g transform="translate(6 6) scale(.5)" stroke-width="3.4"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></g>'],
+  vacation:['Clock with plane','<g transform="scale(.8)"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 6v6l4 2" stroke="#fff"/></g><circle cx="17.6" cy="17.6" r="6.2" fill="#fff" stroke="none"/><g transform="translate(11.6 11.6) scale(.5)"><path fill="currentColor" stroke="none" d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></g>'],
+  key:['Key','<path d="m2 21 9.6-9.6m-4.1 4.1 2.3 2.3a1 1 0 0 1 0 1.4l-2.1 2.1a1 1 0 0 1-1.4 0L4 19"/><circle cx="15.5" cy="7.5" r="5.5"/>'],
+  star:['Star','<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>'],
+  phone:['Phone','<path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/>'],
+  bandage:['Bandage','<path d="M10 10.01h.01M10 14.01h.01M14 10.01h.01M14 14.01h.01M18 6v12M6 6v12"/><rect x="2" y="6" width="20" height="12" rx="2"/>'],
+  baby:['Baby','<path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5M15 12h.01M9 12h.01"/><path d="M19.38 6.813A9 9 0 0 1 20.8 10.2a2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/>']
+};
+var SC_ICONS=Object.keys(SC_DI);
+var SC_ICON_DEF={ opener:'sun', closer:'moon', busrun:'bus', manager:'clip', planning:'pencil', lunch:'lunch', vacation:'vacation' };
+function scIconKey(p){ var k=p&&p.icon; return SC_DI[k]?k:(SC_ICON_DEF[p&&p.key]||'star'); }
+function scIconSvg(k){ return '<svg class="sc-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+SC_DI[k][1]+'</svg>'; }
+function scIcon(p){ return scIconSvg(scIconKey(p)); }
 function scDuties(){ var src=(S.sc.su&&S.sc.su.data)||S.sc.data; return ((src&&src.positions)||[]).filter(function(p){ return p.kind==='duty' && p.active && p.centers.indexOf(S.sc.center)>=0; }); }
-function scDutyIcons(b){ return (b.d||[]).map(function(k){ return '<i title="'+esc(scPos(k).name)+'">'+scIcon(scPos(k))+'</i>'; }).join(''); }
+function scDutyIcons(b){ return (b.d||[]).map(function(k){ return '<i title="'+esc(scPos(k).name)+'" role="img" aria-label="'+esc(scPos(k).name)+'">'+scIcon(scPos(k))+'</i>'; }).join(''); }
 function scDutyPick(b, attr, extra){ var ds=scDuties(); if(!ds.length) return '';
   return '<div class="sc-dut" role="group" aria-label="Duties on this shift">'+ds.map(function(p){ var on=(b.d||[]).indexOf(p.key)>=0; return '<button type="button" class="sc-tag'+(on?' on':'')+'" '+attr+' data-k="'+p.key+'"'+extra+' aria-pressed="'+on+'"><span aria-hidden="true">'+scIcon(p)+'</span>'+esc(p.name)+'</button>'; }).join('')+'</div>'; }
 function scPos(k){ return ((S.sc.data&&S.sc.data.positions)||[]).find(function(p){ return p.key===k; }) || { key:k, name:k, color:'#8e8e93', kind:'room' }; }
@@ -1257,7 +1279,7 @@ function suRoomEdit(){
   var pre=(d.presets||[]).filter(function(x){ return r.key && x.p===r.key && x.centers.indexOf(c)>=0; }).sort(function(a,b){ return a.s<b.s?-1:1; });
   var h='<div class="sc-ch"><div><b>'+(r.key?esc(r.name):r.kind==='duty'?'Add duty':'Add room')+'</b></div><button type="button" class="link" data-su="back">Cancel</button></div>';
   h+='<div class="uform" style="padding:0"><label>Name<input id="su-rname" maxlength="40" value="'+esc(r.name)+'"></label></div>';
-  if(r.kind==='duty') h+='<div class="sc-pres-h" style="margin-top:12px">Icon</div><div class="sc-icons">'+SC_ICONS.map(function(x){ var on=scIcon(r)===x; return '<button type="button" class="sc-icb'+(on?' on':'')+'" data-su="ricon" data-v="'+x+'" aria-pressed="'+on+'">'+x+'</button>'; }).join('')+'</div>';
+  if(r.kind==='duty') h+='<div class="sc-pres-h" style="margin-top:12px">Icon</div><div class="sc-icons">'+SC_ICONS.map(function(x){ var on=scIconKey(r)===x; return '<button type="button" class="sc-icb'+(on?' on':'')+'" data-su="ricon" data-v="'+x+'" aria-pressed="'+on+'" aria-label="'+SC_DI[x][0]+'">'+scIconSvg(x)+'</button>'; }).join('')+'</div>';
   else h+='<div class="sc-pres-h" style="margin-top:12px">Color</div><div class="sc-sw">'+SC_COLORS.map(function(x){ return '<button type="button" class="sc-swb'+(r.color.toLowerCase()===x[0].toLowerCase()?' on':'')+'" data-su="rcolor" data-v="'+x[0]+'" style="background:'+x[0]+'" aria-label="'+esc(x[1])+'"></button>'; }).join('')+'</div>';
   if(r.kind!=='duty') h+='<div class="sc-two"><div class="uform" style="padding:0"><label>Ages<input id="su-ages" maxlength="40" placeholder="e.g. 2 – 3 yrs" value="'+esc(r.ages||'')+'"></label></div><div class="uform" style="padding:0"><label>Children per teacher<input id="su-ratio" inputmode="numeric" placeholder="e.g. 5" value="'+(r.ratio||'')+'"></label></div></div>';
   h+='<div class="sc-pres-h" style="margin-top:12px">Centers</div><label class="sc-rep"><input type="checkbox" id="su-csf"'+(r.centers.indexOf('SF')>=0?' checked':'')+'> Sioux Falls</label><label class="sc-rep"><input type="checkbox" id="su-cbv"'+(r.centers.indexOf('BV')>=0?' checked':'')+'> Brandon</label>';
