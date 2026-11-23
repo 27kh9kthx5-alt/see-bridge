@@ -467,6 +467,7 @@ tr.sc-open .sc-cell.sc-chg .sc-chip.sc-chip:not(.sc-other):not(.sc-timeoff),.sc-
 .my-sh.my-tap{border:0;text-align:left;font:inherit;cursor:pointer;position:relative;width:100%}
 .my-sh em{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-style:normal;font-size:12px;font-weight:600;opacity:.85;border:1px solid currentColor;border-radius:999px;padding:2px 8px}
 .my-bl b{font-weight:600}.my-bl{border-left:3px solid var(--c);padding-left:6px}
+.sc-dragging .sc-nodrop{opacity:.35}
 </style>
 </head>
 <body>
@@ -1621,8 +1622,8 @@ document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.sc && 
 document.addEventListener('contextmenu',function(e){ if(e.target.closest&&e.target.closest('.sc-split')) e.preventDefault(); });
 // ---- press, hold and drag a shift block onto another person or day ----
 var SCD={ t:null, on:false, src:null, ghost:null, over:null, x0:0, y0:0, skipClick:false };
-function scDragEnd(){ clearTimeout(SCD.t); SCD.t=null; SCD.lift=null; if(SCD.ghost){ SCD.ghost.remove(); SCD.ghost=null; } if(SCD.over){ SCD.over.classList.remove('sc-drop'); SCD.over=null; } if(SCD.src&&SCD.src.el) SCD.src.el.classList.remove('sc-lift'); document.body.classList.remove('sc-dragging'); SCD.on=false; SCD.src=null; }
-function scTargetAt(x,y){ if(SCD.ghost) SCD.ghost.style.display='none'; var el=document.elementFromPoint(x,y); if(SCD.ghost) SCD.ghost.style.display=''; return el && el.closest('.sc-hit[data-sc=edit]'); }
+function scDragEnd(){ clearTimeout(SCD.t); SCD.t=null; SCD.lift=null; Array.prototype.forEach.call(document.querySelectorAll('.sc-nodrop'),function(c){ c.classList.remove('sc-nodrop'); }); if(SCD.ghost){ SCD.ghost.remove(); SCD.ghost=null; } if(SCD.over){ SCD.over.classList.remove('sc-drop'); SCD.over=null; } if(SCD.src&&SCD.src.el) SCD.src.el.classList.remove('sc-lift'); document.body.classList.remove('sc-dragging'); SCD.on=false; SCD.src=null; }
+function scTargetAt(x,y){ if(SCD.ghost) SCD.ghost.style.display='none'; var el=document.elementFromPoint(x,y); if(SCD.ghost) SCD.ghost.style.display=''; var c=el && el.closest('.sc-hit[data-sc=edit]'); return c && SCD.src && c.getAttribute('data-day')===SCD.src.day ? c : null; }
 document.addEventListener('pointerdown',function(e){
   var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su || S.sc.menu || S.sc.gear || S.sc.vmenu || S.sc.asg || S.sc.radd || S.sc.toOpen) return;
   if(e.pointerType==='mouse' && e.button!==0) return;
@@ -1630,6 +1631,7 @@ document.addEventListener('pointerdown',function(e){
   SCD.src={ el:ch, id:ch.getAttribute('data-did'), day:ch.getAttribute('data-dday'), i:+ch.getAttribute('data-di') };
   SCD.lift=function(){ SCD.lift=null;
     SCD.on=true; SCD.skipClick=true; ch.classList.add('sc-lift'); document.body.classList.add('sc-dragging');
+    Array.prototype.forEach.call(document.querySelectorAll('.sc-hit[data-sc=edit]'),function(c){ if(c.getAttribute('data-day')!==SCD.src.day) c.classList.add('sc-nodrop'); });
     var r=ch.getBoundingClientRect(), g=ch.cloneNode(true); g.className='sc-chip sc-ghost'; g.style.width=r.width+'px'; g.style.left=(SCD.x0-r.width/2)+'px'; g.style.top=(SCD.y0-r.height/2)+'px';
     document.body.appendChild(g); SCD.ghost=g; try{ if(navigator.vibrate) navigator.vibrate(15); }catch(err){}
   };
