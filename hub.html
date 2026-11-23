@@ -1228,7 +1228,7 @@ function suView(){
   if(su.tab==='staff'){
     var mine=(d.staff||[]).filter(function(x){ return x.center===c; }), act=mine.filter(function(x){ return x.active; }), old=mine.filter(function(x){ return !x.active; });
     var row=function(x){ var n=SC_ALL_DAYS.filter(function(k){ return ((x.typical||{})[k]||[]).length; }).length;
-      return '<button type="button" class="sc-li" data-su="staff" data-id="'+esc(x.id)+'"><span class="grow"><b>'+esc(x.name)+'</b><span class="sm">'+(x.positions.filter(function(k){ return suPos(k).kind==='room'; }).map(function(k){ return esc(suPos(k).name); }).join(', ')||'No rooms set')+' · '+(n?'Set schedule: '+n+(n===1?' day':' days'):'No set schedule')+(x.payType==='salaried'?' · Salaried':'')+'</span></span>'+svg('chev')+'</button>'; };
+      return '<button type="button" class="sc-li" data-su="staff" data-id="'+esc(x.id)+'"><span class="grow"><b>'+esc(x.name)+'</b></span>'+svg('chev')+'</button>'; };
     h+='<div class="sc-list">'+act.map(row).join('')+'</div>';
     h+='<button type="button" class="pill go" data-su="staff" data-id="new" style="margin-top:12px">+ Add person</button>';
     if(old.length) h+='<div class="sc-pres-h" style="margin-top:16px">Not active</div><div class="sc-list">'+old.map(row).join('')+'</div>';
