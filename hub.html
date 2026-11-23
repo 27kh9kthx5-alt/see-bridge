@@ -464,6 +464,9 @@ tr.sc-open .sc-cell.sc-chg .sc-chip.sc-chip:not(.sc-other):not(.sc-timeoff),.sc-
 .to-row .grow{gap:2px}.to-btns{display:flex;gap:6px;flex:none}
 .sc-tobtn{position:relative}.sc-tobtn svg{width:20px;height:20px}.sc-tobtn .badge{top:-2px;right:-2px}
 .sc-chip.sc-topend{background:#fff!important;border:1.5px dashed #aeaeb2!important;color:#6e6e73!important}
+.my-sh.my-tap{border:0;text-align:left;font:inherit;cursor:pointer;position:relative;width:100%}
+.my-sh em{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-style:normal;font-size:12px;font-weight:600;opacity:.85;border:1px solid currentColor;border-radius:999px;padding:2px 8px}
+.my-bl b{font-weight:600}.my-bl{border-left:3px solid var(--c);padding-left:6px}
 </style>
 </head>
 <body>
@@ -1337,7 +1340,7 @@ function scDayView(cols,closed){
 function schedView(){
   scInit(); var d=S.sc.data;
   var h='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button>'+
-    '<div class="top"><div><div class="eyebrow">Preview · only you can see this</div><h1>Schedule</h1><div class="help" style="margin:2px 0 0">Sioux Falls · Week of '+esc(scWeekLabel())+'</div></div>'+'<span class="sc-tops">'+(d?'<button type="button" class="round sc-tobtn" data-sc="toopen" aria-label="Time off requests'+(d.pendingOff?', '+d.pendingOff+' waiting':'')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M10 14l4 4M14 14l-4 4"/></svg>'+(d.pendingOff?'<span class="badge">'+d.pendingOff+'</span>':'')+'</button>':'')+(d?scViewBtn():'')+(d&&d.canSetup?'<span class="sc-gearw"><button type="button" class="round" data-sc="gear" aria-label="Rooms, staff and duties" aria-haspopup="menu" aria-expanded="'+!!S.sc.gear+'">'+svg('gear')+'</button>'+(S.sc.gear?'<div class="sc-dd" role="menu" aria-label="Setup"><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="rooms"><b>Rooms</b><span>Ages, ratios, standard shifts</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="staff"><b>Staff</b><span>Rooms they work, pay, set schedule</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="duties"><b>Duties</b><span>Opener, Bus Run, Closer…</span></button></div>':'')+'</span>':'')+'</span></div>'+
+    '<div class="top"><div><div class="eyebrow">Preview · only you can see this</div><h1>Schedule</h1><div class="help" style="margin:2px 0 0">Sioux Falls · Week of '+esc(scWeekLabel())+'</div></div>'+'<span class="sc-tops">'+(d?'<button type="button" class="round sc-tobtn" data-sc="toopen" aria-label="Requests'+(d.pendingOff?', '+d.pendingOff+' waiting':'')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M10 14l4 4M14 14l-4 4"/></svg>'+(d.pendingOff?'<span class="badge">'+d.pendingOff+'</span>':'')+'</button>':'')+(d?scViewBtn():'')+(d&&d.canSetup?'<span class="sc-gearw"><button type="button" class="round" data-sc="gear" aria-label="Rooms, staff and duties" aria-haspopup="menu" aria-expanded="'+!!S.sc.gear+'">'+svg('gear')+'</button>'+(S.sc.gear?'<div class="sc-dd" role="menu" aria-label="Setup"><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="rooms"><b>Rooms</b><span>Ages, ratios, standard shifts</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="staff"><b>Staff</b><span>Rooms they work, pay, set schedule</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="duties"><b>Duties</b><span>Opener, Bus Run, Closer…</span></button></div>':'')+'</span>':'')+'</span></div>'+
     '<div class="sc-bar"><button type="button" class="round" data-sc="prev" aria-label="Previous week">'+svg('back')+'</button><button type="button" class="pill" data-sc="today">This week</button><button type="button" class="round" data-sc="next" aria-label="Next week">'+svg('chev')+'</button>'+
     '<span style="flex:1"></span>'+(d? scMainBtn():'')+'</div>';
   if(!d) return h+'<div class="empty"><span class="spin"></span> Loading…</div>';
@@ -1713,6 +1716,8 @@ function schedClick(t){
   if(a==='toopen'){ S.sc.toOpen=true; S.sc.toa=null; render(); scToLoad(); return; }
   if(a==='toclose'){ S.sc.toOpen=false; scLoad(); return; }
   if(a==='tomax'){ t.disabled=true; scPost({ action:'sched_settings_save', center:S.sc.center, week:S.sc.week, maxOff:+t.getAttribute('data-v') }).then(function(r){ if(r&&r.ok){ S.sc.toa=r; toast(r.message); } else toast((r&&r.error)||'That didn’t work.'); render(); }); return; }
+  if(a==='rqok'||a==='rqdeny'){ if(a==='rqdeny' && !confirm('Deny this request? They’ll get an alert.')) return; t.disabled=true;
+    scPost({ action:'sched_req_decide', center:S.sc.center, week:S.sc.week, id:t.getAttribute('data-id'), decision:a==='rqok'?'approve':'deny' }).then(function(r){ if(r&&r.shifts){ S.sc.toa=r; } if(r&&r.ok) toast(r.message); else toast((r&&r.error)||'That didn’t work.'); render(); }); return; }
   if(a==='took'||a==='todeny'){ if(a==='todeny' && !confirm('Deny this request? They’ll get an alert and an email.')) return; t.disabled=true;
     scPost({ action:'sched_toff_decide', center:S.sc.center, week:S.sc.week, id:t.getAttribute('data-id'), decision:a==='took'?'approve':'deny' }).then(function(r){ if(r&&r.ok){ S.sc.toa=r; toast(r.message); } else toast((r&&r.error)||'That didn’t work.'); render(); }); return; }
   if(a==='radd'){ var rk=t.getAttribute('data-key'), first=(S.sc.data.presets||[]).find(function(x){ return x.p===rk; });
@@ -1809,7 +1814,7 @@ function toWeekdays(a,b){ var n=0, d=scDate(a), e=scDate(b||a); for(var i=0;i<40
 function scToLoad(){ return scPost({ action:'sched_toff_admin', center:S.sc.center, week:S.sc.week }).then(function(r){ if(r&&r.ok){ S.sc.toa=r; render(); } else toast((r&&r.error)||'Couldn’t load requests.'); }); }
 function scToSheet(){
   var A=S.sc.toa, d=S.sc.data;
-  var h='<div class="sc-ch"><div><b>Time off</b><div class="sm">'+(S.sc.center==='SF'?'Sioux Falls':'Brandon')+'</div></div><button type="button" class="link" data-sc="toclose">Done</button></div>';
+  var h='<div class="sc-ch"><div><b>Requests</b><div class="sm">'+(S.sc.center==='SF'?'Sioux Falls':'Brandon')+' · time off, pick-ups and swaps</div></div><button type="button" class="link" data-sc="toclose">Done</button></div>';
   if(!A) return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Time off"><div class="sc-card">'+h+'<div class="empty"><span class="spin"></span> Loading…</div></div></div>';
   if(d&&d.canSetup) h+='<div class="sc-li" style="cursor:default"><span class="grow"><b>Daily limit</b><span class="sm">'+(A.maxOff?'Up to '+plural(A.maxOff,'person','people')+' off on a day. Staff can’t request a full day.':'No limit. Every request comes to you.')+'</span></span><span class="sc-step"><button type="button" data-sc="tomax" data-v="'+Math.max(0,A.maxOff-1)+'" aria-label="Fewer"'+(A.maxOff?'':' disabled')+'>−</button><span><b>'+(A.maxOff||'—')+'</b><small>'+(A.maxOff?'max':'no limit')+'</small></span><button type="button" data-sc="tomax" data-v="'+(A.maxOff+1)+'" aria-label="More">+</button></span></div>';
   var pend=A.requests.filter(function(t){ return t.status==='Pending'; }), appr=A.requests.filter(function(t){ return t.status==='Approved'; });
@@ -1817,7 +1822,12 @@ function scToSheet(){
     var sub=[TO_TYPE[t.kind]+(t.hours?' · '+t.hours+' hrs':''), t.kind!=='pto'&&t.reason?t.reason:'', t.status==='Pending'&&t.notice!=null?(t.notice<=0?'today':t.notice+' day'+(t.notice===1?'':'s')+' notice'):'', t.alsoOff&&t.alsoOff.length?'also off: '+t.alsoOff.join(', '):'', t.note?'“'+t.note+'”':''].filter(Boolean).join(' · ');
     var act=t.status==='Pending' ? (pto?'<span class="sm" style="max-width:120px;text-align:right">Chelsea approves PTO</span>':'<span class="to-btns"><button type="button" class="pill" data-sc="todeny" data-id="'+esc(t.id)+'">Deny</button><button type="button" class="pill go" data-sc="took" data-id="'+esc(t.id)+'">Approve</button></span>') : toStatus(t.status);
     return '<div class="sc-li to-row" style="cursor:default"><span class="grow"><b>'+esc(t.name)+'</b><span class="sm" style="color:var(--ink,#1d1d1f);font-weight:500">'+esc(toWhen(t))+'</span><span class="sm">'+esc(sub)+'</span></span>'+act+'</div>'; };
-  h+='<div class="sc-pres-h" style="margin-top:14px">Waiting · '+pend.length+'</div>'+(pend.length?'<div class="sc-list">'+pend.map(row).join('')+'</div>':'<p class="help">Nothing waiting.</p>');
+  var sh=A.shifts||[];
+  if(sh.length) h+='<div class="sc-pres-h" style="margin-top:14px">Shift pick-ups &amp; swaps · '+sh.length+'</div><div class="sc-list">'+sh.map(function(x){
+    var who=x.type==='pickup'?esc(x.from)+' wants an open shift':esc(x.from)+' → '+esc(x.to);
+    var act=x.status==='Accepted'?'<span class="to-btns"><button type="button" class="pill" data-sc="rqdeny" data-id="'+esc(x.id)+'">Deny</button><button type="button" class="pill go" data-sc="rqok" data-id="'+esc(x.id)+'">Approve</button></span>':'<span class="sm" style="max-width:110px;text-align:right">Waiting on '+esc(String(x.to).split(' ')[0])+'</span>';
+    return '<div class="sc-li to-row" style="cursor:default"><span class="grow"><b>'+who+'</b><span class="sm" style="color:var(--ink,#1d1d1f);font-weight:500">'+esc(toNice(x.date))+' · '+esc(x.text)+'</span>'+(x.back?'<span class="sm">Gives back: '+esc(x.back)+'</span>':'')+(x.warn?'<span class="sm sc-bad">'+esc(x.warn)+'</span>':'')+(x.note?'<span class="sm">“'+esc(x.note)+'”</span>':'')+'</span>'+act+'</div>'; }).join('')+'</div>';
+  h+='<div class="sc-pres-h" style="margin-top:14px">Time off waiting · '+pend.length+'</div>'+(pend.length?'<div class="sc-list">'+pend.map(row).join('')+'</div>':'<p class="help">Nothing waiting.</p>');
   h+='<div class="sc-pres-h" style="margin-top:14px">Coming up</div>'+(appr.length?'<div class="sc-list">'+appr.map(row).join('')+'</div>':'<p class="help">No approved time off coming up.</p>');
   return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Time off"><div class="sc-card sc-tall">'+h+'</div></div>';
 }
@@ -1826,6 +1836,31 @@ function scOffFull(id, day){ return scOffOn(id,day).find(function(x){ return x.s
 function scOffOk(id, day){ var o=scOffFull(id,day); if(!o) return true; var p=((S.sc.data&&S.sc.data.staff)||[]).find(function(x){ return x.id===id; })||{ name:'They' };
   return confirm(p.name+' has approved time off that day ('+(o.kind==='pto'?'PTO':String(o.reason||'day off').toLowerCase())+').\n\nSchedule them anyway?'); }
 function scOffChips(id, day){ return scOffOn(id,day).map(function(o){ var lab=o.kind==='pto'?'PTO':o.kind==='partial'?'Off '+scT(o.from)+'–'+scT(o.to):'Off'; return '<span class="sc-chip sc-timeoff'+(o.status==='Pending'?' sc-topend':'')+'"><b>'+(o.status==='Pending'?'Asked: ':'')+esc(lab)+'</b><span>'+esc(o.kind==='pto'?'Paid time off':o.reason||'')+'</span></span>'; }).join(''); }
+// ---------- staff: open shifts to pick up, swaps, and requests that involve me ----------
+function myBlockLine(b){ var p=myPos(b.p); return '<span class="my-bl" style="--c:'+p.color+'"><b>'+scT(b.s)+'–'+scT(b.e)+'</b> '+esc(p.name)+'</span>'; }
+function myReqSection(d){
+  var h='', today=scIso(new Date());
+  if((d.open||[]).length){ h+='<div class="grp">Open shifts you can pick up</div><div class="card">'+d.open.map(function(o,i){ return '<div class="set"><span class="grow"><span style="font-weight:600;display:block">'+esc(toNice(o.date))+'</span><span class="sm">'+myBlockLine(o.block)+'</span></span>'+(o.asked?'<span class="to-st to-pending">Asked</span>':'<button type="button" class="pill go" data-my="pick" data-i="'+i+'">Pick up</button>')+'</div>'; }).join('')+'</div>'; }
+  var rq=d.requests||[];
+  if(rq.length){ h+='<div class="grp">Shift requests</div><div class="card">'+rq.map(function(r){
+      var what=r.type==='pickup'?'You asked to pick up':r.mine?'You asked '+esc(r.other)+' to take':esc(r.other)+' asked you to take';
+      var back=r.back?'<span class="sm">'+(r.mine?'You’d take their ':'You’d give them your ')+esc(toNice(scIso(scDate(r.week, SC_DAYS.findIndex(function(x){ return x[0]===r.back.day; })))))+' '+myBlockLine(r.back)+'</span>':'';
+      var st=r.status==='Pending'?(r.mine?'Waiting on '+esc(r.other):'Needs your answer'):r.status==='Accepted'?'Waiting on your manager':r.status;
+      var act=!r.mine&&r.status==='Pending'?'<span class="to-btns"><button type="button" class="pill" data-my="swno" data-id="'+esc(r.id)+'">No</button><button type="button" class="pill go" data-my="swyes" data-id="'+esc(r.id)+'">Yes</button></span>':(r.mine&&(r.status==='Pending'||r.status==='Accepted')?'<button type="button" class="link" data-my="rqcancel" data-id="'+esc(r.id)+'" style="color:#b3261e">Cancel</button>':toStatus(r.status==='Approved'?'Approved':r.status==='Declined'||r.status==='Denied'?'Denied':r.status));
+      return '<div class="set"><span class="grow"><span class="sm">'+what+'</span><span style="font-weight:600;display:block">'+esc(toNice(r.date))+' '+myBlockLine(r.block)+'</span>'+back+'<span class="sm">'+st+'</span></span>'+act+'</div>'; }).join('')+'</div>'; }
+  return h;
+}
+function mySwapSheet(){
+  var d=S.my.data, w=S.my.swap, cw=d.coworkers||[];
+  var h='<div class="sc-ch"><div><b>Swap this shift</b><div class="sm">'+esc(toNice(w.date))+' · '+scT(w.block.s)+'–'+scT(w.block.e)+' '+esc(myPos(w.block.p).name)+'</div></div><button type="button" class="link" data-my="swclose">Cancel</button></div>';
+  if(!cw.length) return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Swap this shift"><div class="sc-card">'+h+'<p class="help">Nobody else at your center has Bridge yet. Please ask your manager.</p></div></div>';
+  h+='<div class="sc-pres-h">Who could take it?</div><div class="sc-tags">'+cw.map(function(c){ var on=w.to===c.id; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-my="swto" data-v="'+esc(c.id)+'" aria-pressed="'+on+'">'+esc(c.name)+'</button>'; }).join('')+'</div>';
+  if(w.to){ var th=(d.theirs||{})[w.to]||{}, opts=[]; SC_DAYS.forEach(function(dd,i){ var iso=scIso(scDate(d.week,i)); if(iso<scIso(new Date())) return; (th[dd[0]]||[]).forEach(function(b){ opts.push({ day:dd[0], iso:iso, b:b }); }); });
+    h+='<div class="sc-pres-h" style="margin-top:14px">Take one of their shifts back? <span class="sm" style="text-transform:none;letter-spacing:0;font-weight:400">optional</span></div><div class="sc-tags"><button type="button" class="sc-tag'+(w.back==null?' on':'')+'" data-my="swback" data-v="-1">No, just give it away</button>'+opts.map(function(o,i){ var on=w.back===i; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-my="swback" data-v="'+i+'" aria-pressed="'+on+'">'+esc(toNice(o.iso))+' '+scT(o.b.s)+'–'+scT(o.b.e)+'</button>'; }).join('')+'</div>';
+    w.opts=opts; }
+  h+='<div class="err" id="sw-err" role="alert">'+esc(w.err||'')+'</div><button type="button" class="btn" data-my="swsend" style="width:100%;margin-top:10px"'+(w.to?'':' disabled')+'>Ask them</button><p class="help">They say yes or no in Bridge, then your manager approves it. Until then, it’s still your shift.</p>';
+  return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Swap this shift"><div class="sc-card">'+h+'</div></div>';
+}
 // ---------- staff: My schedule (only published shifts; staff never see drafts, pay or anyone's hours) ----------
 function myInit(){ if(!S.my) S.my={ base:scIso(scMonday(new Date())), off:0, tab:'mine', day:null, data:null, busy:false }; }
 function myWeek(){ return scIso(scDate(S.my.base, 7*S.my.off)); }
@@ -1853,7 +1888,7 @@ function myView(){
         w.parts.forEach(function(p){ ((p.days||{})[dd[0]]||[]).forEach(function(b){ blocks.push({ b:b, c:p.center }); }); });
         blocks.sort(function(x,y){ return x.b.s<y.b.s?-1:1; });
         var today=iso===scIso(new Date());
-        var right = closed[iso] ? '<span class="my-off">Closed · '+esc(closed[iso])+'</span>' : blocks.length ? blocks.map(function(x){ var p=myPos(x.b.p); return '<div class="my-sh" style="--c:'+p.color+';--on:'+scOn(p.color)+'"><b>'+scT(x.b.s)+'–'+scT(x.b.e)+(x.b.d&&x.b.d.length?' <span class="sc-di">'+myIcons(x.b)+'</span>':'')+'</b><span>'+esc(p.name)+(d.me&&x.c!==d.me.center?' · at '+esc(CNAME[x.c]):'')+'</span></div>'; }).join('') : '<span class="my-off">Off</span>';
+        var right = closed[iso] ? '<span class="my-off">Closed · '+esc(closed[iso])+'</span>' : blocks.length ? blocks.map(function(x){ var p=myPos(x.b.p), can=iso>=scIso(new Date()) && d.me && x.c===d.me.center; return '<'+(can?'button type="button" data-my="swap" data-day="'+dd[0]+'" data-s="'+x.b.s+'" data-e="'+x.b.e+'" data-p="'+x.b.p+'" aria-label="Swap '+scT(x.b.s)+' to '+scT(x.b.e)+'"':'div')+' class="my-sh'+(can?' my-tap':'')+'" style="--c:'+p.color+';--on:'+scOn(p.color)+'"><b>'+scT(x.b.s)+'–'+scT(x.b.e)+(x.b.d&&x.b.d.length?' <span class="sc-di">'+myIcons(x.b)+'</span>':'')+'</b><span>'+esc(p.name)+(d.me&&x.c!==d.me.center?' · at '+esc(CNAME[x.c]):'')+'</span>'+(can?'<em>Swap</em>':'')+'</'+(can?'button':'div')+'>'; }).join('') : '<span class="my-off">Off</span>';
         return '<div class="my-day'+(today?' today':'')+'"><div class="my-dl"><b>'+dd[1]+'</b><span>'+scDate(iso).getDate()+'</span></div><div class="my-dr">'+right+'</div></div>'; }).join('')+'</div>';
       var unconf=w.parts.filter(function(p){ return !p.confirmed; });
       if(unconf.length) h+='<button type="button" class="btn my-conf" data-my="confirm">Confirm my schedule</button><p class="help">Lets your manager know you’ve seen it.</p>';
@@ -1862,6 +1897,7 @@ function myView(){
     var later=(d.my||[]).slice(1);
     h+='<div class="grp">Coming up</div><div class="card">'+later.map(function(x,i){ var n=x.parts.reduce(function(t,p){ return t+SC_ALL_DAYS.reduce(function(m,k){ return m+((p.days||{})[k]||[]).length; },0); },0), conf=x.parts.length&&x.parts.every(function(p){ return p.confirmed; });
       return '<button type="button" class="set urow" data-my="go" data-v="'+(M.off+i+1)+'"'+(M.off+i+1>3?' disabled':'')+'><span class="grow"><span style="font-weight:600;display:block">Week of '+esc(myLabel(x.week))+'</span><span class="sm">'+(x.parts.length?plural(n,'shift','shifts')+(conf?' · confirmed':' · needs confirming'):'Not posted yet')+'</span></span>'+svg('chev')+'</button>'; }).join('')+'</div>';
+    h+=myReqSection(d);
     h+=myToSection();
   } else {
     var dk=M.day||(function(){ var t=SC_DAYS.find(function(dd,i){ return scIso(scDate(wk,i))===scIso(new Date()); }); return t?t[0]:'mon'; })();
@@ -1876,6 +1912,7 @@ function myView(){
     h+='<p class="help">Only the posted schedule shows here.</p>';
   }
   if(M.req) h+=myToSheet();
+  if(M.swap) h+=mySwapSheet();
   return h;
 }
 function myClick(t){
@@ -1885,6 +1922,16 @@ function myClick(t){
   if(a==='go'){ M.off=Math.min(3,+t.getAttribute('data-v')); M.tab='mine'; M.data=null; myLoad(); render(); window.scrollTo(0,0); return; }
   if(a==='tab'){ M.tab=t.getAttribute('data-v'); render(); return; }
   if(a==='day'){ M.day=t.getAttribute('data-v'); render(); return; }
+  if(a==='swap'){ M.swap={ day:t.getAttribute('data-day'), date:scIso(scDate(M.data.week, SC_DAYS.findIndex(function(x){ return x[0]===t.getAttribute('data-day'); }))), block:{ s:t.getAttribute('data-s'), e:t.getAttribute('data-e'), p:t.getAttribute('data-p') }, to:'', back:null }; render(); return; }
+  if(a==='swclose'){ M.swap=null; render(); return; }
+  if(a==='swto'){ M.swap.to=t.getAttribute('data-v'); M.swap.back=null; render(); return; }
+  if(a==='swback'){ var bv=+t.getAttribute('data-v'); M.swap.back=bv<0?null:bv; render(); return; }
+  var myAct=function(o,ok){ return scPost(Object.assign({ week:myWeek() }, o)).then(function(r){ if(r&&r.ok){ M.data=r; if(ok) ok(); toast(r.message||'Done.'); } else toast((r&&r.error)||'That didn’t work.'); render(); return r; }); };
+  if(a==='swsend'){ var w=M.swap, bk=w.back!=null&&w.opts?w.opts[w.back]:null; t.disabled=true; t.textContent='Asking…';
+    scPost({ action:'sched_swap_ask', week:myWeek(), day:w.day, block:w.block, to:w.to, back:bk?{ day:bk.day, s:bk.b.s, e:bk.b.e, p:bk.b.p }:null }).then(function(r){ if(r&&r.ok){ M.data=r; M.swap=null; toast(r.message); } else { w.err=(r&&r.error)||'That didn’t work.'; } render(); }); return; }
+  if(a==='pick'){ var o=M.data.open[+t.getAttribute('data-i')]; if(!confirm('Ask to pick up '+toNice(o.date)+', '+scT(o.block.s)+'–'+scT(o.block.e)+'?')) return; t.disabled=true; myAct({ action:'sched_pickup', day:o.day, block:o.block }); return; }
+  if(a==='swyes'||a==='swno'){ t.disabled=true; myAct({ action:'sched_swap_answer', id:t.getAttribute('data-id'), accept:a==='swyes' }); return; }
+  if(a==='rqcancel'){ if(!confirm('Cancel this request?')) return; myAct({ action:'sched_req_cancel', id:t.getAttribute('data-id') }); return; }
   if(a==='toask'){ var nx=scIso(scDate(scIso(new Date()),1)); M.req={ type:'', start:nx, end:nx, from:'13:00', to:'18:00', hours:'8', reason:'Personal', note:'' }; render(); return; }
   if(a==='toclose'){ M.req=null; render(); return; }
   if(M.req) myToGrab();
