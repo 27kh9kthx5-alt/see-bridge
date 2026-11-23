@@ -320,6 +320,20 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-acts{display:flex;gap:8px;margin:12px 0}
 .sc-rep{display:flex;align-items:center;gap:8px;font-size:14px;margin:4px 0 8px}
 .sc-rep input{width:20px;height:20px}
+.sc-li{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:11px 0;font:inherit;color:inherit;cursor:pointer}
+.sc-li .grow{flex:1;min-width:0;display:flex;flex-direction:column}.sc-li .sm{font-size:12px;color:var(--sub);margin-top:2px}
+.sc-li svg{width:16px;height:16px;color:#c7c7cc}.sc-li.sc-off{opacity:.55}
+.sc-dot{width:14px;height:14px;border-radius:50%;flex:none}
+.sc-tags{display:flex;flex-wrap:wrap;gap:6px}
+.sc-tag{display:inline-flex;align-items:center;gap:6px;min-height:36px;border:1px solid #d2d2d7;background:#fff;border-radius:18px;padding:0 12px;font:inherit;font-size:14px;color:inherit;cursor:pointer}
+.sc-tag i{width:10px;height:10px;border-radius:50%}.sc-tag.on{border-color:var(--blue);background:#e8f0fe;color:#0b57d0;font-weight:600}
+.sc-tday{border-bottom:1px solid var(--line);padding:8px 0}.sc-tday .sc-blk{border-bottom:0;padding:6px 0}.sc-tday .sc-pres{margin:4px 0 2px}
+.sc-tdh{display:flex;gap:8px;align-items:baseline}.sc-tdh .sm{font-size:13px;color:var(--sub)}
+.sc-sw{display:flex;flex-wrap:wrap;gap:8px}
+.sc-swb{width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px #d2d2d7;cursor:pointer}.sc-swb.on{box-shadow:0 0 0 2px #1d1d1f}
+.sc-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.sc-two>div{min-width:0}.sc-two input{box-sizing:border-box;width:100%;min-width:0}
+.sc-mode[disabled]{opacity:.5;cursor:default}
 </style>
 </head>
 <body>
@@ -906,6 +920,7 @@ document.addEventListener('submit',function(e){
 });
 document.addEventListener('click',function(e){
   var t=e.target.closest('button,a,.item'); if(!t) return;
+  if(t.hasAttribute('data-su')){ suClick(t); return; }
   if(t.hasAttribute('data-tab')){ setView(t.getAttribute('data-tab')); if(t.getAttribute('data-tab')!=='settings') refresh(true); return; }
   if(t.hasAttribute('data-sc')){ schedClick(t); return; }
   if(t.hasAttribute('data-read')) markRead([t.getAttribute('data-read')]);
@@ -1017,7 +1032,7 @@ function schedView(){
   var h='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button>'+
     '<div class="top"><div><div class="eyebrow">Preview · only you can see this</div><h1>Schedule</h1><div class="help" style="margin:2px 0 0">Sioux Falls · Week of '+esc(scWeekLabel())+'</div></div></div>'+
     '<div class="sc-bar"><button type="button" class="round" data-sc="prev" aria-label="Previous week">'+svg('back')+'</button><button type="button" class="pill" data-sc="today">This week</button><button type="button" class="round" data-sc="next" aria-label="Next week">'+svg('chev')+'</button>'+
-    '<span style="flex:1"></span><button type="button" class="pill" data-sc="tpls">Templates</button><button type="button" class="pill" data-sc="copy">Copy last week</button>'+
+    '<span style="flex:1"></span><button type="button" class="pill" data-sc="bld">Build</button><button type="button" class="pill" data-sc="tpls">Templates</button>'+(d&&d.canSetup?'<button type="button" class="pill" data-sc="setup">Rooms &amp; staff</button>':'')+'<button type="button" class="pill" data-sc="copy">Copy last week</button>'+
     (d && d.unpublished && scHasPub()? '<button type="button" class="pill" data-sc="discard">Discard changes</button>':'')+
     (d && scHasPub()? '<button type="button" class="pill" data-sc="unpublish">Unpublish</button>':'')+
     (d? '<button type="button" class="pill go" data-sc="publish"'+(d.unpublished?'':' disabled')+'>'+(d.unpublished?'Publish ('+d.unpublished+')':'Published')+'</button>':'')+'</div>';
@@ -1063,6 +1078,8 @@ function schedView(){
   h+='<p class="help">Tap a day to add or change shifts. Press and hold a shift to drag it to another person or day. Tap a day’s name to mark the center closed or open it again. Hours under each name include time at Brandon; overtime shows in red past 40. Pay is an estimate (time and a half past 40).</p>';
   if(S.sc.edit) h+=scEditor();
   if(S.sc.tpl) h+=scTemplates();
+  if(S.sc.bld) h+=scBuild();
+  if(S.sc.su) h+=suView();
   return h;
 }
 
@@ -1107,12 +1124,147 @@ function scTemplates(){
     '<div class="sc-save"><label for="sc-tn">Save this week as a template</label><div class="sc-save-r"><input id="sc-tn" maxlength="60" placeholder="For example: Winter 2026"><button type="button" class="btn" data-sc="tplsave">Save</button></div><div class="err" id="sc-terr" role="alert"></div></div>'+
     '</div></div>';
 }
+// ---------- Rooms & staff setup (office only): rooms, their standard shifts, staff profiles with a typical week ----------
+var SC_COLORS=[['#ef3930','Infant red'],['#f58c1f','Toddler orange'],['#f4c217','2’s yellow'],['#40b549','Preschool green'],['#406eb6','Pre-K blue'],['#7B3FE4','Purple'],['#0e7490','Teal'],['#475569','Slate'],['#64748b','Gray'],['#1f2937','Charcoal']];
+function suOpen(){ S.sc.su={ tab:'staff', data:null, edit:null, room:null }; render(); suLoad(); }
+function suLoad(){ return scPost({ action:'sched_setup', center:S.sc.center, week:S.sc.week }).then(suApply); }
+function suApply(r){
+  if(!S.sc.su) return;
+  if(!r || !r.ok){ toast((r&&r.error)||'Something went wrong.'); var e=$('su-err'); if(e) e.textContent=(r&&r.error)||''; return; }
+  if(r.message) toast(r.message);
+  S.sc.su.data=r; S.sc.su.edit=null; S.sc.su.room=null; render();
+}
+function suPos(k){ var d=S.sc.su&&S.sc.su.data; return ((d&&d.positions)||[]).find(function(p){ return p.key===k; }) || scPos(k); }
+function suSheet(inner){ return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Rooms and staff"><div class="sc-card sc-wide-card">'+inner+'</div></div>'; }
+function suView(){
+  var su=S.sc.su, d=su.data;
+  if(su.edit) return suStaffEdit();
+  if(su.room) return suRoomEdit();
+  var h='<div class="sc-ch"><div><b>Rooms &amp; staff</b><div class="sm">'+(S.sc.center==='SF'?'Sioux Falls':'Brandon')+'</div></div><button type="button" class="link" data-su="close">Done</button></div>'+
+    '<div class="seg" role="group" aria-label="Show" style="margin-top:0"><button type="button" data-su="tab" data-v="staff" aria-pressed="'+(su.tab==='staff')+'">Staff</button><button type="button" data-su="tab" data-v="rooms" aria-pressed="'+(su.tab==='rooms')+'">Rooms &amp; duties</button></div>';
+  if(!d) return suSheet(h+'<div class="empty"><span class="spin"></span> Loading…</div>');
+  var c=S.sc.center;
+  if(su.tab==='staff'){
+    var mine=(d.staff||[]).filter(function(x){ return x.center===c; }), act=mine.filter(function(x){ return x.active; }), old=mine.filter(function(x){ return !x.active; });
+    var row=function(x){ var n=SC_ALL_DAYS.filter(function(k){ return ((x.typical||{})[k]||[]).length; }).length;
+      return '<button type="button" class="sc-li" data-su="staff" data-id="'+esc(x.id)+'"><span class="grow"><b>'+esc(x.name)+'</b><span class="sm">'+(x.positions.filter(function(k){ return suPos(k).kind==='room'; }).map(function(k){ return esc(suPos(k).name); }).join(', ')||'No rooms set')+' · '+(n?'Typical week: '+n+(n===1?' day':' days'):'No typical week')+(x.payType==='salaried'?' · Salaried':'')+'</span></span>'+svg('chev')+'</button>'; };
+    h+='<div class="sc-list">'+act.map(row).join('')+'</div>';
+    h+='<button type="button" class="pill go" data-su="staff" data-id="new" style="margin-top:12px">+ Add person</button>';
+    if(old.length) h+='<div class="sc-pres-h" style="margin-top:16px">Not active</div><div class="sc-list">'+old.map(row).join('')+'</div>';
+  } else {
+    var ps=(d.positions||[]).filter(function(p){ return p.centers.indexOf(c)>=0; });
+    var prow=function(p){ var n=(d.presets||[]).filter(function(x){ return x.p===p.key && x.centers.indexOf(c)>=0; }).length;
+      return '<button type="button" class="sc-li'+(p.active?'':' sc-off')+'" data-su="room" data-key="'+esc(p.key)+'"><span class="sc-dot" style="background:'+p.color+'"></span><span class="grow"><b>'+esc(p.name)+'</b><span class="sm">'+[p.ages, p.ratio?'1:'+p.ratio:'', plural(n,'standard shift','standard shifts'), p.active?'':'Retired'].filter(Boolean).join(' · ')+'</span></span>'+svg('chev')+'</button>'; };
+    h+='<div class="sc-pres-h">Rooms</div><div class="sc-list">'+ps.filter(function(p){ return p.kind==='room'; }).map(prow).join('')+'</div>';
+    h+='<div class="sc-pres-h" style="margin-top:14px">Duties</div><div class="sc-list">'+ps.filter(function(p){ return p.kind!=='room'; }).map(prow).join('')+'</div>';
+    h+='<button type="button" class="pill go" data-su="room" data-key="new" style="margin-top:12px">+ Add room or duty</button>';
+  }
+  return suSheet(h);
+}
+function suBlockRows(day, list){
+  var posOpts=function(sel){ var c=S.sc.center, ps=((S.sc.su.data&&S.sc.su.data.positions)||[]).filter(function(p){ return p.active && p.centers.indexOf(c)>=0; });
+    return ps.map(function(p){ return '<option value="'+p.key+'"'+(p.key===sel?' selected':'')+'>'+esc(p.name)+'</option>'; }).join(''); };
+  return list.map(function(b,i){ return '<div class="sc-blk"><input type="time" step="300" aria-label="Start" data-tb="s" data-day="'+day+'" data-i="'+i+'" value="'+b.s+'"><span>to</span><input type="time" step="300" aria-label="End" data-tb="e" data-day="'+day+'" data-i="'+i+'" value="'+b.e+'"><select aria-label="Room or duty" data-tb="p" data-day="'+day+'" data-i="'+i+'">'+posOpts(b.p)+'</select><button type="button" class="sc-x" data-su="tbdel" data-day="'+day+'" data-i="'+i+'" aria-label="Remove">×</button></div>'; }).join('');
+}
+function suStaffEdit(){
+  var e=S.sc.su.edit, d=S.sc.su.data, c=S.sc.center, other=c==='SF'?'BV':'SF';
+  var ps=(d.positions||[]).filter(function(p){ return p.active && p.centers.indexOf(c)>=0; });
+  var h='<div class="sc-ch"><div><b>'+(e.id?esc(e.name):'Add person')+'</b><div class="sm">Profile and typical week</div></div><button type="button" class="link" data-su="back">Cancel</button></div>';
+  h+='<div class="uform" style="padding:0"><label>Name<input id="su-name" maxlength="60" value="'+esc(e.name)+'"></label></div>';
+  h+='<div class="sc-pres-h" style="margin-top:12px">Rooms and duties they can work</div><div class="sc-tags">'+ps.map(function(p){ var on=e.positions.indexOf(p.key)>=0; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-su="tpos" data-key="'+p.key+'" aria-pressed="'+on+'"><i style="background:'+p.color+'"></i>'+esc(p.name)+'</button>'; }).join('')+'</div>';
+  h+='<div class="sc-pres-h" style="margin-top:12px">Pay</div><div class="seg" style="margin-top:0"><button type="button" data-su="pay" data-v="hourly" aria-pressed="'+(e.payType!=='salaried')+'">Hourly</button><button type="button" data-su="pay" data-v="salaried" aria-pressed="'+(e.payType==='salaried')+'">Salaried</button></div>';
+  if(e.payType!=='salaried') h+='<div class="uform" style="padding:8px 0 0"><label>Hourly rate (only the office sees this)<input id="su-rate" inputmode="decimal" placeholder="0.00" value="'+(e.rate==null?'':e.rate)+'"></label></div>';
+  h+='<label class="sc-rep" style="margin-top:12px"><input type="checkbox" id="su-both"'+(e.centers.indexOf(other)>=0?' checked':'')+'> Also works at '+(other==='SF'?'Sioux Falls':'Brandon')+'</label>';
+  h+='<label class="sc-rep"><input type="checkbox" id="su-active"'+(e.active?' checked':'')+'> Active (shows on the schedule)</label>';
+  // typical week
+  var mineP=(d.presets||[]).filter(function(x){ return x.centers.indexOf(c)>=0 && e.positions.indexOf(x.p)>=0; }).sort(function(a,b){ return a.s<b.s?-1:1; });
+  h+='<div class="sc-pres-h" style="margin-top:16px">Typical week</div><div class="help" style="margin:0 0 6px">Used by “Build from typical weeks.” Leave a day empty if they’re usually off.</div>';
+  SC_DAYS.forEach(function(dd){ var k=dd[0], list=(e.typical[k]||[]);
+    h+='<div class="sc-tday"><div class="sc-tdh"><b>'+dd[1]+'</b>'+(list.length?'':'<span class="sm">Off</span>')+'</div>'+suBlockRows(k,list)+
+      '<div class="sc-pres">'+mineP.map(function(x){ var p=suPos(x.p); return '<button type="button" class="sc-pre" data-su="tbadd" data-day="'+k+'" data-s="'+x.s+'" data-e="'+x.e+'" data-p="'+x.p+'" style="border-left:3px solid '+p.color+'"><b>'+scT(x.s)+'–'+scT(x.e)+'</b><span>'+esc(p.name)+'</span></button>'; }).join('')+
+      '<button type="button" class="sc-pre sc-more" data-su="tbadd" data-day="'+k+'">+ Custom</button>'+(list.length?'<button type="button" class="sc-pre sc-more" data-su="tbcopy" data-day="'+k+'">Copy to all days</button>':'')+'</div></div>'; });
+  h+='<div class="err" id="su-err" role="alert"></div><button type="button" class="btn" data-su="ssave" style="width:100%;margin-top:6px">Save</button>';
+  return suSheet(h);
+}
+function suRoomEdit(){
+  var r=S.sc.su.room, d=S.sc.su.data, c=S.sc.center;
+  var pre=(d.presets||[]).filter(function(x){ return r.key && x.p===r.key && x.centers.indexOf(c)>=0; }).sort(function(a,b){ return a.s<b.s?-1:1; });
+  var h='<div class="sc-ch"><div><b>'+(r.key?esc(r.name):'Add room or duty')+'</b></div><button type="button" class="link" data-su="back">Cancel</button></div>';
+  h+='<div class="uform" style="padding:0"><label>Name<input id="su-rname" maxlength="40" value="'+esc(r.name)+'"></label></div>';
+  h+='<div class="seg" style="margin-top:12px"><button type="button" data-su="rkind" data-v="room" aria-pressed="'+(r.kind!=='duty')+'">Room</button><button type="button" data-su="rkind" data-v="duty" aria-pressed="'+(r.kind==='duty')+'">Duty (Opener, Bus Run…)</button></div>';
+  h+='<div class="sc-pres-h" style="margin-top:12px">Color</div><div class="sc-sw">'+SC_COLORS.map(function(x){ return '<button type="button" class="sc-swb'+(r.color.toLowerCase()===x[0].toLowerCase()?' on':'')+'" data-su="rcolor" data-v="'+x[0]+'" style="background:'+x[0]+'" aria-label="'+esc(x[1])+'"></button>'; }).join('')+'</div>';
+  if(r.kind!=='duty') h+='<div class="sc-two"><div class="uform" style="padding:0"><label>Ages<input id="su-ages" maxlength="40" placeholder="e.g. 2 – 3 yrs" value="'+esc(r.ages||'')+'"></label></div><div class="uform" style="padding:0"><label>Children per teacher<input id="su-ratio" inputmode="numeric" placeholder="e.g. 5" value="'+(r.ratio||'')+'"></label></div></div>';
+  h+='<div class="sc-pres-h" style="margin-top:12px">Centers</div><label class="sc-rep"><input type="checkbox" id="su-csf"'+(r.centers.indexOf('SF')>=0?' checked':'')+'> Sioux Falls</label><label class="sc-rep"><input type="checkbox" id="su-cbv"'+(r.centers.indexOf('BV')>=0?' checked':'')+'> Brandon</label>';
+  h+='<label class="sc-rep"><input type="checkbox" id="su-ractive"'+(r.active?' checked':'')+'> In use (uncheck to retire it; past weeks keep it)</label>';
+  if(r.key){
+    h+='<div class="sc-pres-h" style="margin-top:14px">Standard shifts</div><div class="help" style="margin:0 0 6px">These show in Quick add, typical weeks and “Fill a room.”</div>'+
+      (pre.length?'<div class="sc-list">'+pre.map(function(x){ return '<div class="sc-li"><span class="grow"><b>'+scT(x.s)+'–'+scT(x.e)+'</b></span><button type="button" class="sc-x" data-su="pdel" data-id="'+esc(x.id)+'" aria-label="Remove '+scT(x.s)+' to '+scT(x.e)+'">×</button></div>'; }).join('')+'</div>':'<div class="help" style="margin:0 0 6px">None yet.</div>')+
+      '<div class="sc-blk" style="border:0"><input type="time" step="300" id="su-ps" aria-label="Start" value="07:00"><span>to</span><input type="time" step="300" id="su-pe" aria-label="End" value="17:00"><button type="button" class="pill" data-su="padd" style="grid-column:1 / 3">+ Add this shift</button></div>';
+  } else h+='<div class="help">Save the room first, then add its standard shifts.</div>';
+  h+='<div class="err" id="su-err" role="alert"></div><button type="button" class="btn" data-su="rsave" style="width:100%;margin-top:10px">Save</button>';
+  return suSheet(h);
+}
+function suGrab(){
+  var su=S.sc.su; if(!su) return;
+  if(su.edit){ var e=su.edit; if($('su-name')) e.name=$('su-name').value; if($('su-rate')) e.rate=$('su-rate').value; if($('su-active')) e.active=$('su-active').checked;
+    if($('su-both')){ var other=S.sc.center==='SF'?'BV':'SF'; e.centers=[S.sc.center].concat($('su-both').checked?[other]:[]); }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-tb]'),function(el){ var b=(e.typical[el.getAttribute('data-day')]||[])[+el.getAttribute('data-i')]; if(b) b[el.getAttribute('data-tb')]=el.value; }); }
+  if(su.room){ var r=su.room; if($('su-rname')) r.name=$('su-rname').value; if($('su-ages')) r.ages=$('su-ages').value; if($('su-ratio')) r.ratio=$('su-ratio').value; if($('su-ractive')) r.active=$('su-ractive').checked;
+    if($('su-csf')) r.centers=[].concat($('su-csf').checked?['SF']:[]).concat($('su-cbv')&&$('su-cbv').checked?['BV']:[]); }
+}
+function suClick(t){
+  var a=t.getAttribute('data-su'), su=S.sc.su; if(!su) return;
+  if(a==='close'){ S.sc.su=null; scLoad(); return; }
+  if(a==='tab'){ su.tab=t.getAttribute('data-v'); render(); return; }
+  if(a==='back'){ su.edit=null; su.room=null; render(); return; }
+  if(a==='staff'){ var id=t.getAttribute('data-id'), src=(su.data.staff||[]).find(function(x){ return x.id===id; });
+    su.edit=src?JSON.parse(JSON.stringify(src)):{ id:'', name:'', center:S.sc.center, centers:[S.sc.center], positions:[], payType:'hourly', rate:null, active:true, typical:{} };
+    su.edit.typical=su.edit.typical||{}; render(); return; }
+  if(a==='room'){ var k=t.getAttribute('data-key'), p=(su.data.positions||[]).find(function(x){ return x.key===k; });
+    su.room=p?JSON.parse(JSON.stringify(p)):{ key:'', name:'', kind:'room', color:'#406eb6', centers:[S.sc.center], active:true, ages:'', ratio:null }; render(); return; }
+  suGrab();
+  var e=su.edit, r=su.room;
+  if(a==='tpos'){ var kk=t.getAttribute('data-key'), i=e.positions.indexOf(kk); if(i>=0) e.positions.splice(i,1); else e.positions.push(kk); render(); return; }
+  if(a==='pay'){ e.payType=t.getAttribute('data-v'); render(); return; }
+  if(a==='tbadd'){ var day=t.getAttribute('data-day'), list=(e.typical[day]=e.typical[day]||[]), last=list[list.length-1];
+    list.push(t.getAttribute('data-s')?{ s:t.getAttribute('data-s'), e:t.getAttribute('data-e'), p:t.getAttribute('data-p') }:{ s:last?last.e:'07:00', e:last?(last.e<'17:00'?'17:00':'18:00'):'17:00', p:last?last.p:(e.positions[0]||'infant') });
+    list.sort(function(x,y){ return x.s<y.s?-1:1; }); render(); return; }
+  if(a==='tbdel'){ e.typical[t.getAttribute('data-day')].splice(+t.getAttribute('data-i'),1); render(); return; }
+  if(a==='tbcopy'){ var src2=e.typical[t.getAttribute('data-day')]||[]; if(!confirm('Use this day for Monday–Friday?')) return; SC_DAYS.forEach(function(dd){ e.typical[dd[0]]=JSON.parse(JSON.stringify(src2)); }); render(); return; }
+  if(a==='ssave'){ var bad=false; SC_ALL_DAYS.forEach(function(k){ (e.typical[k]||[]).forEach(function(b){ if(!b.s||!b.e||b.e<=b.s) bad=true; }); });
+    if(bad){ $('su-err').textContent='Each shift needs an end time after its start time.'; return; }
+    t.disabled=true; scPost({ action:'sched_staff_save', center:S.sc.center, week:S.sc.week, staff:e }).then(function(res){ if(!res||!res.ok){ t.disabled=false; $('su-err').textContent=(res&&res.error)||'That didn’t save.'; return; } suApply(res); }); return; }
+  if(a==='rkind'){ r.kind=t.getAttribute('data-v'); render(); return; }
+  if(a==='rcolor'){ r.color=t.getAttribute('data-v'); render(); return; }
+  if(a==='rsave'){ t.disabled=true; scPost({ action:'sched_pos_save', center:S.sc.center, week:S.sc.week, pos:r }).then(function(res){ if(!res||!res.ok){ t.disabled=false; $('su-err').textContent=(res&&res.error)||'That didn’t save.'; return; } var key=r.key; suApply(res); if(!key) toast('Saved. Open it again to add its standard shifts.'); }); return; }
+  if(a==='padd'){ var ps=$('su-ps').value, pe=$('su-pe').value; if(!ps||!pe||pe<=ps){ $('su-err').textContent='The end time needs to be after the start time.'; return; }
+    var keep=JSON.parse(JSON.stringify(r)); scPost({ action:'sched_preset_save', center:S.sc.center, week:S.sc.week, preset:{ s:ps, e:pe, p:r.key, centers:[S.sc.center] } }).then(function(res){ if(!res||!res.ok){ $('su-err').textContent=(res&&res.error)||'That didn’t save.'; return; } su.data=res; su.room=keep; render(); }); return; }
+  if(a==='pdel'){ var keep2=JSON.parse(JSON.stringify(r)); scPost({ action:'sched_preset_del', center:S.sc.center, week:S.sc.week, id:t.getAttribute('data-id') }).then(function(res){ if(res&&res.ok){ su.data=res; su.room=keep2; render(); } else toast((res&&res.error)||'That didn’t work.'); }); return; }
+}
+
+// ---- Build a week: from everyone's typical week, or fill a room with its standard shifts as open shifts ----
+function scBuild(){
+  var d=S.sc.data, b=S.sc.bld, c=S.sc.center;
+  var rooms=(d.positions||[]).filter(function(p){ return p.kind==='room' && p.centers.indexOf(c)>=0; });
+  var withTyp=(d.staff||[]).filter(function(x){ return x.center===c && SC_ALL_DAYS.some(function(k){ return ((x.typical||{})[k]||[]).length; }); }).length;
+  var h='<div class="sc-ch"><div><b>Build this week</b><div class="sm">Week of '+esc(scWeekLabel())+' · saved as a draft until you publish</div></div><button type="button" class="link" data-sc="bldclose">Done</button></div>';
+  h+='<div class="sc-pres-h">From typical weeks</div><div class="help" style="margin:0 0 8px">'+(withTyp?plural(withTyp,'person has','people have')+' a typical week set.':'Nobody has a typical week yet. Add them in Rooms &amp; staff.')+' Closed days are skipped.</div>';
+  h+='<div class="sc-modes" style="padding-top:0"><button type="button" class="sc-mode" data-sc="build" data-mode="fill"'+(withTyp?'':' disabled')+'><b>Fill in empty people</b><span>Only people with no shifts this week get their typical week. Nothing already scheduled changes.</span></button>'+
+    '<button type="button" class="sc-mode" data-sc="build" data-mode="replace"'+(withTyp?'':' disabled')+'><b>Rebuild everyone</b><span>Anyone with a typical week gets exactly that, replacing what they have this week.</span></button></div>';
+  h+='<div class="sc-pres-h" style="margin-top:14px">Fill a room with open shifts</div><div class="help" style="margin:0 0 8px">Adds the room’s standard shifts to Open shifts for the days you pick.</div>';
+  h+='<div class="sc-tags">'+rooms.map(function(p){ var on=b.room===p.key; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-sc="bldroom" data-key="'+p.key+'" aria-pressed="'+on+'"><i style="background:'+p.color+'"></i>'+esc(p.name)+'</button>'; }).join('')+'</div>';
+  if(b.room){ var n=(d.presets||[]).filter(function(x){ return x.p===b.room; }).length;
+    h+='<div class="sc-tags" style="margin-top:8px">'+SC_DAYS.map(function(dd){ var on=b.days.indexOf(dd[0])>=0; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-sc="bldday" data-day="'+dd[0]+'" aria-pressed="'+on+'">'+dd[1]+'</button>'; }).join('')+'</div>'+
+      (n?'<button type="button" class="btn" data-sc="fillroom" style="width:100%;margin-top:10px"'+(b.days.length?'':' disabled')+'>Add '+plural(n,'shift','shifts')+' a day to Open shifts</button>':'<div class="help">This room has no standard shifts yet. Add them in Rooms &amp; staff.</div>'); }
+  if(d.canSetup) h+='<button type="button" class="pill" data-sc="setup" style="margin-top:16px">Rooms &amp; staff…</button>';
+  return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Build this week"><div class="sc-card">'+h+'</div></div>';
+}
 // ---- press, hold and drag a shift block onto another person or day ----
 var SCD={ t:null, on:false, src:null, ghost:null, over:null, x0:0, y0:0, skipClick:false };
 function scDragEnd(){ clearTimeout(SCD.t); SCD.t=null; if(SCD.ghost){ SCD.ghost.remove(); SCD.ghost=null; } if(SCD.over){ SCD.over.classList.remove('sc-drop'); SCD.over=null; } if(SCD.src&&SCD.src.el) SCD.src.el.classList.remove('sc-lift'); document.body.classList.remove('sc-dragging'); SCD.on=false; SCD.src=null; }
 function scTargetAt(x,y){ if(SCD.ghost) SCD.ghost.style.display='none'; var el=document.elementFromPoint(x,y); if(SCD.ghost) SCD.ghost.style.display=''; return el && el.closest('.sc-hit[data-sc=edit]'); }
 document.addEventListener('pointerdown',function(e){
-  var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl) return;
+  var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su) return;
   if(e.pointerType==='mouse' && e.button!==0) return;
   SCD.x0=e.clientX; SCD.y0=e.clientY;
   SCD.src={ el:ch, id:ch.getAttribute('data-did'), day:ch.getAttribute('data-dday'), i:+ch.getAttribute('data-di') };
@@ -1186,6 +1338,14 @@ function schedClick(t){
     if(ed0.fresh){ ed0.blocks=[nb]; ed0.fresh=false; } else ed0.blocks.push(nb);
     ed0.blocks.sort(function(x,y){ return x.s<y.s?-1:1; }); render(); return; }
   if(a==='presmore'){ scGrab(); S.sc.presMore=!S.sc.presMore; render(); return; }
+  if(a==='setup'){ S.sc.bld=null; suOpen(); return; }
+  if(a==='bld'){ S.sc.bld={ room:null, days:SC_DAYS.map(function(x){ return x[0]; }) }; render(); return; }
+  if(a==='bldclose'){ S.sc.bld=null; render(); return; }
+  if(a==='bldroom'){ S.sc.bld.room=t.getAttribute('data-key'); render(); return; }
+  if(a==='bldday'){ var bd=S.sc.bld.days, bk=t.getAttribute('data-day'), bi=bd.indexOf(bk); if(bi>=0) bd.splice(bi,1); else bd.push(bk); render(); return; }
+  if(a==='build'){ var bm=t.getAttribute('data-mode'); if(bm==='replace' && !confirm('Rebuild everyone who has a typical week? Their shifts this week will be replaced.')) return;
+    t.disabled=true; scPost({ action:'sched_build', center:S.sc.center, week:S.sc.week, mode:bm }).then(function(r){ if(r&&r.ok) S.sc.bld=null; else t.disabled=false; scApply(r); }); return; }
+  if(a==='fillroom'){ t.disabled=true; scPost({ action:'sched_fillroom', center:S.sc.center, week:S.sc.week, pos:S.sc.bld.room, days:S.sc.bld.days }).then(function(r){ if(r&&r.ok) S.sc.bld=null; else t.disabled=false; scApply(r); }); return; }
   if(a==='tpls'){ S.sc.tpl=true; S.sc.tplOpen=null; render(); return; }
   if(a==='tplclose'){ S.sc.tpl=false; render(); return; }
   if(a==='tplpick'){ var tid=t.getAttribute('data-id'); S.sc.tplOpen=S.sc.tplOpen===tid?null:tid; render(); return; }
