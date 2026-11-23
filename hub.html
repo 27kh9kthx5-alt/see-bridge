@@ -357,6 +357,7 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-dd .sc-ddi b{font-size:15px;font-weight:500}.sc-dd .sc-ddi span{font-size:12px;color:var(--sub);font-weight:400}
 .sc-dd .sc-ddr b{color:#b3261e}
 .sc-dd hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
+.sc-gearw{position:relative}.sc-gearw .round svg{width:22px;height:22px}.sc-gearw .sc-dd{min-width:250px}
 </style>
 </head>
 <body>
@@ -381,7 +382,7 @@ var ICON = {
   overtime:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   termcare:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
   bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
-  check:'<path d="M20 6 9 17l-5-5"/>', chev:'<path d="m9 18 6-6-6-6"/>', back:'<path d="m15 18-6-6 6-6"/>', plus:'<path d="M12 5v14M5 12h14"/>', refresh:'<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>'
+  check:'<path d="M20 6 9 17l-5-5"/>', chev:'<path d="m9 18 6-6-6-6"/>', back:'<path d="m15 18-6-6 6-6"/>', plus:'<path d="M12 5v14M5 12h14"/>', gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>', refresh:'<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>'
 };
 var KIND = {
   pto:{name:'PTO'}, hiring:{name:'Hiring'}, onboard:{name:'On Board'}, enroll:{name:'Enrollment'}, careplan:{name:'Care Plans'}, vacation:{name:'Family Vacations'}, overtime:{name:'Overtime'}, term:{name:'Terminations',full:'Termination of Employment'}, termcare:{name:'Terminations',full:'Termination of Care'}
@@ -943,7 +944,7 @@ document.addEventListener('submit',function(e){
 });
 document.addEventListener('click',function(e){
   if(S.sc&&S.sc.menuHeld){ S.sc.menuHeld=false; return; }
-  if(S.sc&&S.sc.menu && !(e.target.closest&&e.target.closest('.sc-dd'))){ S.sc.menu=false; render(); return; }
+  if(S.sc&&(S.sc.menu||S.sc.gear) && !(e.target.closest&&e.target.closest('.sc-dd'))){ S.sc.menu=false; S.sc.gear=false; render(); return; }
   var t=e.target.closest('button,a,.item'); if(!t) return;
   if(t.hasAttribute('data-su')){ suClick(t); return; }
   if(t.hasAttribute('data-tab')){ setView(t.getAttribute('data-tab')); if(t.getAttribute('data-tab')!=='settings') refresh(true); return; }
@@ -1065,13 +1066,12 @@ function scMenu(){
   if(d.unpublished && scHasPub()) h+='<hr>'+it('discard','Discard changes','Back to what was last published');
   if(st==='publish' && scHasPub()) h+=it('unpublish','Unpublish');
   if(has) h+=(d.unpublished && scHasPub()?'':'<hr>')+it('clear','Clear this week','','sc-ddr');
-  if(d.canSetup) h+='<hr>'+it('setup','Rooms &amp; staff…');
   return '<div class="sc-dd" role="menu" aria-label="This week">'+h+'</div>';
 }
 function schedView(){
   scInit(); var d=S.sc.data;
   var h='<button type="button" class="back" data-go="home">'+svg('back')+'Home</button>'+
-    '<div class="top"><div><div class="eyebrow">Preview · only you can see this</div><h1>Schedule</h1><div class="help" style="margin:2px 0 0">Sioux Falls · Week of '+esc(scWeekLabel())+'</div></div></div>'+
+    '<div class="top"><div><div class="eyebrow">Preview · only you can see this</div><h1>Schedule</h1><div class="help" style="margin:2px 0 0">Sioux Falls · Week of '+esc(scWeekLabel())+'</div></div>'+(d&&d.canSetup?'<span class="sc-gearw"><button type="button" class="round" data-sc="gear" aria-label="Rooms, staff and duties" aria-haspopup="menu" aria-expanded="'+!!S.sc.gear+'">'+svg('gear')+'</button>'+(S.sc.gear?'<div class="sc-dd" role="menu" aria-label="Setup"><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="rooms"><b>Rooms</b><span>Ages, ratios, standard shifts</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="staff"><b>Staff</b><span>Rooms they work, pay, set schedule</span></button><button type="button" role="menuitem" class="sc-ddi" data-sc="setup" data-v="duties"><b>Duties</b><span>Opener, Bus Run, Closer…</span></button></div>':'')+'</span>':'')+'</div>'+
     '<div class="sc-bar"><button type="button" class="round" data-sc="prev" aria-label="Previous week">'+svg('back')+'</button><button type="button" class="pill" data-sc="today">This week</button><button type="button" class="round" data-sc="next" aria-label="Next week">'+svg('chev')+'</button>'+
     '<span style="flex:1"></span>'+(d? scMainBtn():'')+'</div>';
   if(!d) return h+'<div class="empty"><span class="spin"></span> Loading…</div>';
@@ -1164,7 +1164,7 @@ function scTemplates(){
 }
 // ---------- Rooms & staff setup (office only): rooms, their standard shifts, staff profiles with a typical week ----------
 var SC_COLORS=[['#ef3930','Infant red'],['#f58c1f','Toddler orange'],['#f4c217','2’s yellow'],['#40b549','Preschool green'],['#406eb6','Pre-K blue'],['#7B3FE4','Purple'],['#0e7490','Teal'],['#475569','Slate'],['#64748b','Gray'],['#1f2937','Charcoal']];
-function suOpen(){ S.sc.su={ tab:'staff', data:null, edit:null, room:null }; render(); suLoad(); }
+function suOpen(tab){ S.sc.su={ tab:tab||'staff', data:null, edit:null, room:null }; render(); suLoad(); }
 function suLoad(){ return scPost({ action:'sched_setup', center:S.sc.center, week:S.sc.week }).then(suApply); }
 function suApply(r){
   if(!S.sc.su) return;
@@ -1178,8 +1178,8 @@ function suView(){
   var su=S.sc.su, d=su.data;
   if(su.edit) return suStaffEdit();
   if(su.room) return suRoomEdit();
-  var h='<div class="sc-ch"><div><b>Rooms &amp; staff</b><div class="sm">'+(S.sc.center==='SF'?'Sioux Falls':'Brandon')+'</div></div><button type="button" class="link" data-su="close">Done</button></div>'+
-    '<div class="seg" role="group" aria-label="Show" style="margin-top:0"><button type="button" data-su="tab" data-v="staff" aria-pressed="'+(su.tab==='staff')+'">Staff</button><button type="button" data-su="tab" data-v="rooms" aria-pressed="'+(su.tab==='rooms')+'">Rooms &amp; duties</button></div>';
+  var h='<div class="sc-ch"><div><b>Rooms, staff &amp; duties</b><div class="sm">'+(S.sc.center==='SF'?'Sioux Falls':'Brandon')+'</div></div><button type="button" class="link" data-su="close">Done</button></div>'+
+    '<div class="seg" role="group" aria-label="Show" style="margin-top:0"><button type="button" data-su="tab" data-v="staff" aria-pressed="'+(su.tab==='staff')+'">Staff</button><button type="button" data-su="tab" data-v="rooms" aria-pressed="'+(su.tab==='rooms')+'">Rooms</button><button type="button" data-su="tab" data-v="duties" aria-pressed="'+(su.tab==='duties')+'">Duties</button></div>';
   if(!d) return suSheet(h+'<div class="empty"><span class="spin"></span> Loading…</div>');
   var c=S.sc.center;
   if(su.tab==='staff'){
@@ -1193,9 +1193,9 @@ function suView(){
     var ps=(d.positions||[]).filter(function(p){ return p.centers.indexOf(c)>=0; });
     var prow=function(p){ var n=(d.presets||[]).filter(function(x){ return x.p===p.key && x.centers.indexOf(c)>=0; }).length;
       return '<button type="button" class="sc-li'+(p.active?'':' sc-off')+'" data-su="room" data-key="'+esc(p.key)+'"><span class="sc-dot" style="background:'+p.color+'"></span><span class="grow"><b>'+esc(p.name)+'</b><span class="sm">'+[p.ages, p.ratio?'1:'+p.ratio:'', plural(n,'standard shift','standard shifts')+(function(){ var nd=(d.presets||[]).filter(function(x){ return x.p===p.key && x.centers.indexOf(c)>=0; }).reduce(function(m,x){ return m+(x.need||0); },0); return nd?' · '+nd+' needed a day':''; })(), p.active?'':'Retired'].filter(Boolean).join(' · ')+'</span></span>'+svg('chev')+'</button>'; };
-    h+='<div class="sc-pres-h">Rooms</div><div class="sc-list">'+ps.filter(function(p){ return p.kind==='room'; }).map(prow).join('')+'</div>';
-    h+='<div class="sc-pres-h" style="margin-top:14px">Duties</div><div class="sc-list">'+ps.filter(function(p){ return p.kind!=='room'; }).map(prow).join('')+'</div>';
-    h+='<button type="button" class="pill go" data-su="room" data-key="new" style="margin-top:12px">+ Add room or duty</button>';
+    var duty=su.tab==='duties';
+    h+='<div class="sc-list">'+ps.filter(function(p){ return duty?p.kind!=='room':p.kind==='room'; }).map(prow).join('')+'</div>';
+    h+='<button type="button" class="pill go" data-su="room" data-key="new" data-kind="'+(duty?'duty':'room')+'" style="margin-top:12px">+ Add '+(duty?'duty':'room')+'</button>';
   }
   return suSheet(h);
 }
@@ -1236,7 +1236,7 @@ function suStaffEdit(){
 function suRoomEdit(){
   var r=S.sc.su.room, d=S.sc.su.data, c=S.sc.center;
   var pre=(d.presets||[]).filter(function(x){ return r.key && x.p===r.key && x.centers.indexOf(c)>=0; }).sort(function(a,b){ return a.s<b.s?-1:1; });
-  var h='<div class="sc-ch"><div><b>'+(r.key?esc(r.name):'Add room or duty')+'</b></div><button type="button" class="link" data-su="back">Cancel</button></div>';
+  var h='<div class="sc-ch"><div><b>'+(r.key?esc(r.name):r.kind==='duty'?'Add duty':'Add room')+'</b></div><button type="button" class="link" data-su="back">Cancel</button></div>';
   h+='<div class="uform" style="padding:0"><label>Name<input id="su-rname" maxlength="40" value="'+esc(r.name)+'"></label></div>';
   h+='<div class="seg" style="margin-top:12px"><button type="button" data-su="rkind" data-v="room" aria-pressed="'+(r.kind!=='duty')+'">Room</button><button type="button" data-su="rkind" data-v="duty" aria-pressed="'+(r.kind==='duty')+'">Duty (Opener, Bus Run…)</button></div>';
   h+='<div class="sc-pres-h" style="margin-top:12px">Color</div><div class="sc-sw">'+SC_COLORS.map(function(x){ return '<button type="button" class="sc-swb'+(r.color.toLowerCase()===x[0].toLowerCase()?' on':'')+'" data-su="rcolor" data-v="'+x[0]+'" style="background:'+x[0]+'" aria-label="'+esc(x[1])+'"></button>'; }).join('')+'</div>';
@@ -1268,7 +1268,7 @@ function suClick(t){
     su.edit=src?JSON.parse(JSON.stringify(src)):{ id:'', name:'', center:S.sc.center, centers:[S.sc.center], positions:[], payType:'hourly', rate:null, active:true, typical:{} };
     su.edit.typical=su.edit.typical||{}; render(); return; }
   if(a==='room'){ var k=t.getAttribute('data-key'), p=(su.data.positions||[]).find(function(x){ return x.key===k; });
-    su.room=p?JSON.parse(JSON.stringify(p)):{ key:'', name:'', kind:'room', color:'#406eb6', centers:[S.sc.center], active:true, ages:'', ratio:null }; render(); return; }
+    su.room=p?JSON.parse(JSON.stringify(p)):{ key:'', name:'', kind:t.getAttribute('data-kind')||'room', color:'#406eb6', centers:[S.sc.center], active:true, ages:'', ratio:null }; render(); return; }
   suGrab();
   var e=su.edit, r=su.room;
   if(a==='tpos'){ var kk=t.getAttribute('data-key'), i=e.positions.indexOf(kk); if(i>=0) e.positions.splice(i,1); else e.positions.push(kk); render(); return; }
@@ -1300,20 +1300,19 @@ function scBuild(){
   h+='<div class="sc-tags">'+rooms.map(function(p){ var on=b.room===p.key; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-sc="bldroom" data-key="'+p.key+'" aria-pressed="'+on+'"><i style="background:'+p.color+'"></i>'+esc(p.name)+'</button>'; }).join('')+'</div>';
   if(b.room){ var n=(d.presets||[]).filter(function(x){ return x.p===b.room; }).length;
     h+='<div class="sc-tags" style="margin-top:8px">'+SC_DAYS.map(function(dd){ var on=b.days.indexOf(dd[0])>=0; return '<button type="button" class="sc-tag'+(on?' on':'')+'" data-sc="bldday" data-day="'+dd[0]+'" aria-pressed="'+on+'">'+dd[1]+'</button>'; }).join('')+'</div>'+
-      (n?'<button type="button" class="btn" data-sc="fillroom" style="width:100%;margin-top:10px"'+(b.days.length?'':' disabled')+'>Add '+plural(n,'shift','shifts')+' a day to Open shifts</button>':'<div class="help">This room has no standard shifts yet. Add them in Rooms &amp; staff.</div>'); }
-  if(d.canSetup) h+='<button type="button" class="pill" data-sc="setup" style="margin-top:16px">Rooms &amp; staff…</button>';
+      (n?'<button type="button" class="btn" data-sc="fillroom" style="width:100%;margin-top:10px"'+(b.days.length?'':' disabled')+'>Add '+plural(n,'shift','shifts')+' a day to Open shifts</button>':'<div class="help">This room has no standard shifts yet. Add them under the gear, in Rooms.</div>'); }
   return '<div class="sc-sheet" role="dialog" aria-modal="true" aria-label="Fill a room"><div class="sc-card">'+h+'</div></div>';
 }
 document.addEventListener('pointerdown',function(e){ var c=e.target.closest&&e.target.closest('.sc-split'); if(!c) return; var tm=setTimeout(function(){ S.sc.menu=true; S.sc.menuHeld=true; render(); },450); var stop=function(){ clearTimeout(tm); if(S.sc.menuHeld) setTimeout(function(){ S.sc.menuHeld=false; },350); document.removeEventListener('pointerup',stop); document.removeEventListener('pointercancel',stop); }; document.addEventListener('pointerup',stop); document.addEventListener('pointercancel',stop); });
 document.addEventListener('change',function(ev){ var el=ev.target; if(!el.hasAttribute||!el.hasAttribute('data-tsel')||!S.sc.su||!S.sc.su.edit) return; suGrab(); var ed=S.sc.su.edit; ed.pick=ed.pick||{}; if(el.value) ed.pick[el.getAttribute('data-tsel')]=el.value; else delete ed.pick[el.getAttribute('data-tsel')]; render(); });
-document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.sc && S.sc.menu){ S.sc.menu=false; render(); } });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.sc && (S.sc.menu||S.sc.gear)){ S.sc.menu=false; S.sc.gear=false; render(); } });
 document.addEventListener('contextmenu',function(e){ if(e.target.closest&&e.target.closest('.sc-split')) e.preventDefault(); });
 // ---- press, hold and drag a shift block onto another person or day ----
 var SCD={ t:null, on:false, src:null, ghost:null, over:null, x0:0, y0:0, skipClick:false };
 function scDragEnd(){ clearTimeout(SCD.t); SCD.t=null; if(SCD.ghost){ SCD.ghost.remove(); SCD.ghost=null; } if(SCD.over){ SCD.over.classList.remove('sc-drop'); SCD.over=null; } if(SCD.src&&SCD.src.el) SCD.src.el.classList.remove('sc-lift'); document.body.classList.remove('sc-dragging'); SCD.on=false; SCD.src=null; }
 function scTargetAt(x,y){ if(SCD.ghost) SCD.ghost.style.display='none'; var el=document.elementFromPoint(x,y); if(SCD.ghost) SCD.ghost.style.display=''; return el && el.closest('.sc-hit[data-sc=edit]'); }
 document.addEventListener('pointerdown',function(e){
-  var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su || S.sc.menu) return;
+  var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su || S.sc.menu || S.sc.gear) return;
   if(e.pointerType==='mouse' && e.button!==0) return;
   SCD.x0=e.clientX; SCD.y0=e.clientY;
   SCD.src={ el:ch, id:ch.getAttribute('data-did'), day:ch.getAttribute('data-dday'), i:+ch.getAttribute('data-di') };
@@ -1341,8 +1340,6 @@ document.addEventListener('pointerup',function(e){
 });
 document.addEventListener('pointercancel',function(){ if(SCD.src) scDragEnd(); });
 document.addEventListener('click',function(e){ if(SCD.skipClick){ e.stopPropagation(); e.preventDefault(); SCD.skipClick=false; } }, true);
-document.addEventListener('change',function(ev){ var el=ev.target; if(!el.hasAttribute||!el.hasAttribute('data-tsel')||!S.sc.su||!S.sc.su.edit) return; suGrab(); var ed=S.sc.su.edit; ed.pick=ed.pick||{}; if(el.value) ed.pick[el.getAttribute('data-tsel')]=el.value; else delete ed.pick[el.getAttribute('data-tsel')]; render(); });
-document.addEventListener('keydown',function(e){ if(e.key==='Escape' && S.sc && S.sc.menu){ S.sc.menu=false; render(); } });
 document.addEventListener('contextmenu',function(e){ if(e.target.closest && e.target.closest('.sc-drag')) e.preventDefault(); });
 function scMove(src, toId, toDay){
   if(!toId || (src.id===toId && src.day===toDay)) return;
@@ -1399,7 +1396,8 @@ function schedClick(t){
     t.disabled=true; S.sc.menu=false; scPost({ action:'sched_generate', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
   if(a==='main'){ a=t.getAttribute('data-st'); }
   if(a==='clear'){ S.sc.menu=false; render(); if(!confirm('Clear every shift this week, including open shifts?')) return; scPost({ action:'sched_clear', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
-  if(a==='setup'){ S.sc.bld=null; S.sc.menu=false; suOpen(); return; }
+  if(a==='gear'){ S.sc.gear=!S.sc.gear; S.sc.menu=false; render(); return; }
+  if(a==='setup'){ S.sc.bld=null; S.sc.menu=false; S.sc.gear=false; suOpen(t.getAttribute('data-v')); return; }
   if(a==='fillroom'){ t.disabled=true; scPost({ action:'sched_fillroom', center:S.sc.center, week:S.sc.week, pos:S.sc.bld.room, days:S.sc.bld.days }).then(function(r){ if(r&&r.ok) S.sc.bld=null; else t.disabled=false; scApply(r); }); return; }
   if(a==='tpls'){ S.sc.tpl=true; S.sc.tplOpen=null; render(); return; }
   if(a==='tplclose'){ S.sc.tpl=false; render(); return; }
