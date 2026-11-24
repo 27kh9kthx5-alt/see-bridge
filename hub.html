@@ -321,6 +321,10 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-rep input{width:20px;height:20px}
 .sc-rpt{flex:none;width:44px;height:44px;border-radius:12px;border:0;background:#f2f2f7;color:#8e8e93;display:grid;place-items:center;cursor:pointer;margin-right:8px}.sc-rpt.on{background:#e8f0fe;color:#0B6BEB}
 .sc-signb{display:inline-grid;place-items:center;width:28px;height:28px;margin:-6px 0 -8px 2px;border:0;border-radius:8px;background:none;color:#48484a;cursor:pointer;vertical-align:middle}.sc-signb:hover{background:#f2f2f7}
+#sg-print{display:none}
+@media print{@page{size:letter portrait;margin:0.3in}body.sg-on>*:not(#sg-print){display:none!important}body.sg-on{margin:0!important;padding:0!important;background:#fff!important}body.sg-on #sg-print{display:block!important}#sg-print img{display:block;height:9.6in;width:auto;max-width:100%;margin:0 auto}}
+#sg-print{display:none}
+@media print{@page{size:letter portrait;margin:0.4in}body.sg-printing{margin:0!important;padding:0!important;background:#fff!important}body.sg-printing>*:not(#sg-print){display:none!important}body.sg-printing #sg-print{display:block!important}#sg-print canvas{display:block;width:7.6in;height:9.835in;margin:0 auto}}
 #sg-wrap{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:grid;place-items:center;padding:16px}
 #sg-wrap .sg-card{background:#fff;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:14px;align-items:center;max-width:320px;text-align:center}#sg-wrap .btn{text-decoration:none;display:block;width:100%;box-sizing:border-box}
 .sc-rpi{vertical-align:-2px;margin-left:2px}
@@ -1488,6 +1492,7 @@ function suView(){
 function suStep(k,v,max,label,val,sub){
   return '<div class="sc-li" style="cursor:default"><span class="grow"><b>'+label+'</b><span class="sm">'+sub+'</span></span><span class="sc-step"><button type="button" data-su="set" data-k="'+k+'" data-v="'+Math.max(0,v-1)+'" aria-label="Less"'+(v?'':' disabled')+'>−</button><span><b>'+val[0]+'</b><small>'+val[1]+'</small></span><button type="button" data-su="set" data-k="'+k+'" data-v="'+Math.min(max,v+1)+'" aria-label="More"'+(v>=max?' disabled':'')+'>+</button></span></div>'; }
 function suSettings(){
+  signPrep();
   var d=S.sc.su.data, st=d.settings||{}, n=st.notice||0, m=st.ahead||0, x=st.maxOff||0, h='';
   h+='<div class="sc-pres-h" style="margin-top:0">Time off requests</div><div class="sc-list">';
   h+=suStep('notice',n,90,'Notice needed', n?[n,n===1?'day':'days']:['—','any time'], n?'Staff must ask at least '+plural(n,'day','days')+' ahead. Earliest right now: '+esc(toNice(st.first))+'.':'Staff can ask for any day, even tomorrow.');
@@ -1495,6 +1500,7 @@ function suSettings(){
   h+=suStep('maxOff',x,20,'Daily limit', x?[x,'max']:['—','no limit'], x?'Up to '+plural(x,'person','people')+' off on a day. Staff can’t request a full day.':'No limit. Every request comes to you.');
   h+='</div><p class="help">These are for '+(S.sc.center==='SF'?'Sioux Falls':'Brandon')+'. You can still put anyone’s time off on the schedule yourself, any day.</p>';
   h+='<div class="sc-pres-h" style="margin-top:18px">Days we’re closed</div>';
+  setTimeout(signPrep, 0);
   var cl=suClosedGroups(d.closedDays||[]), rpi='<svg class="sc-rpi" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#0B6BEB" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Every year"><title>Every year</title><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>';
   h+='<div class="sc-list">'+(cl.length?cl.map(function(g){ var ds=g.dates.join(','), cs=g.centers.join(','), when=g.dates.length>1?toNice(g.dates[0])+' – '+toNice(g.dates[g.dates.length-1]):toNice(g.dates[0]);
     return '<div class="sc-li" style="cursor:default"><span class="grow"><b>'+esc(when)+'</b><span class="sm">'+esc(g.title)+(g.rule?' '+rpi:'')+' <button type="button" class="sc-signb" data-su="csign" data-dates="'+ds+'" data-t="'+esc(g.title)+'" aria-label="Print a Closed sign for '+esc(g.title)+'" title="Print a Closed sign"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button></span></span><button type="button" class="sc-x" data-su="cdel" data-rep="'+(g.rule?'1':'')+'" data-dates="'+ds+'" data-c="'+cs+'" aria-label="Open again on '+esc(when)+'">×</button></div>'
@@ -1914,22 +1920,23 @@ function signPdf(cv){
   add(x+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xo+'\n%%EOF\n');
   return new Blob(parts,{type:'application/pdf'}); }
 // Tap the printer icon: the print window opens straight away with the sign on one page.
-// It prints as a picture, so colors always print and it can't spill onto a second page.
+// The sign is drawn on a canvas and printed from this page (a canvas always prints, colors and all, and can't spill
+// onto a second page). Fonts are loaded when Settings opens so the print starts right from the tap.
+var signReady=false;
+function signPrep(){ if(signReady) return; signFonts().then(function(){ signReady=true; }); }
 function signOpen(title, dates){
-  toast('Getting the '+title+' sign ready…');
   var closed=((S.sc&&S.sc.su&&S.sc.su.data)||{}).closedDays;
-  signFonts().then(function(){
-    var src=signDraw(title, dates, signReopen(dates, closed)).toDataURL('image/jpeg',0.92);
+  var go=function(){
     signClose();
-    var fr=document.createElement('iframe'); fr.id='sg-frame'; fr.setAttribute('aria-hidden','true'); fr.tabIndex=-1;
-    fr.style.cssText='position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
-    fr.srcdoc='<!doctype html><html><head><title>Closed – '+esc(title)+'</title><style>@page{size:letter portrait;margin:0.3in}html,body{margin:0;padding:0;height:100%}img{display:block;width:100%;height:100vh;object-fit:contain}</style></head><body><img alt="" src="'+src+'"></body></html>';
-    fr.onload=function(){ var w=fr.contentWindow, im=w&&w.document.querySelector('img');
-      var go=function(){ try { w.focus(); w.print(); } catch(e){ var a=document.createElement('a'); a.href=src; a.download='Closed - '+title+'.jpg'; a.click(); } };
-      if(im && !im.complete) im.onload=go; else go(); };
-    document.body.appendChild(fr);
-  }); }
-function signClose(){ var w=document.getElementById('sg-wrap'); if(w) w.remove(); var f=document.getElementById('sg-frame'); if(f) f.remove(); }
+    var box=document.createElement('div'); box.id='sg-print'; box.setAttribute('aria-hidden','true');
+    box.appendChild(signDraw(title, dates, signReopen(dates, closed)));
+    document.body.appendChild(box); document.body.classList.add('sg-printing');
+    var done=function(){ window.removeEventListener('afterprint', done); setTimeout(signClose, 300); };
+    window.addEventListener('afterprint', done);
+    window.print();
+  };
+  if(signReady) go(); else { toast('Getting the sign ready…'); signFonts().then(function(){ signReady=true; go(); }); } }
+function signClose(){ ['sg-wrap','sg-frame','sg-print'].forEach(function(id){ var w=document.getElementById(id); if(w) w.remove(); }); document.body.classList.remove('sg-printing'); }
 function toNice(iso){ return scDate(iso).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
 function toWhen(t){ return t.type==='partial'||t.kind==='partial' ? toNice(t.start)+' · '+scT(t.from)+'–'+scT(t.to) : t.start===t.end ? toNice(t.start) : toNice(t.start)+' – '+toNice(t.end); }
 function toStatus(s){ return '<span class="to-st to-'+String(s).toLowerCase()+'">'+(s==='Pending'?'Waiting':s)+'</span>'; }
