@@ -1318,7 +1318,9 @@ function scGapList(g){ var out=[]; SC_DAYS.forEach(function(dd){ var seen={}, or
   (g[dd[0]]||[]).forEach(function(x){ var t=dd[1]+' '+String(scPos(x.p).name||x.p).replace(/ Room$/,'')+' '+scT(x.s)+'–'+scT(x.e)+(x.open?' (open shift)':''); if(!seen[t]){ seen[t]=0; order.push(t); } seen[t]++; });
   order.forEach(function(t){ out.push(t+(seen[t]>1?' ×'+seen[t]:'')); }); }); return out; }
 function scPos(k){ return ((S.sc.data&&S.sc.data.positions)||[]).find(function(p){ return p.key===k; }) || { key:k, name:k, color:'#8e8e93', kind:'room' }; }
-function scRow(id){ return ((S.sc.data&&S.sc.data.rows)||[]).find(function(r){ return r.staffId===id; }) || { staffId:id, days:{}, published:null, rev:0 }; }
+// Someone with nothing this week yet gets an empty row added, so a shift given to them sticks (before, the first one was lost).
+function scRow(id){ var d=S.sc.data, r=((d&&d.rows)||[]).find(function(x){ return x.staffId===id; }); if(r) return r;
+  r={ staffId:id, days:{}, published:null, rev:0 }; if(d){ d.rows=d.rows||[]; d.rows.push(r); } return r; }
 function scInit(){ if(!S.sc){ var nw=scMonday(new Date()); nw.setDate(nw.getDate()+7); S.sc={ center:'SF', week:scIso(nw), data:null, busy:false, edit:null }; } }
 function scPost(o){
   if(o.action==='sched_save' && S.sc && S.sc.ovr){ o.override=true; S.sc.ovr=false; }
@@ -1416,7 +1418,8 @@ function scRoomsView(cols, closed){
   // who isn't working each day
   var un='<tr class="sc-unsch"><th scope="row"><span class="sc-gname"><span class="sc-dot" style="background:#c7c7cc"></span><span>Unscheduled<small>Not working that day</small></span></span></th>'+cols.map(function(cc){
     if(closed[cc.date]) return '<td class="sc-cell sc-closed"></td>';
-    var free=staff.filter(function(p){ return !((scRow(p.id).days||{})[cc.key]||[]).length; });
+    var free=staff.filter(function(p){ return !((scRow(p.id).days||{})[cc.key]||[]).length; }), na=function(p){ return (p.unavail||[]).indexOf(cc.key)>=0 || !!scOffFull(p.id,cc.key); };
+    free.sort(function(a,b){ return (na(a)?1:0)-(na(b)?1:0); });
     if(!free.length) return '<td class="sc-cell"><span class="sc-none">Everyone’s working</span></td>';
     return '<td class="sc-cell"><div class="sc-unl">'+free.map(function(p){ var ua=(p.unavail||[]).indexOf(cc.key)>=0, off=scOffFull(p.id,cc.key);
       return '<button type="button" class="sc-un'+(ua||off?' sc-un-na':'')+'" data-sc="edit" data-id="'+esc(p.id)+'" data-day="'+cc.key+'" title="'+esc(p.name+(ua?' · unavailable':off?' · off':''))+'">'+esc(scShortName(p))+(ua?' <small>unavail.</small>':off?' <small>off</small>':'')+'</button>'; }).join('')+'</div></td>'; }).join('')+'</tr>';
