@@ -1492,15 +1492,27 @@ function suSettings(){
   h+=suStep('maxOff',x,20,'Daily limit', x?[x,'max']:['—','no limit'], x?'Up to '+plural(x,'person','people')+' off on a day. Staff can’t request a full day.':'No limit. Every request comes to you.');
   h+='</div><p class="help">These are for '+(S.sc.center==='SF'?'Sioux Falls':'Brandon')+'. You can still put anyone’s time off on the schedule yourself, any day.</p>';
   h+='<div class="sc-pres-h" style="margin-top:18px">Days we’re closed</div>';
-  var cl=d.closedDays||[];
-  h+='<div class="sc-list">'+(cl.length?cl.map(function(c){ var both=c.centers.length>1||c.centers.indexOf('ALL')>=0;
-    return '<div class="sc-li" style="cursor:default"><span class="grow"><b>'+esc(toNice(c.date))+'</b><span class="sm">'+esc(c.title)+(c.rule?' <svg class="sc-rpi" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#0B6BEB" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Every year"><title>Every year</title><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>':'')+'</span></span><button type="button" class="sc-x" data-su="cdel" data-rep="'+(c.rule?'1':'')+'" data-date="'+c.date+'" data-c="'+c.centers.join(',')+'" aria-label="Open again on '+esc(toNice(c.date))+'">×</button></div>'+(S.sc.su.cdel===c.date?'<div class="sc-li" style="cursor:default;gap:8px;flex-wrap:wrap"><span class="grow sm">This day repeats every year. Open it…</span><button type="button" class="pill" data-su="cdelgo" data-all="" data-date="'+c.date+'" data-c="'+c.centers.join(',')+'">This year only</button><button type="button" class="pill" data-su="cdelgo" data-all="1" data-date="'+c.date+'" data-c="'+c.centers.join(',')+'">Every year</button><button type="button" class="link" data-su="cdelno">Cancel</button></div>':''); }).join(''):'<div class="sc-li" style="cursor:default"><span class="grow sm">No closed days coming up.</span></div>')+'</div>';
+  var cl=suClosedGroups(d.closedDays||[]), rpi='<svg class="sc-rpi" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#0B6BEB" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Every year"><title>Every year</title><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>';
+  h+='<div class="sc-list">'+(cl.length?cl.map(function(g){ var ds=g.dates.join(','), cs=g.centers.join(','), when=g.dates.length>1?toNice(g.dates[0])+' – '+toNice(g.dates[g.dates.length-1]):toNice(g.dates[0]);
+    return '<div class="sc-li" style="cursor:default"><span class="grow"><b>'+esc(when)+'</b><span class="sm">'+esc(g.title)+(g.rule?' '+rpi:'')+'</span></span><button type="button" class="sc-x" data-su="cdel" data-rep="'+(g.rule?'1':'')+'" data-dates="'+ds+'" data-c="'+cs+'" aria-label="Open again on '+esc(when)+'">×</button></div>'
+      +(S.sc.su.cdel===ds?'<div class="sc-li" style="cursor:default;gap:8px;flex-wrap:wrap"><span class="grow sm">'+(g.dates.length>1?'These days repeat':'This day repeats')+' every year. Open…</span><button type="button" class="pill" data-su="cdelgo" data-all="" data-dates="'+ds+'" data-c="'+cs+'">This year only</button><button type="button" class="pill" data-su="cdelgo" data-all="1" data-dates="'+ds+'" data-c="'+cs+'">Every year</button><button type="button" class="link" data-su="cdelno">Cancel</button></div>':''); }).join(''):'<div class="sc-li" style="cursor:default"><span class="grow sm">No closed days coming up.</span></div>')+'</div>';
   if(!S.sc.su.cform){ h+='<button type="button" class="pill" data-su="cform" style="margin-top:12px;background:#0B6BEB;color:#fff;border-color:#0B6BEB">+ Add holiday</button>'; return h; }
-  h+='<div class="sc-two" style="margin-top:12px"><div class="uform" style="padding:0"><label>Date<input type="date" id="su-cdate" min="'+scIso(new Date())+'"></label></div><div class="uform" style="padding:0"><label>What for<input id="su-ctitle" maxlength="60" placeholder="Christmas Day"></label></div></div>';
+  var td=scIso(new Date());
+  h+='<div class="uform" style="padding:12px 0 0"><label>What for<input id="su-ctitle" maxlength="60" placeholder="Thanksgiving"></label></div>';
+  h+='<div class="sc-two" style="margin-top:10px"><div class="uform" style="padding:0"><label>First day<input type="date" id="su-cdate" min="'+td+'"></label></div><div class="uform" style="padding:0"><label>Last day<input type="date" id="su-cend" min="'+td+'"></label></div></div>';
   h+='<div style="display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px"><label class="sc-rep"><input type="checkbox" id="su-cyear" checked> Repeat every year</label></div>';
   h+='<div class="err" id="su-err" role="alert"></div><button type="button" class="btn" data-su="cadd" style="width:100%;margin-top:8px">Add holiday</button><button type="button" class="link" data-su="cform" style="display:block;margin:10px auto 0">Cancel</button>';
   return h;
 }
+// Closed days next to each other with the same name show as one row (Thanksgiving: Thu – Fri). Weekends in between don't break a run.
+function suClosedGroups(list){
+  var out=[], sorted=list.slice().sort(function(a,b){ return a.date<b.date?-1:1; });
+  sorted.forEach(function(c){ var g=out[out.length-1], prev=g&&g.dates[g.dates.length-1], nx=prev&&scIso(scDate(prev,1));
+    while(nx && [0,6].indexOf(scDate(nx).getDay())>=0) nx=scIso(scDate(nx,1));
+    if(g && nx===c.date && g.title===c.title && !!g.rule===!!c.rule){ g.dates.push(c.date); c.centers.forEach(function(x){ if(g.centers.indexOf(x)<0) g.centers.push(x); }); }
+    else out.push({ title:c.title, rule:c.rule, dates:[c.date], centers:c.centers.slice() }); });
+  return out; }
+function suRange(a,b){ var out=[], x=a; if(!b||b<a) b=a; for(var i=0;i<40&&x<=b;i++){ var g=scDate(x).getDay(); if(g!==0&&g!==6) out.push(x); x=scIso(scDate(x,1)); } return out; }
 function suBlockRows(day, list){
   var posOpts=function(sel){ var c=S.sc.center, ps=((S.sc.su.data&&S.sc.su.data.positions)||[]).filter(function(p){ return p.active && p.centers.indexOf(c)>=0 && (p.kind==='room' || p.key===sel); });
     return ps.map(function(p){ return '<option value="'+p.key+'"'+(p.key===sel?' selected':'')+'>'+esc(p.name)+'</option>'; }).join(''); };
@@ -1586,20 +1598,24 @@ function suClick(t){
   if(a==='close'){ S.sc.su=null; scLoad(); return; }
   if(a==='tab'){ su.tab=t.getAttribute('data-v'); render(); return; }
   if(a==='set'){ var o={ action:'sched_settings_save', center:S.sc.center, week:S.sc.week, from:'setup' }; o[t.getAttribute('data-k')]=+t.getAttribute('data-v'); t.disabled=true; scPost(o).then(suApply); return; }
-  if(a==='cadd'){ var cd=($('su-cdate')||{}).value, ct=(($('su-ctitle')||{}).value||'').trim();
-    if(!cd){ $('su-err').textContent='Pick the date.'; return; }
-    if(!ct){ $('su-err').textContent='Say what it’s for, like Christmas Day.'; return; }
-    var cg=scDate(cd).getDay(); if(cg===0||cg===6){ $('su-err').textContent='That’s a '+(cg===0?'Sunday':'Saturday')+', and the centers are already closed on weekends. If the holiday is observed on a weekday, pick that day.'; return; }
-    t.disabled=true; scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, date:cd, title:ct, centers:['SF','BV'], repeat:!!($('su-cyear')||{}).checked }).then(function(r){ if(r&&r.ok) su.cform=false; suApply(r); }); return; }
+  if(a==='cadd'){ var cd=($('su-cdate')||{}).value, ce=($('su-cend')||{}).value, ct=(($('su-ctitle')||{}).value||'').trim();
+    if(!ct){ $('su-err').textContent='Say what it’s for, like Thanksgiving.'; return; }
+    if(!cd){ $('su-err').textContent='Pick the first day.'; return; }
+    if(ce && ce<cd){ $('su-err').textContent='The last day is before the first day.'; return; }
+    var rng=suRange(cd,ce);
+    if(!rng.length){ var cg=scDate(cd).getDay(); $('su-err').textContent='That’s a '+(cg===0?'Sunday':'Saturday')+', and the centers are already closed on weekends. If the holiday is observed on a weekday, pick that day.'; return; }
+    if(rng.length>20){ $('su-err').textContent='That’s more than 4 weeks. Please add it in smaller pieces.'; return; }
+    t.disabled=true; scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, dates:rng, title:ct, centers:['SF','BV'], repeat:!!($('su-cyear')||{}).checked }).then(function(r){ if(r&&r.ok) su.cform=false; suApply(r); }); return; }
   if(a==='crep'){ var on=!t.getAttribute('data-on'), rd=t.getAttribute('data-date');
     if(!on && !confirm('Stop closing on this day every year? '+toNice(rd)+' stays closed, and later years open back up.')) return;
     t.disabled=true; scPost({ action:'sched_closed_repeat', center:S.sc.center, week:S.sc.week, date:rd, on:on, centers:t.getAttribute('data-c').split(',') }).then(suApply); return; }
   if(a==='cform'){ su.cform=!su.cform; render(); if(su.cform){ var ci=$('su-cdate'); if(ci) ci.focus(); } return; }
   if(a==='cdelno'){ su.cdel=null; render(); return; }
-  if(a==='cdelgo'){ var all=!!t.getAttribute('data-all'), gd=t.getAttribute('data-date'); su.cdel=null; t.disabled=true;
-    scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, date:gd, on:false, wasRepeat:!all, allYears:all, centers:t.getAttribute('data-c').split(',') }).then(suApply); return; }
-  if(a==='cdel'){ var dd=t.getAttribute('data-date'), wr=!!t.getAttribute('data-rep'); if(wr){ su.cdel=dd; render(); return; } if(!confirm('Open again on '+toNice(dd)+'? It’ll show as a normal day on the schedule.')) return;
-    t.disabled=true; scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, date:dd, on:false, wasRepeat:wr, centers:t.getAttribute('data-c').split(',') }).then(suApply); return; }
+  if(a==='cdelgo'){ var all=!!t.getAttribute('data-all'), gd=t.getAttribute('data-dates').split(','); su.cdel=null; t.disabled=true;
+    scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, dates:gd, on:false, wasRepeat:!all, allYears:all, centers:t.getAttribute('data-c').split(',') }).then(suApply); return; }
+  if(a==='cdel'){ var dl=t.getAttribute('data-dates'), dd=dl.split(','), wr=!!t.getAttribute('data-rep'); if(wr){ su.cdel=dl; render(); return; }
+    if(!confirm('Open again on '+toNice(dd[0])+(dd.length>1?' – '+toNice(dd[dd.length-1]):'')+'? '+(dd.length>1?'They’ll show as normal days':'It’ll show as a normal day')+' on the schedule.')) return;
+    t.disabled=true; scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, dates:dd, on:false, centers:t.getAttribute('data-c').split(',') }).then(suApply); return; }
   if(a==='back'){ su.edit=null; su.room=null; render(); return; }
   if(a==='staff'){ var id=t.getAttribute('data-id'), src=(su.data.staff||[]).find(function(x){ return x.id===id; });
     su.edit=src?JSON.parse(JSON.stringify(src)):{ id:'', name:'', center:S.sc.center, centers:[S.sc.center], positions:[], payType:'hourly', rate:null, active:true, typical:{} };
