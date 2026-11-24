@@ -321,20 +321,8 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-rep input{width:20px;height:20px}
 .sc-rpt{flex:none;width:44px;height:44px;border-radius:12px;border:0;background:#f2f2f7;color:#8e8e93;display:grid;place-items:center;cursor:pointer;margin-right:8px}.sc-rpt.on{background:#e8f0fe;color:#0B6BEB}
 .sc-signb{display:inline-grid;place-items:center;width:28px;height:28px;margin:-6px 0 -8px 2px;border:0;border-radius:8px;background:none;color:#48484a;cursor:pointer;vertical-align:middle}.sc-signb:hover{background:#f2f2f7}
-#sg-wrap{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.72);display:flex;flex-direction:column;align-items:center;overflow:auto}
-#sg-wrap .sg-bar{width:100%;max-width:640px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;color:#fff}#sg-wrap .sg-bar .link{color:#fff}#sg-wrap .sg-bar .btn{width:auto;padding:8px 20px}
-.sg-stage{position:relative;margin-bottom:24px}.sg-page{position:absolute;top:0;left:0;transform-origin:0 0}
-.sg-page{width:816px;height:1056px;box-sizing:border-box;background:#fff;display:flex;flex-direction:column;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1c1c1e;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.sg-stripe{display:flex;height:18px}.sg-stripe i{flex:1}
-.sg-body{flex:1;display:flex;flex-direction:column;padding:64px 80px 56px}
-.sg-org,.sg-lbl{font-size:16px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#48484a}.sg-lbl{font-size:18px;letter-spacing:.14em}
-.sg-mid{flex:1;display:flex;flex-direction:column;justify-content:center;gap:28px}
-.sg-closed{font-size:190px;font-weight:800;letter-spacing:-.04em;line-height:.9}
-.sg-name{font-size:52px;font-weight:700;line-height:1.1}
-.sg-dates{display:flex;flex-direction:column;gap:6px;font-size:38px;font-weight:600;line-height:1.25;margin-top:8px}
-.sg-box{margin-top:24px;border:3px solid #1c1c1e;border-radius:20px;padding:24px 32px;display:flex;flex-direction:column;gap:6px}.sg-re{font-size:34px;font-weight:700;line-height:1.2}
-.sg-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;border-top:2px solid #d1d1d6;padding-top:24px;font-size:24px}.sg-foot span{font-weight:500;line-height:1.4;color:#3a3a3c;max-width:460px}
-@media print{@page{size:letter;margin:0}body.sg-on>*:not(#sg-wrap){display:none!important}body.sg-on #sg-wrap{position:static;background:none;display:block;overflow:visible}body.sg-on #sg-wrap .sg-bar{display:none}html,body.sg-on{margin:0!important;padding:0!important;background:#fff!important}body.sg-on .sg-stage{width:auto!important;height:auto!important;margin:0}body.sg-on .sg-page{position:static;transform:none!important;zoom:.86;margin:0 auto;break-inside:avoid;page-break-inside:avoid}}
+#sg-wrap{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:grid;place-items:center;padding:16px}
+#sg-wrap .sg-card{background:#fff;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:14px;align-items:center;max-width:320px;text-align:center}#sg-wrap .btn{text-decoration:none;display:block;width:100%;box-sizing:border-box}
 .sc-rpi{vertical-align:-2px;margin-left:2px}
 .sc-li{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:11px 0;font:inherit;color:inherit;cursor:pointer}
 .sc-li .grow{flex:1;min-width:0;display:flex;flex-direction:column}.sc-li .sm{font-size:12px;color:var(--sub);margin-top:2px}
@@ -1869,29 +1857,74 @@ function schedClick(t){
 // ---------- time off: staff request it, managers approve it ----------
 var TO_TYPE={ pto:'Paid PTO', unpaid:'Day off', partial:'Partial day' };
 // ---------- printable "Closed" door sign for a holiday ----------
+// Tapping the printer icon opens a ready-to-print PDF (one letter page, colors included, no browser headers),
+// so whoever prints it just hits Print. The sign is drawn at 300 dpi and wrapped in a one-page PDF.
 function signLong(iso){ return scDate(iso).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}); }
 function signReopen(dates, closed){
   var shut={}; (closed||[]).forEach(function(c){ shut[c.date]=1; }); dates.forEach(function(d){ shut[d]=1; });
   var x=scIso(scDate(dates[dates.length-1],1));
   for(var i=0;i<30;i++){ var g=scDate(x).getDay(); if(g!==0&&g!==6&&!shut[x]) break; x=scIso(scDate(x,1)); }
   return x; }
-function signHtml(title, dates, reopen){
-  var stripe='<div class="sg-stripe">'+['#ef3930','#f58c1f','#FFD60A','#40b549','#0B6BEB'].map(function(c){ return '<i style="background:'+c+'"></i>'; }).join('')+'</div>';
-  return stripe+'<div class="sg-body"><div class="sg-org">School of Early Childhood Education</div><div class="sg-mid"><div class="sg-closed">Closed</div><div class="sg-name">'+esc(title)+'</div><div class="sg-dates">'
-    +dates.map(function(d){ return '<div>'+esc(signLong(d))+'</div>'; }).join('')+'</div><div class="sg-box"><div class="sg-lbl">We reopen</div><div class="sg-re">'+esc(signLong(reopen))+' at 7:00 AM</div></div></div>'
-    +'<div class="sg-foot"><span>Thank you, and enjoy the holiday with your family!</span><b>see.school</b></div></div>'+stripe; }
-function signOpen(title, dates){
-  signClose();
+var SIGN_FONT="'Plus Jakarta Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif";
+function signFonts(){
   if(!document.getElementById('sg-font')){ var l=document.createElement('link'); l.id='sg-font'; l.rel='stylesheet'; l.href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap'; document.head.appendChild(l); }
-  var wrap=document.createElement('div'); wrap.id='sg-wrap'; wrap.setAttribute('role','dialog'); wrap.setAttribute('aria-label','Closed sign for '+title);
-  wrap.innerHTML='<div class="sg-bar"><button type="button" class="link" id="sg-x">Close</button><b>'+esc(title)+' sign</b><button type="button" class="btn" id="sg-print">Print</button></div><div class="sg-stage"><div class="sg-page" id="sg-page">'+signHtml(title, dates, signReopen(dates, ((S.sc&&S.sc.su&&S.sc.su.data)||{}).closedDays))+'</div></div>';
-  document.body.appendChild(wrap); document.body.classList.add('sg-on');
-  var fit=function(){ var p=document.getElementById('sg-page'); if(!p) return; var k=Math.min((window.innerWidth-32)/816,(window.innerHeight-96)/1056,1); p.style.transform='scale('+k+')'; p.parentNode.style.height=(1056*k)+'px'; p.parentNode.style.width=(816*k)+'px'; };
-  fit(); window.addEventListener('resize', fit); wrap._fit=fit;
-  document.getElementById('sg-x').onclick=signClose;
-  document.getElementById('sg-print').onclick=function(){ window.print(); };
-}
-function signClose(){ var w=document.getElementById('sg-wrap'); if(w){ window.removeEventListener('resize', w._fit); w.remove(); } document.body.classList.remove('sg-on'); }
+  if(!document.fonts || !document.fonts.load) return Promise.resolve();
+  var w=['500','600','700','800'].map(function(x){ return document.fonts.load(x+' 40px "Plus Jakarta Sans"'); });
+  return Promise.race([Promise.all(w), new Promise(function(r){ setTimeout(r, 2500); })]).catch(function(){}); }
+function signDraw(title, dates, reopen){
+  var W=816, H=1056, K=3300/1056, cv=document.createElement('canvas'); cv.width=Math.round(W*K); cv.height=3300;
+  var c=cv.getContext('2d'); c.scale(K,K); c.fillStyle='#fff'; c.fillRect(0,0,W,H);
+  var cols=['#ef3930','#f58c1f','#FFD60A','#40b549','#0B6BEB'];
+  cols.forEach(function(col,i){ c.fillStyle=col; c.fillRect(i*W/5,0,W/5+1,18); c.fillRect(i*W/5,H-18,W/5+1,18); });
+  var f=function(wt,px){ c.font=wt+' '+px+'px '+SIGN_FONT; };
+  var fit=function(wt,px,txt,max){ f(wt,px); while(px>12 && c.measureText(txt).width>max){ px-=1; f(wt,px); } return px; };
+  var spaced=function(txt,x,y,sp){ for(var i=0;i<txt.length;i++){ c.fillText(txt[i],x,y); x+=c.measureText(txt[i]).width+sp; } };
+  var L=80, R=W-80, TW=R-L;
+  c.fillStyle='#48484a'; f(700,16); spaced('SCHOOL OF EARLY CHILDHOOD EDUCATION', L, 82+16, 2.56);
+  // footer, from the bottom up
+  f(500,24); var words='Thank you, and enjoy the holiday with your family!'.split(' '), lines=[''], i;
+  for(i=0;i<words.length;i++){ var tryL=(lines[lines.length-1]?lines[lines.length-1]+' ':'')+words[i]; if(c.measureText(tryL).width>440 && lines[lines.length-1]) lines.push(words[i]); else lines[lines.length-1]=tryL; }
+  var fb=H-18-56, lh=34; c.fillStyle='#3a3a3c';
+  lines.forEach(function(t,j){ c.fillText(t, L, fb-(lines.length-1-j)*lh); });
+  f(700,24); c.fillStyle='#1c1c1e'; c.textAlign='right'; c.fillText('see.school', R, fb); c.textAlign='left';
+  var lineY=fb-(lines.length-1)*lh-24-26; c.fillStyle='#d1d1d6'; c.fillRect(L,lineY,TW,2);
+  // middle block, centred between the label and the footer line
+  var nd=dates.length, mid=160+28+57+36+nd*48+(nd-1)*6+52+140, top=120+((lineY-24-120)-mid)/2, y=top;
+  c.fillStyle='#1c1c1e'; var cp=fit(800,190,'Closed',TW); f(800,cp); spaced('Closed', L-6, y+138, -cp*0.04); y+=160+28;
+  c.fillStyle=cols[[...title].reduce(function(a,ch){ return a+ch.charCodeAt(0); },0)%5]; if(c.roundRect){ c.beginPath(); c.roundRect(L,y+22,64,10,5); c.fill(); } else c.fillRect(L,y+22,64,10);
+  c.fillStyle='#1c1c1e'; var np=fit(700,52,title,TW-84); f(700,np); c.fillText(title, L+84, y+45); y+=57+36;
+  dates.forEach(function(d){ var t=signLong(d), dp=fit(600,38,t,TW); f(600,dp); c.fillText(t, L, y+36); y+=54; }); y+=-6+52;
+  c.lineWidth=3; c.strokeStyle='#1c1c1e'; c.beginPath(); if(c.roundRect) c.roundRect(L+1.5,y,TW-3,137,20); else c.rect(L+1.5,y,TW-3,137); c.stroke();
+  c.fillStyle='#48484a'; f(700,18); spaced('WE REOPEN', L+32, y+24+16, 2.5);
+  var rt=signLong(reopen)+' at 7:00 AM', rp=fit(700,34,rt,TW-70); c.fillStyle='#1c1c1e'; f(700,rp); c.fillText(rt, L+32, y+24+22+6+32);
+  return cv; }
+function signPdf(cv){
+  var b64=cv.toDataURL('image/jpeg',0.9).split(',')[1], bin=atob(b64), img=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++) img[i]=bin.charCodeAt(i);
+  var enc=new TextEncoder(), parts=[], off=0, xref=[];
+  var add=function(x){ var u=typeof x==='string'?enc.encode(x):x; parts.push(u); off+=u.length; };
+  var obj=function(n,body){ xref[n]=off; add(n+' 0 obj\n'+body+'\nendobj\n'); };
+  add('%PDF-1.4\n%âã\n');
+  obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  obj(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>');
+  var cs='q 612 0 0 792 0 0 cm /Im0 Do Q'; obj(4,'<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream');
+  xref[5]=off; add('5 0 obj\n<< /Type /XObject /Subtype /Image /Width '+cv.width+' /Height '+cv.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+img.length+' >>\nstream\n'); add(img); add('\nendstream\nendobj\n');
+  var xo=off, x='xref\n0 6\n0000000000 65535 f \n'; for(var n=1;n<=5;n++) x+=String(xref[n]).padStart(10,'0')+' 00000 n \n';
+  add(x+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xo+'\n%%EOF\n');
+  return new Blob(parts,{type:'application/pdf'}); }
+function signOpen(title, dates){
+  var win=null; try { win=window.open('', '_blank'); } catch(e){ win=null; }
+  if(win){ try { win.document.write('<p style="font:16px system-ui;padding:24px">Making the sign…</p>'); } catch(e){} }
+  var closed=((S.sc&&S.sc.su&&S.sc.su.data)||{}).closedDays;
+  signFonts().then(function(){
+    var url=URL.createObjectURL(signPdf(signDraw(title, dates, signReopen(dates, closed))));
+    if(win && !win.closed){ try { win.document.body.innerHTML='<p style="font:18px system-ui;padding:24px"><a href="'+url+'">Open the '+esc(title)+' sign</a></p>'; } catch(e){} try { win.location.href=url; } catch(e){} return; }
+    signClose(); var wrap=document.createElement('div'); wrap.id='sg-wrap'; wrap.setAttribute('role','dialog'); wrap.setAttribute('aria-label','Closed sign for '+title);
+    wrap.innerHTML='<div class="sg-card"><b>'+esc(title)+' sign is ready</b><a class="btn" href="'+url+'" target="_blank" rel="noopener" download="Closed - '+esc(title)+'.pdf">Open the sign</a><button type="button" class="link" id="sg-x">Close</button></div>';
+    document.body.appendChild(wrap); document.getElementById('sg-x').onclick=signClose;
+  }); }
+function signClose(){ var w=document.getElementById('sg-wrap'); if(w) w.remove(); }
 function toNice(iso){ return scDate(iso).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
 function toWhen(t){ return t.type==='partial'||t.kind==='partial' ? toNice(t.start)+' · '+scT(t.from)+'–'+scT(t.to) : t.start===t.end ? toNice(t.start) : toNice(t.start)+' – '+toNice(t.end); }
 function toStatus(s){ return '<span class="to-st to-'+String(s).toLowerCase()+'">'+(s==='Pending'?'Waiting':s)+'</span>'; }
