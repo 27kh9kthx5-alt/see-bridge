@@ -251,6 +251,7 @@ nav .badge{top:-2px;right:14px}
 .sc-open th,.sc-open td{background:#fff}.sc-open td,.sc-open th{border-bottom:1px solid #d1d1d6}
 .sc-foot th,.sc-foot td{border-top:1px solid #d8d8dd;padding:8px 6px;font-size:12px;color:var(--sub);font-weight:600;font-variant-numeric:tabular-nums}
 .sc-foot th{padding-left:14px;text-align:left}
+.sc-gapnote{background:#fde8e7!important;color:#8a1c14!important;border-color:#f5b5b0!important}.sc-gapb{display:block;margin:6px auto 0;border:0;border-radius:999px;background:#e5261b;color:#fff;font:600 12px/1 inherit;font-family:inherit;padding:5px 10px;cursor:pointer}
 .sc-dh{vertical-align:bottom;padding:8px 8px 8px!important}
 .sc-dh .sc-sub,.sc-wk .sc-sub{font-weight:400;margin-top:4px;line-height:1.3}
 .sc-dh .sc-sub{justify-content:center;gap:12px;padding:0 6px}
@@ -1286,6 +1287,28 @@ function scDuties(){ var src=(S.sc.su&&S.sc.su.data)||S.sc.data; return ((src&&s
 function scDutyIcons(b){ return (b.d||[]).map(function(k){ return '<i title="'+esc(scPos(k).name)+'" role="img" aria-label="'+esc(scPos(k).name)+'">'+scIcon(scPos(k))+'</i>'; }).join(''); }
 function scDutyPick(b, attr, extra){ var ds=scDuties(); if(!ds.length) return '';
   return '<div class="sc-dut" role="group" aria-label="Duties on this shift">'+ds.map(function(p){ var on=(b.d||[]).indexOf(p.key)>=0; return '<button type="button" class="sc-tag'+(on?' on':'')+'" '+attr+' data-k="'+p.key+'"'+extra+' aria-pressed="'+on+'"><span aria-hidden="true">'+scIcon(p)+'</span>'+esc(p.name)+'</button>'; }).join('')+'</div>'; }
+// ---------- coverage: needed shifts (Rooms › Shifts › Needed) that nobody on the schedule is covering ----------
+// Same rule as Generate: a person's shift covers a needed one if it's the same room and times, or the same room and at
+// least 3/4 of the hours; a duty can also be covered by a duty tag on someone's shift. Open shifts don't count as covered.
+function scGaps(){
+  var d=S.sc&&S.sc.data; if(!d) return {};
+  var m=function(t){ return +t.slice(0,2)*60+(+t.slice(3)); }, out={}, shut={};
+  (d.closed||[]).forEach(function(c){ var i=Math.round((scDate(c.date)-scDate(S.sc.week))/864e5); if(i>=0&&i<7) shut[SC_ALL_DAYS[i]]=1; });
+  var need=(d.presets||[]).filter(function(x){ return x.need>0; }), openRow=scRow('open').days||{};
+  SC_DAYS.forEach(function(dd){ var k=dd[0]; out[k]=[]; if(shut[k]) return;
+    var free=[]; (d.rows||[]).forEach(function(r){ if(r.staffId==='open') return; ((r.days||{})[k]||[]).forEach(function(b){ free.push({ s:m(b.s), e:m(b.e), p:b.p, d:b.d||[], used:false, dused:[] }); }); });
+    var slots=[]; need.forEach(function(x){ for(var i=0;i<x.need;i++) slots.push({ s:m(x.s), e:m(x.e), p:x.p, S:x.s, E:x.e, ok:false }); });
+    slots.forEach(function(sl){ var b=free.find(function(f){ return !f.used && f.p===sl.p && f.s===sl.s && f.e===sl.e; }); if(b){ b.used=true; sl.ok=true; } });
+    slots.filter(function(sl){ return !sl.ok; }).forEach(function(sl){ var b=free.find(function(f){ return !f.used && f.p===sl.p && (Math.min(f.e,sl.e)-Math.max(f.s,sl.s))>=0.75*(sl.e-sl.s); }); if(b){ b.used=true; sl.ok=true; } });
+    slots.filter(function(sl){ return !sl.ok; }).forEach(function(sl){ var b=free.find(function(f){ return f.d.indexOf(sl.p)>=0 && f.dused.indexOf(sl.p)<0; }); if(b){ b.dused.push(sl.p); sl.ok=true; } });
+    var ob=(openRow[k]||[]).slice();
+    out[k]=slots.filter(function(sl){ return !sl.ok; }).sort(function(a,b){ return a.s-b.s; }).map(function(sl){
+      var oi=ob.findIndex(function(b){ return b.p===sl.p && b.s===sl.S && b.e===sl.E; }); if(oi>=0) ob.splice(oi,1);
+      return { s:sl.S, e:sl.E, p:sl.p, open:oi>=0 }; }); });
+  return out; }
+function scGapList(g){ var out=[]; SC_DAYS.forEach(function(dd){ var seen={}, order=[];
+  (g[dd[0]]||[]).forEach(function(x){ var t=dd[1]+' '+String(scPos(x.p).name||x.p).replace(/ Room$/,'')+' '+scT(x.s)+'–'+scT(x.e)+(x.open?' (open shift)':''); if(!seen[t]){ seen[t]=0; order.push(t); } seen[t]++; });
+  order.forEach(function(t){ out.push(t+(seen[t]>1?' ×'+seen[t]:'')); }); }); return out; }
 function scPos(k){ return ((S.sc.data&&S.sc.data.positions)||[]).find(function(p){ return p.key===k; }) || { key:k, name:k, color:'#8e8e93', kind:'room' }; }
 function scRow(id){ return ((S.sc.data&&S.sc.data.rows)||[]).find(function(r){ return r.staffId===id; }) || { staffId:id, days:{}, published:null, rev:0 }; }
 function scInit(){ if(!S.sc){ var nw=scMonday(new Date()); nw.setDate(nw.getDate()+7); S.sc={ center:'SF', week:scIso(nw), data:null, busy:false, edit:null }; } }
@@ -1446,6 +1469,8 @@ function schedView(){
   if(d.unpublished){ var cg2=scChg(), who=[]; if(cg2.people) who.push(plural(cg2.people,'person’s week','people’s weeks')); if(cg2.open) who.push('open shifts');
     h+='<div class="note">Draft: '+(who.length?who.join(' and ')+(cg2.people+(cg2.open?1:0)>1?' have':' has'):'this week has')+' changes that aren’t published yet (outlined shifts).</div>'; }
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
+  var gaps=scGaps(), gl=scGapList(gaps);
+  if(gl.length) h+='<div class="note sc-gapnote" role="status"><b>Short on coverage ('+gl.length+'):</b> '+esc(gl.slice(0,6).join(' · '))+(gl.length>6?' · +'+(gl.length-6)+' more':'')+'</div>';
   var cols=SC_DAYS.map(function(dd,i){ return { key:dd[0], label:dd[1], date:scIso(scDate(S.sc.week,i)) }; });
   if(vw!=='people'){ h+=vw==='day'?scDayView(cols,closed):scGroupView(vw,cols,closed);
     if(S.sc.edit) h+=scEditor(); if(S.sc.tpl) h+=scTemplates(); if(S.sc.bld) h+=scBuild(); if(S.sc.su) h+=suView(); if(S.sc.asg) h+=scAssign(); if(S.sc.radd) h+=scRoomAdd(); if(S.sc.toOpen) h+=scToSheet(); return h; }
@@ -1482,7 +1507,7 @@ function schedView(){
   }).join('');
   var weekTot=cols.reduce(function(s,c){ return s+dayTot[c.key]; },0), weekCost=cols.reduce(function(t,c){ return t+dayCost[c.key]; },0);
   var tots=function(cost,mins){ return '<span class="sc-sub"><small>'+scMoney(cost)+'</small><small class="sc-hr">'+h2(mins/60)+'</small></span>'; };
-  var head='<tr><th class="sc-wk"><span class="sc-nm">Week</span>'+tots(weekCost,weekTot)+'</th>'+cols.map(function(c){ var dt=scDate(c.date); return '<th class="sc-dh"><button type="button" class="sc-day" data-sc="day" data-date="'+c.date+'">'+c.label+' '+dt.getDate()+(closed[c.date]?'<small>'+esc(closed[c.date])+'</small>':'')+'</button>'+(closed[c.date]?'':tots(dayCost[c.key],dayTot[c.key]))+'</th>'; }).join('')+'</tr>';
+  var head='<tr><th class="sc-wk"><span class="sc-nm">Week</span>'+tots(weekCost,weekTot)+'</th>'+cols.map(function(c){ var dt=scDate(c.date); return '<th class="sc-dh"><button type="button" class="sc-day" data-sc="day" data-date="'+c.date+'">'+c.label+' '+dt.getDate()+(closed[c.date]?'<small>'+esc(closed[c.date])+'</small>':'')+'</button>'+(closed[c.date]?'':tots(dayCost[c.key],dayTot[c.key]))+((gaps[c.key]||[]).length?'<button type="button" class="sc-gapb" data-sc="info" data-msg="'+esc(c.label+' is missing: '+scGapList({[c.key]:gaps[c.key]}).map(function(t){ return t.replace(/^\w+ /,''); }).join(', ')+'.')+'">'+gaps[c.key].length+' short</button>':'')+'</th>'; }).join('')+'</tr>';
   h+='<div class="sc-wrap"><table class="sc-t"><thead>'+head+'</thead><tbody>'+rowsH+'</tbody></table></div>';
   h+='<div class="sc-key">'+(d.positions||[]).filter(function(p){ return p.centers.indexOf(S.sc.center)>=0; }).map(function(p){ return '<span><i style="background:'+p.color+'"></i>'+esc(p.name)+'</span>'; }).join('')+'</div>';
   h+='<p class="help">Tap a day to add or change shifts. Press and hold a shift to drag it to another person or day. Tap a day’s name to mark the center closed or open it again. Hours under each name include time at Brandon; overtime shows in red past 40. Pay is an estimate (time and a half past 40).</p>';
@@ -1857,7 +1882,7 @@ function schedClick(t){
   if(a==='prev'||a==='next'){ S.sc.week=scIso(scDate(S.sc.week,a==='prev'?-7:7)); S.sc.edit=null; scLoad(); return; }
   if(a==='today'){ S.sc.week=scIso(scMonday(new Date())); S.sc.edit=null; scLoad(); return; }
   if(a==='copy'){ if(!confirm('Copy last week’s shifts into this week? People who already have shifts this week are left alone.')) return; t.disabled=true; scPost({ action:'sched_copy', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
-  if(a==='publish'){ if(!confirm('Publish this week? (Staff alerts aren’t turned on yet, so nobody is notified.)')) return; t.disabled=true; scPost({ action:'sched_publish', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
+  if(a==='publish'){ var pg=scGapList(scGaps()); if(!confirm((pg.length?'These needed shifts have nobody on them:\n• '+pg.join('\n• ')+'\n\nPublish anyway?':'Publish this week? Everyone whose week changed gets an alert.'))) return; t.disabled=true; scPost({ action:'sched_publish', center:S.sc.center, week:S.sc.week }).then(scApply); return; }
   if(a==='day'){ var dt=t.getAttribute('data-date'), isC=(S.sc.data.closed||[]).some(function(c){ return c.date===dt; });
     if(isC){ if(!confirm('Open the center again on this day?')) return; scPost({ action:'sched_closed', center:S.sc.center, week:S.sc.week, date:dt, on:false }).then(scApply); }
     else { var hasShifts=(S.sc.data.rows||[]).some(function(r){ var k=SC_DAYS[Math.round((scDate(dt)-scDate(S.sc.week))/864e5)]; return k && ((r.days||{})[k[0]]||[]).length; }); var why=prompt('Mark the center closed this day?'+(hasShifts?' Anyone scheduled that day will be taken off it.':'')+' Type the reason (for example Thanksgiving):','Closed'); if(why===null) return; scPost({ action:'sched_closed', center:S.sc.center, week:S.sc.week, date:dt, title:why }).then(scApply); }
