@@ -311,7 +311,7 @@ nav .badge{top:-2px;right:14px}
 .sc-hit{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .sc-lift{opacity:.35}
 .sc-ghost{position:fixed;z-index:80;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.25);transform:scale(1.04);background:#fff}
-.sc-un{cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none}.sc-slot.sc-drop,.sc-gchip.sc-gopen.sc-drop{outline:3px solid var(--blue);outline-offset:-1px;background:#e8f0fe!important}.sc-dragging .sc-slot.sc-nodrop,.sc-dragging .sc-gchip.sc-nodrop{opacity:.35}
+.sc-un{cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none}.sc-uncell.sc-drop{outline:3px solid var(--blue);outline-offset:-3px;background:#e8f0fe!important}.sc-dragging .sc-uncell.sc-nodrop{opacity:.35}.sc-slot.sc-drop,.sc-gchip.sc-gopen.sc-drop{outline:3px solid var(--blue);outline-offset:-1px;background:#e8f0fe!important}.sc-dragging .sc-slot.sc-nodrop,.sc-dragging .sc-gchip.sc-nodrop{opacity:.35}
 .sc-hit.sc-drop{background:#e8f0fe;outline:2px solid var(--blue);outline-offset:-2px}
 body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.32);display:flex;align-items:flex-end;justify-content:center}
@@ -1416,14 +1416,15 @@ function scRoomsView(cols, closed){
   var per={}; cols.forEach(function(cc){ per[cc.key]=scAllShifts(cc.key); });
   var staff=(d.staff||[]).filter(function(p){ return p.center===c && p.active!==false; });
   var chip=function(x, cc){ var ps=scPos(x.b.p), op=x.id==='open';
-    return '<button type="button" class="sc-chip sc-gchip'+(x.chg?' sc-ichg':'')+(op?' sc-gopen'+(x.chg?' sc-ochg':''):'')+'" data-sc="'+(op?'asg':'edit')+'" data-i="'+x.i+'" data-id="'+esc(x.id)+'" data-day="'+cc.key+'" style="--c:'+ps.color+';--on:'+scOn(ps.color)+';background-color:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+(op?'Open · Assign':esc(scShortName(x.who)))+(x.b.d&&x.b.d.length?'<span class="sc-di">'+scDutyIcons(x.b)+'</span>':'')+'</b><span>'+scT(x.b.s)+'–'+scT(x.b.e)+'</span></button>'; };
+    return '<button type="button" class="sc-chip sc-gchip'+(x.chg?' sc-ichg':'')+(op?' sc-gopen'+(x.chg?' sc-ochg':''):' sc-drag sc-rchip')+'" data-sc="'+(op?'asg':'edit')+'" data-i="'+x.i+'" data-id="'+esc(x.id)+'" data-day="'+cc.key+'"'+(op?'':' data-did="'+esc(x.id)+'" data-dday="'+cc.key+'" data-di="'+x.i+'"')+' style="--c:'+ps.color+';--on:'+scOn(ps.color)+';background-color:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+(op?'Open · Assign':esc(scShortName(x.who)))+(x.b.d&&x.b.d.length?'<span class="sc-di">'+scDutyIcons(x.b)+'</span>':'')+'</b><span>'+scT(x.b.s)+'–'+scT(x.b.e)+'</span></button>'; };
   // who isn't working each day
   var un='<tr class="sc-unsch"><th scope="row"><span class="sc-gname"><span class="sc-dot" style="background:#c7c7cc"></span><span>Unscheduled<small>Not working that day</small></span></span></th>'+cols.map(function(cc){
     if(closed[cc.date]) return '<td class="sc-cell sc-closed"></td>';
+    var tdo='<td class="sc-cell sc-uncell" data-day="'+cc.key+'">';
     var free=staff.filter(function(p){ return !((scRow(p.id).days||{})[cc.key]||[]).length; }), na=function(p){ return (p.unavail||[]).indexOf(cc.key)>=0 || !!scOffFull(p.id,cc.key); };
     free.sort(function(a,b){ return (na(a)?1:0)-(na(b)?1:0); });
-    if(!free.length) return '<td class="sc-cell"><span class="sc-none">Everyone’s working</span></td>';
-    return '<td class="sc-cell"><div class="sc-unl">'+free.map(function(p){ var ua=(p.unavail||[]).indexOf(cc.key)>=0, off=scOffFull(p.id,cc.key);
+    if(!free.length) return tdo+'<span class="sc-none">Everyone’s working</span></td>';
+    return tdo+'<div class="sc-unl">'+free.map(function(p){ var ua=(p.unavail||[]).indexOf(cc.key)>=0, off=scOffFull(p.id,cc.key);
       return '<button type="button" class="sc-un'+(ua||off?' sc-un-na':'')+'" data-sc="edit" data-id="'+esc(p.id)+'" data-day="'+cc.key+'" title="'+esc(p.name+(ua?' · unavailable':off?' · off':''))+'">'+esc(scShortName(p))+(ua?' <small>unavail.</small>':off?' <small>off</small>':'')+'</button>'; }).join('')+'</div></td>'; }).join('')+'</tr>';
   var rows=rooms.map(function(g){
     var cells=cols.map(function(cc){
@@ -1864,6 +1865,9 @@ var SCD={ t:null, on:false, src:null, ghost:null, over:null, x0:0, y0:0, skipCli
 function scDragEnd(){ clearTimeout(SCD.t); SCD.t=null; SCD.lift=null; Array.prototype.forEach.call(document.querySelectorAll('.sc-nodrop'),function(c){ c.classList.remove('sc-nodrop'); }); if(SCD.ghost){ SCD.ghost.remove(); SCD.ghost=null; } if(SCD.over){ SCD.over.classList.remove('sc-drop'); SCD.over=null; } if(SCD.src&&SCD.src.el) SCD.src.el.classList.remove('sc-lift'); document.body.classList.remove('sc-dragging'); SCD.on=false; SCD.src=null; }
 function scTargetAt(x,y){ if(SCD.ghost) SCD.ghost.style.display='none'; var el=document.elementFromPoint(x,y); if(SCD.ghost) SCD.ghost.style.display='';
   // A name from Unscheduled drops onto a room's shift block (Unfilled, or an open shift) on the same day.
+  if(SCD.src && SCD.src.rooms){ var rt=el && (el.closest('.sc-uncell')||el.closest('.sc-slot')); if(!rt && el && el.closest('tr.sc-unsch')) rt=document.querySelector('.sc-uncell[data-day="'+SCD.src.day+'"]');
+    if(!rt && el){ var rtd=el.closest('.sc-gt td.sc-cell'); if(rtd) rt=rtd.querySelector('.sc-slot'); }
+    return rt && rt.getAttribute('data-day')===SCD.src.day ? rt : null; }
   if(SCD.src && SCD.src.person){ var sl=el && el.closest('.sc-slot,.sc-gchip.sc-gopen');
     // Anywhere in a room's cell counts too: it fills that room's first unfilled (or open) shift that day.
     if(!sl && el){ var td=el.closest('.sc-gt td.sc-cell'); if(td) sl=td.querySelector('.sc-slot')||td.querySelector('.sc-gchip.sc-gopen'); }
@@ -1876,10 +1880,10 @@ document.addEventListener('pointerdown',function(e){
   var ch=e.target.closest && e.target.closest('.sc-drag, .sc-un'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su || S.sc.menu || S.sc.gear || S.sc.vmenu || S.sc.asg || S.sc.radd || S.sc.toOpen) return;
   if(e.pointerType==='mouse' && e.button!==0) return;
   SCD.x0=e.clientX; SCD.y0=e.clientY;
-  SCD.src=ch.classList.contains('sc-un') ? { el:ch, person:true, id:ch.getAttribute('data-id'), day:ch.getAttribute('data-day') } : { el:ch, id:ch.getAttribute('data-did'), day:ch.getAttribute('data-dday'), i:+ch.getAttribute('data-di') };
+  SCD.src=ch.classList.contains('sc-un') ? { el:ch, person:true, id:ch.getAttribute('data-id'), day:ch.getAttribute('data-day') } : { el:ch, rooms:ch.classList.contains('sc-rchip'), id:ch.getAttribute('data-did'), day:ch.getAttribute('data-dday'), i:+ch.getAttribute('data-di') };
   SCD.lift=function(){ SCD.lift=null;
     SCD.on=true; SCD.skipClick=true; ch.classList.add('sc-lift'); document.body.classList.add('sc-dragging');
-    Array.prototype.forEach.call(document.querySelectorAll(SCD.src.person?'.sc-slot,.sc-gchip.sc-gopen':'.sc-hit[data-sc=edit]'),function(c){ if(c.getAttribute('data-day')!==SCD.src.day) c.classList.add('sc-nodrop'); });
+    Array.prototype.forEach.call(document.querySelectorAll(SCD.src.person?'.sc-slot,.sc-gchip.sc-gopen':SCD.src.rooms?'.sc-slot,.sc-uncell':'.sc-hit[data-sc=edit]'),function(c){ if(c.getAttribute('data-day')!==SCD.src.day) c.classList.add('sc-nodrop'); });
     var r=ch.getBoundingClientRect(), g=ch.cloneNode(true); g.className='sc-chip sc-ghost'; g.style.width=r.width+'px'; g.style.left=(SCD.x0-r.width/2)+'px'; g.style.top=(SCD.y0-r.height/2)+'px';
     document.body.appendChild(g); SCD.ghost=g; try{ if(navigator.vibrate) navigator.vibrate(15); }catch(err){}
   };
@@ -1902,10 +1906,19 @@ document.addEventListener('pointerup',function(e){
   var src=SCD.src, tg=scTargetAt(e.clientX,e.clientY); scDragEnd();
   setTimeout(function(){ SCD.skipClick=false; }, 350);
   if(!tg) return;
+  if(src.rooms){ if(tg.classList.contains('sc-uncell')) scUnassign(src); else scReslot(src, { s:tg.getAttribute('data-s'), e:tg.getAttribute('data-e'), p:tg.getAttribute('data-key') }); return; }
   if(src.person){ if(tg.classList.contains('sc-slot')) scGive(src.id, src.day, { s:tg.getAttribute('data-s'), e:tg.getAttribute('data-e'), p:tg.getAttribute('data-key') });
     else scMove({ id:'open', day:src.day, i:+tg.getAttribute('data-i') }, src.id, src.day); return; }
   scMove(src, tg.getAttribute('data-id'), tg.getAttribute('data-day'));
 });
+// By room: drag someone's shift back to Unscheduled to take them off it, or onto another unfilled shift to move them there.
+function scUnassign(src){ var row=scRow(src.id); row.days=JSON.parse(JSON.stringify(row.days||{})); var L=row.days[src.day]||[]; if(!L[src.i]) return;
+  L.splice(src.i,1); render(); scQueue(src.id, false); }
+function scReslot(src, slot){ var row=scRow(src.id), L=((row.days||{})[src.day]||[]).slice(), b=L[src.i]; if(!b) return;
+  var nb=Object.assign({}, b, { s:slot.s, e:slot.e, p:slot.p }), rest=L.filter(function(x,j){ return j!==src.i; }), nm=((S.sc.data.staff||[]).find(function(x){ return x.id===src.id; })||{}).name||'They';
+  if(!scOverlapOk(nm, rest.concat([nb]))){ render(); return; }
+  var before=JSON.parse(JSON.stringify(row.days||{})); row.days=JSON.parse(JSON.stringify(row.days||{}));
+  row.days[src.day]=rest.concat([nb]).sort(function(a,c){ return a.s<c.s?-1:1; }); render(); scQueue(src.id, false); scFillOpen(src.id, before, row.days); }
 // Put someone on a shift (from By room): same checks as everywhere else, saved in the background.
 function scGive(id, day, blk){
   if(!scUnavailOk(id,day)){ render(); return; }
