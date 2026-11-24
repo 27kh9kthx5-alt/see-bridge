@@ -1469,7 +1469,8 @@ function schedView(){
   if(d.unpublished){ var cg2=scChg(), who=[]; if(cg2.people) who.push(plural(cg2.people,'person’s week','people’s weeks')); if(cg2.open) who.push('open shifts');
     h+='<div class="note">Draft: '+(who.length?who.join(' and ')+(cg2.people+(cg2.open?1:0)>1?' have':' has'):'this week has')+' changes that aren’t published yet (outlined shifts).</div>'; }
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
-  var gaps=scGaps(), gl=scGapList(gaps);
+  // Coverage warnings only once the week has a schedule in it (after Generate, a copy or a template).
+  var gaps=scShiftCount()?scGaps():{}, gl=scGapList(gaps);
   if(gl.length) h+='<div class="note sc-gapnote" role="status"><b>Short on coverage ('+gl.length+'):</b> '+esc(gl.slice(0,6).join(' · '))+(gl.length>6?' · +'+(gl.length-6)+' more':'')+'</div>';
   var cols=SC_DAYS.map(function(dd,i){ return { key:dd[0], label:dd[1], date:scIso(scDate(S.sc.week,i)) }; });
   if(vw!=='people'){ h+=vw==='day'?scDayView(cols,closed):scGroupView(vw,cols,closed);
