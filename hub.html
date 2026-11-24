@@ -36,7 +36,7 @@ h1{margin:2px 0 0;font-size:32px;font-weight:700;letter-spacing:-.02em}
 .wait.live{display:block;cursor:default}.wait.live .k{opacity:.85;font-size:14px}.wait.live .k2{font-size:13px;opacity:.85;margin-top:10px;text-transform:none}.wait.live .b{margin-top:2px}.wait.live .s{margin-top:4px;opacity:.92}
 .wfoot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap}.wacts{display:flex;gap:8px;flex-wrap:wrap}
 .wbtn{display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border-radius:999px;border:2px solid #fff;background:#fff;color:#c4211a;font:600 15px/1 inherit;font-family:inherit;text-decoration:none;cursor:pointer}.wbtn.ghost{background:none;color:#fff}.wbtn:disabled{opacity:.6}
-.wait.live .k2:first-child{margin-top:0}.wait.live .wacts{display:grid;justify-content:end;gap:8px;margin-top:14px}.wait.live .wacts .wbtn{justify-content:center;min-width:120px}.wait.live .wfoot{display:flex;justify-content:flex-end;margin-top:10px}
+.wait.live .k2:first-child{margin-top:0}.wait.live{display:flex!important;align-items:flex-end;gap:16px}.wait.live .wtext{flex:1;min-width:0;align-self:center}.wait.live .wside{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:8px}.wait.live .wacts{display:grid;gap:8px;margin:0}.wait.live .wacts .wbtn{justify-content:center;min-width:110px}.wait.live .wfoot{display:flex;justify-content:flex-end;margin:0}
 .wnav{display:flex;align-items:center;gap:6px;margin-left:auto}.wch{width:36px;height:36px;border:0;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;cursor:pointer}.wch svg{width:18px;height:18px}.wch:disabled{opacity:.35;cursor:default}
 .wdots{display:flex;gap:6px;padding:0 2px}.wdots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.45)}.wdots i.on{background:#fff}.wcount{font-size:13px;font-weight:600;padding:0 4px}
 .wait.calm{background:var(--card);color:var(--ink);cursor:default}
@@ -659,8 +659,8 @@ function waitCard(needs){
     +(t.length<=7 ? '<span class="wdots" aria-label="'+(i+1)+' of '+t.length+'">'+t.map(function(_,j){ return '<i'+(j===i?' class="on"':'')+'></i>'; }).join('')+'</span>' : '<span class="wcount">'+(i+1)+' of '+t.length+'</span>')
     +'<button type="button" class="wch" data-wnav="1" aria-label="Next"'+(i<t.length-1?'':' disabled')+'>'+svg('chev','#fff')+'</button></div>' : '';
   return '<div class="wait live" id="wait-card" aria-live="polite">'
-    +'<div class="k2">'+esc(x.k)+'</div><div class="b">'+esc(x.b)+'</div>'+(x.s?'<div class="s">'+esc(x.s)+'</div>':'')
-    +(x.acts?'<div class="wacts">'+x.acts+'</div>':'')+(dots?'<div class="wfoot">'+dots+'</div>':'')+'</div>'; }
+    +'<div class="wtext"><div class="k2">'+esc(x.k)+'</div><div class="b">'+esc(x.b)+'</div>'+(x.s?'<div class="s">'+esc(x.s)+'</div>':'')+'</div>'
+    +((x.acts||dots)?'<div class="wside">'+(x.acts?'<div class="wacts">'+x.acts+'</div>':'')+(dots?'<div class="wfoot">'+dots+'</div>':'')+'</div>':'')+'</div>'; }
 function plural(n,a,b){ return n+' '+(n===1?a:b); }
 function home(){
   var f=feed(), needs=f.filter(function(x){ return x.needs; });
