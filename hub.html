@@ -32,6 +32,7 @@ h1{margin:2px 0 0;font-size:32px;font-weight:700;letter-spacing:-.02em}
 .seg button{flex:1;height:32px;border:0;border-radius:8px;background:transparent;font-size:13px;font-weight:500;color:#3a3a3f;cursor:pointer}
 .seg button[aria-pressed=true]{background:#fff;font-weight:600;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .wait{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#e5261b;color:#fff;border:0;border-radius:18px;padding:16px 18px;margin-top:16px;cursor:pointer}
+.sgb{display:flex;align-items:center;gap:14px;background:#fff7e6;border:1px solid #f5c36b;border-radius:18px;padding:14px 16px;margin-top:16px;color:var(--ink)}.sgb.done{background:#eaf7ec;border-color:#9fd8a8}.sgb .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.sgb .sm{color:var(--sub);font-size:14px}.sgb-i svg{width:22px;height:22px}.sgb-i{flex:none;width:40px;height:40px;border-radius:12px;background:#fff;display:grid;place-items:center;color:#b45309}.sgb.done .sgb-i{color:#1f7a33}.sgb-p{flex:none;background:#0B6BEB!important;color:#fff!important;border-color:#0B6BEB!important}.sgb-x{flex:none;width:36px;height:36px;border:0;border-radius:10px;background:none;font-size:22px;color:var(--sub);cursor:pointer}
 .wait.calm{background:var(--card);color:var(--ink);cursor:default}
 .wait .k{font-size:13px;color:#fff;font-weight:500}
 .wait.calm .k{color:var(--sub)}
@@ -535,6 +536,7 @@ function inFilter(x,f){ if(f==='all') return true; if(f==='needs') return x.need
 function apply(r){
   if(r && r.locked){ var wp=me&&!me.session; save(null); S.data=null; S.users=null; showLogin(r.error,'',wp?'pass':''); return false; }
   if(!r || !r.ok){ toast((r&&r.error)||'Something went wrong.'); return false; }
+  setTimeout(signFetch, 0);
   (r.feed||[]).forEach(function(x){ if(x.kind==='term' && x.id.indexOf('toc:')===0) x.kind='termcare'; });
   S.data=r; S.prefs=r.prefs;
   var ib=document.querySelector('nav [data-tab=inbox]'); if(ib) ib.classList.toggle('hidden', !!r.staff);
@@ -609,6 +611,23 @@ function centerSeg(){
   if(S.data.role!=='ALL') return '';
   return '<div class="seg" role="group" aria-label="Center">'+[['SF','Sioux Falls'],['all','SEE'],['BV','Brandon']].map(function(c){ return '<button type="button" data-center="'+c[0]+'" aria-pressed="'+(S.center===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>';
 }
+// A week before a closed holiday: a reminder to print and hang the Closed sign at each center's door.
+function signBanners(){
+  var list=(S.signs||[]).filter(function(x){ return !S.center || S.center==='all' || x.center===S.center; });
+  if(!list.length) return ''; signPrep();
+  var ctr=function(c){ return c==='SF'?'Sioux Falls':'Brandon'; }, both=S.data && S.data.role==='ALL';
+  var ico='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>';
+  return list.map(function(x){ var key=x.center+'|'+x.start, wd=x.dates.length>1?toNice(x.dates[0])+' – '+toNice(x.dates[x.dates.length-1]):toNice(x.start);
+    if(x.by) return '<div class="sgb done" role="status"><span class="sgb-i">'+svg('check')+'</span><span class="grow"><b>'+esc(x.by)+' printed and hung the '+esc(x.title)+' closed sign</b><span class="sm">'+(both?esc(ctr(x.center))+' · ':'')+esc(when(x.at))+'</span></span><button type="button" class="sgb-x" data-signx="'+key+'" aria-label="Dismiss">×</button></div>';
+    var soon=x.days<=0?'is today':x.days===1?'is tomorrow':'is in '+x.days+' days';
+    return '<div class="sgb"><span class="sgb-i">'+ico+'</span><span class="grow"><b>'+esc(x.title)+' '+soon+'</b><span class="sm">Closed '+esc(wd)+'. Print the sign for the '+(both?esc(ctr(x.center))+' ':'')+'door.</span></span><button type="button" class="pill sgb-p" data-sign="'+key+'">Print sign</button></div>'; }).join(''); }
+var signAt=0;
+function signFetch(){ if(!me || !S.data || S.data.staff || Date.now()-signAt<60000) return; signAt=Date.now(); scPost({ action:'sched_signs' }).then(function(r){ if(r&&r.ok){ S.signs=r.signs||[]; if(S.view==='home') render(); } }); }
+function signBannerClick(t){
+  var k=(t.getAttribute('data-sign')||t.getAttribute('data-signx')).split('|'), x=(S.signs||[]).find(function(y){ return y.center===k[0] && y.start===k[1]; }); if(!x) return;
+  var save=function(action){ scPost({ action:action, center:x.center, date:x.start }).then(function(r){ if(r&&r.ok){ S.signs=r.signs||[]; render(); } else toast((r&&r.error)||'That didn’t save.'); }); };
+  if(t.hasAttribute('data-signx')){ S.signs=S.signs.filter(function(y){ return y!==x; }); render(); save('sched_sign_hide'); return; }
+  signOpen(x.title, x.dates, x.reopen, function(){ if(confirm('Did the '+x.title+' sign get printed and hung on the door?')) save('sched_sign_done'); }); }
 function plural(n,a,b){ return n+' '+(n===1?a:b); }
 function home(){
   var f=feed(), needs=f.filter(function(x){ return x.needs; });
@@ -622,7 +641,7 @@ function home(){
   var d=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
   var n=f.filter(function(x){ return x.unread||x.needs; }).length;
   var h='<div class="top"><div><div class="eyebrow">'+esc(d)+'</div><h1>'+esc(S.data.role==='ALL'?'SEE Bridge':'Bridge · '+S.data.label)+'</h1></div>'+
-    '<button type="button" class="round" data-go="inbox" aria-label="Inbox, '+n+' new">'+svg('bell')+(n?'<span class="badge">'+(n>99?'99+':n)+'</span>':'')+'</button></div>'+centerSeg();
+    '<button type="button" class="round" data-go="inbox" aria-label="Inbox, '+n+' new">'+svg('bell')+(n?'<span class="badge">'+(n>99?'99+':n)+'</span>':'')+'</button></div>'+centerSeg()+signBanners();
   h+= needs.length ? '<button type="button" class="wait" data-go="needs"><span style="flex:1"><div class="k">Waiting on you</div><div class="b">'+plural(needs.length,'thing needs','things need')+' you</div><div class="s">'+esc(parts.join(' · '))+'</div></span>'+svg('chev','#fff')+'</button>'
     : '<div class="wait calm"><span><div class="k">Waiting on you</div><div class="b">Nothing right now</div></span></div>';
   var team=[
@@ -1079,6 +1098,7 @@ document.addEventListener('click',function(e){
   if(S.sc&&(S.sc.menu||S.sc.gear||S.sc.vmenu) && !(e.target.closest&&e.target.closest('.sc-dd'))){ S.sc.menu=false; S.sc.gear=false; S.sc.vmenu=false; render(); return; }
   var t=e.target.closest('button,a,.item'); if(!t) return;
   if(t.hasAttribute('data-su')){ suClick(t); return; }
+  if(t.hasAttribute('data-sign')||t.hasAttribute('data-signx')){ signBannerClick(t); return; }
   if(t.hasAttribute('data-my')){ myClick(t); return; }
   if(t.hasAttribute('data-tab')){ setView(t.getAttribute('data-tab')); if(t.getAttribute('data-tab')!=='settings') refresh(true); return; }
   if(t.hasAttribute('data-sc')){ schedClick(t); return; }
@@ -1924,14 +1944,14 @@ function signPdf(cv){
 // onto a second page). Fonts are loaded when Settings opens so the print starts right from the tap.
 var signReady=false;
 function signPrep(){ if(signReady) return; signFonts().then(function(){ signReady=true; }); }
-function signOpen(title, dates){
+function signOpen(title, dates, reopen, after){
   var closed=((S.sc&&S.sc.su&&S.sc.su.data)||{}).closedDays;
   var go=function(){
     signClose();
     var box=document.createElement('div'); box.id='sg-print'; box.setAttribute('aria-hidden','true');
-    box.appendChild(signDraw(title, dates, signReopen(dates, closed)));
+    box.appendChild(signDraw(title, dates, reopen||signReopen(dates, closed)));
     document.body.appendChild(box); document.body.classList.add('sg-printing');
-    var done=function(){ window.removeEventListener('afterprint', done); setTimeout(signClose, 300); };
+    var done=function(){ window.removeEventListener('afterprint', done); setTimeout(function(){ signClose(); if(after) after(); }, 300); };
     window.addEventListener('afterprint', done);
     window.print();
   };
