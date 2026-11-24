@@ -630,7 +630,15 @@ function signBanners(done){
     var soon=x.days<=0?'is today':x.days===1?'is tomorrow':'is in '+x.days+' days';
     return '<div class="sgb"><span class="sgb-i">'+ico+'</span><span class="grow"><b>'+esc(x.title)+' '+soon+'</b><span class="sm">Closed '+esc(wd)+'. Print the sign for the '+(both?esc(ctr(x.center))+' ':'')+'door.</span></span><button type="button" class="pill sgb-p" data-sign="'+key+'">Print sign</button></div>'; }).join(''); }
 var signAt=0;
-function signFetch(){ if(!me || !S.data || S.data.staff || Date.now()-signAt<60000) return; signAt=Date.now(); scPost({ action:'sched_signs' }).then(function(r){ if(r&&r.ok){ S.signs=r.signs||[]; if(S.view==='home'||S.view==='inbox') render(); } }); }
+function signFetch(){ if(!me || !S.data || S.data.staff || Date.now()-signAt<60000) return; signAt=Date.now(); scPost({ action:'sched_signs' }).then(function(r){ if(r&&r.ok){ S.signs=r.signs||[]; S.stasks=r.tasks||[]; if(S.view==='home'||S.view==='inbox') render(); } }); }
+function schedTaskClick(t){
+  var a=t.getAttribute('data-stask'), x=(S.stasks||[]).find(function(y){ return y.key===t.getAttribute('data-key'); }); if(!x) return;
+  var wk=scIso(scMonday(new Date())), again=function(r){ if(r&&r.ok){ if(r.message) toast(r.message); signAt=0; signFetch(); } else { t.disabled=false; toast((r&&r.error)||'That didn’t work.'); } };
+  if(a==='go'){ scInit(); S.sc.center=x.center; S.sc.week=x.week; S.sc.su=null; setView('sched'); scLoad(); return; }
+  if(a==='nudge'){ t.disabled=true; scPost({ action:'sched_nudge', center:x.center, week:x.week }).then(function(r){ if(r&&r.ok){ toast(r.message||'Sent.'); S.signs=r.signs||S.signs; S.stasks=r.tasks||[]; render(); } else again(r); }); return; }
+  if(a==='deny' && !confirm('Deny this request? They’ll get an alert.')) return;
+  t.disabled=true; S.stasks=S.stasks.filter(function(y){ return y!==x; });
+  scPost({ action:x.type==='toff'?'sched_toff_decide':'sched_req_decide', center:x.center, week:wk, id:x.id, decision:a==='deny'?'deny':'approve' }).then(function(r){ render(); again(r); }); }
 function signBannerClick(t){
   var k=(t.getAttribute('data-sign')||t.getAttribute('data-signx')).split('|'), x=(S.signs||[]).find(function(y){ return y.center===k[0] && y.start===k[1]; }); if(!x) return;
   var save=function(action){ scPost({ action:action, center:x.center, date:x.start }).then(function(r){ if(r&&r.ok){ S.signs=r.signs||[]; render(); } else toast((r&&r.error)||'That didn’t save.'); }); };
@@ -644,6 +652,12 @@ function waitTasks(needs){
     var soon=x.days<=0?'today':x.days===1?'tomorrow':'in '+x.days+' days';
     return { key:'sign:'+x.center+'|'+x.start, k:'Closed sign · '+x.title+' is '+soon, b:'Print and hang the '+x.title+' sign', s:'Closed '+wd+(both?' · '+ctr(x.center)+' door':''),
       acts:'<button type="button" class="wic" data-sign="'+x.center+'|'+x.start+'" aria-label="Print the sign" title="Print the sign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>' }; });
+  var SEND='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>';
+  (S.stasks||[]).filter(function(x){ return !S.center || S.center==='all' || x.center===S.center; }).forEach(function(x){
+    var k=esc(x.key), acts = x.type==='toff'||x.type==='req' ? '<button type="button" class="wic ghost" data-stask="deny" data-key="'+k+'" aria-label="Deny" title="Deny">'+svg('x')+'</button><button type="button" class="wic ok" data-stask="approve" data-key="'+k+'" aria-label="Approve" title="Approve">'+svg('check')+'</button>'
+      : x.type==='nudge' ? '<button type="button" class="wic" data-stask="nudge" data-key="'+k+'" aria-label="Send them a reminder" title="Send them a reminder">'+SEND+'</button>'
+      : '<button type="button" class="wic" data-stask="go" data-key="'+k+'" aria-label="Open the schedule" title="Open the schedule">'+svg('chev')+'</button>';
+    t.push({ key:x.key, k:x.k, b:x.b, s:x.s, acts:acts }); });
   needs.forEach(function(x){ var kn=(KIND[x.kind]||{}).name||'';
     var go=svg('chev');
     var acts = x.pto ? '<button type="button" class="wic ghost" data-pto="deny" data-id="'+esc(x.pto)+'" aria-label="Deny" title="Deny">'+svg('x')+'</button><button type="button" class="wic ok" data-pto="approve" data-id="'+esc(x.pto)+'" aria-label="Approve" title="Approve">'+svg('check')+'</button>'
@@ -1133,6 +1147,7 @@ document.addEventListener('click',function(e){
   var t=e.target.closest('button,a,.item'); if(!t) return;
   if(t.hasAttribute('data-su')){ suClick(t); return; }
   if(t.hasAttribute('data-sign')||t.hasAttribute('data-signx')){ signBannerClick(t); return; }
+  if(t.hasAttribute('data-stask')){ schedTaskClick(t); return; }
   if(t.hasAttribute('data-wnav')){ S.wIdx=(S.wIdx||0)+(+t.getAttribute('data-wnav')); render(); return; }
   if(t.hasAttribute('data-my')){ myClick(t); return; }
   if(t.hasAttribute('data-tab')){ setView(t.getAttribute('data-tab')); if(t.getAttribute('data-tab')!=='settings') refresh(true); return; }
