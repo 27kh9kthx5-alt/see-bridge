@@ -1913,18 +1913,23 @@ function signPdf(cv){
   var xo=off, x='xref\n0 6\n0000000000 65535 f \n'; for(var n=1;n<=5;n++) x+=String(xref[n]).padStart(10,'0')+' 00000 n \n';
   add(x+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xo+'\n%%EOF\n');
   return new Blob(parts,{type:'application/pdf'}); }
+// Tap the printer icon: the print window opens straight away with the sign on one page.
+// It prints as a picture, so colors always print and it can't spill onto a second page.
 function signOpen(title, dates){
-  var win=null; try { win=window.open('', '_blank'); } catch(e){ win=null; }
-  if(win){ try { win.document.write('<p style="font:16px system-ui;padding:24px">Making the sign…</p>'); } catch(e){} }
+  toast('Getting the '+title+' sign ready…');
   var closed=((S.sc&&S.sc.su&&S.sc.su.data)||{}).closedDays;
   signFonts().then(function(){
-    var url=URL.createObjectURL(signPdf(signDraw(title, dates, signReopen(dates, closed))));
-    if(win && !win.closed){ try { win.document.body.innerHTML='<p style="font:18px system-ui;padding:24px"><a href="'+url+'">Open the '+esc(title)+' sign</a></p>'; } catch(e){} try { win.location.href=url; } catch(e){} return; }
-    signClose(); var wrap=document.createElement('div'); wrap.id='sg-wrap'; wrap.setAttribute('role','dialog'); wrap.setAttribute('aria-label','Closed sign for '+title);
-    wrap.innerHTML='<div class="sg-card"><b>'+esc(title)+' sign is ready</b><a class="btn" href="'+url+'" target="_blank" rel="noopener" download="Closed - '+esc(title)+'.pdf">Open the sign</a><button type="button" class="link" id="sg-x">Close</button></div>';
-    document.body.appendChild(wrap); document.getElementById('sg-x').onclick=signClose;
+    var src=signDraw(title, dates, signReopen(dates, closed)).toDataURL('image/jpeg',0.92);
+    signClose();
+    var fr=document.createElement('iframe'); fr.id='sg-frame'; fr.setAttribute('aria-hidden','true'); fr.tabIndex=-1;
+    fr.style.cssText='position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
+    fr.srcdoc='<!doctype html><html><head><title>Closed – '+esc(title)+'</title><style>@page{size:letter portrait;margin:0.3in}html,body{margin:0;padding:0;height:100%}img{display:block;width:100%;height:100vh;object-fit:contain}</style></head><body><img alt="" src="'+src+'"></body></html>';
+    fr.onload=function(){ var w=fr.contentWindow, im=w&&w.document.querySelector('img');
+      var go=function(){ try { w.focus(); w.print(); } catch(e){ var a=document.createElement('a'); a.href=src; a.download='Closed - '+title+'.jpg'; a.click(); } };
+      if(im && !im.complete) im.onload=go; else go(); };
+    document.body.appendChild(fr);
   }); }
-function signClose(){ var w=document.getElementById('sg-wrap'); if(w) w.remove(); }
+function signClose(){ var w=document.getElementById('sg-wrap'); if(w) w.remove(); var f=document.getElementById('sg-frame'); if(f) f.remove(); }
 function toNice(iso){ return scDate(iso).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
 function toWhen(t){ return t.type==='partial'||t.kind==='partial' ? toNice(t.start)+' · '+scT(t.from)+'–'+scT(t.to) : t.start===t.end ? toNice(t.start) : toNice(t.start)+' – '+toNice(t.end); }
 function toStatus(s){ return '<span class="to-st to-'+String(s).toLowerCase()+'">'+(s==='Pending'?'Waiting':s)+'</span>'; }
