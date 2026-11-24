@@ -1527,9 +1527,11 @@ function schedView(){
   var vw=S.sc.view||'people';
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
   // Coverage warnings only once the week has a schedule in it (after Generate, a copy or a template).
-  var gaps={}, ga=scShiftCount()?scGaps():{}; SC_DAYS.forEach(function(dd){ var L=(ga[dd[0]]||[]).filter(function(x){ return !x.open; }); if(L.length) gaps[dd[0]]=L; });
+  // Day "short" badges: only once the week is mostly built (Generate, a copy or a template), not while it's being filled by hand.
+  var gaps={}, ga=scShiftCount()?scGaps():{}, needN=0, missN=0; (d.presets||[]).forEach(function(x){ needN+=(x.need||0)*5; });
+  SC_DAYS.forEach(function(dd){ var L=(ga[dd[0]]||[]).filter(function(x){ return !x.open; }); missN+=L.length; if(L.length) gaps[dd[0]]=L; });
+  if(needN && missN>needN*0.25) gaps={};
   var gl=scGapList(gaps);
-  if(gl.length) h+='<div class="note sc-gapnote" role="status"><b>Not on the schedule ('+gl.length+'):</b> '+esc(gl.slice(0,6).join(' · '))+(gl.length>6?' · +'+(gl.length-6)+' more':'')+'</div>';
   var cols=SC_DAYS.map(function(dd,i){ return { key:dd[0], label:dd[1], date:scIso(scDate(S.sc.week,i)) }; });
   if(vw!=='people'){ h+=vw==='day'?scDayView(cols,closed):scGroupView(vw,cols,closed);
     if(S.sc.edit) h+=scEditor(); if(S.sc.tpl) h+=scTemplates(); if(S.sc.bld) h+=scBuild(); if(S.sc.su) h+=suView(); if(S.sc.asg) h+=scAssign(); if(S.sc.radd) h+=scRoomAdd(); if(S.sc.toOpen) h+=scToSheet(); return h; }
