@@ -1495,7 +1495,7 @@ function suSettings(){
   var cl=suClosedGroups(d.closedDays||[]), rpi='<svg class="sc-rpi" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#0B6BEB" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Every year"><title>Every year</title><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>';
   h+='<div class="sc-list">'+(cl.length?cl.map(function(g){ var ds=g.dates.join(','), cs=g.centers.join(','), when=g.dates.length>1?toNice(g.dates[0])+' – '+toNice(g.dates[g.dates.length-1]):toNice(g.dates[0]);
     return '<div class="sc-li" style="cursor:default"><span class="grow"><b>'+esc(when)+'</b><span class="sm">'+esc(g.title)+(g.rule?' '+rpi:'')+'</span></span><button type="button" class="sc-x" data-su="cdel" data-rep="'+(g.rule?'1':'')+'" data-dates="'+ds+'" data-c="'+cs+'" aria-label="Open again on '+esc(when)+'">×</button></div>'
-      +(S.sc.su.cdel===ds?'<div class="sc-li" style="cursor:default;gap:8px;flex-wrap:wrap"><span class="grow sm">'+(g.dates.length>1?'These days repeat':'This day repeats')+' every year. Open…</span><button type="button" class="pill" data-su="cdelgo" data-all="" data-dates="'+ds+'" data-c="'+cs+'">This year only</button><button type="button" class="pill" data-su="cdelgo" data-all="1" data-dates="'+ds+'" data-c="'+cs+'">Every year</button><button type="button" class="link" data-su="cdelno">Cancel</button></div>':''); }).join(''):'<div class="sc-li" style="cursor:default"><span class="grow sm">No closed days coming up.</span></div>')+'</div>';
+      ; }).join(''):'<div class="sc-li" style="cursor:default"><span class="grow sm">No closed days coming up.</span></div>')+'</div>';
   if(!S.sc.su.cform){ h+='<button type="button" class="pill" data-su="cform" style="margin-top:12px;background:#0B6BEB;color:#fff;border-color:#0B6BEB">+ Add holiday</button>'; return h; }
   var td=scIso(new Date());
   h+='<div class="uform" style="padding:12px 0 0"><label>What for<input id="su-ctitle" maxlength="60" placeholder="Thanksgiving"></label></div>';
@@ -1613,9 +1613,9 @@ function suClick(t){
   if(a==='cdelno'){ su.cdel=null; render(); return; }
   if(a==='cdelgo'){ var all=!!t.getAttribute('data-all'), gd=t.getAttribute('data-dates').split(','); su.cdel=null; t.disabled=true;
     scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, dates:gd, on:false, wasRepeat:!all, allYears:all, centers:t.getAttribute('data-c').split(',') }).then(suApply); return; }
-  if(a==='cdel'){ var dl=t.getAttribute('data-dates'), dd=dl.split(','), wr=!!t.getAttribute('data-rep'); if(wr){ su.cdel=dl; render(); return; }
-    if(!confirm('Open again on '+toNice(dd[0])+(dd.length>1?' – '+toNice(dd[dd.length-1]):'')+'? '+(dd.length>1?'They’ll show as normal days':'It’ll show as a normal day')+' on the schedule.')) return;
-    t.disabled=true; scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, dates:dd, on:false, centers:t.getAttribute('data-c').split(',') }).then(suApply); return; }
+  if(a==='cdel'){ var dd=t.getAttribute('data-dates').split(','), wh=toNice(dd[0])+(dd.length>1?' – '+toNice(dd[dd.length-1]):'');
+    if(!confirm('Delete '+wh+'? '+(t.getAttribute('data-rep')?'It won’t repeat in later years either.':'It’ll be a normal day on the schedule.'))) return;
+    t.disabled=true; scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, dates:dd, on:false, allYears:true, centers:t.getAttribute('data-c').split(',') }).then(suApply); return; }
   if(a==='back'){ su.edit=null; su.room=null; render(); return; }
   if(a==='staff'){ var id=t.getAttribute('data-id'), src=(su.data.staff||[]).find(function(x){ return x.id===id; });
     su.edit=src?JSON.parse(JSON.stringify(src)):{ id:'', name:'', center:S.sc.center, centers:[S.sc.center], positions:[], payType:'hourly', rate:null, active:true, typical:{} };
