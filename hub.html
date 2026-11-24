@@ -36,7 +36,7 @@ h1{margin:2px 0 0;font-size:32px;font-weight:700;letter-spacing:-.02em}
 .wait.live{display:block;cursor:default}.wait.live .k{opacity:.85;font-size:14px}.wait.live .k2{font-size:13px;opacity:.85;margin-top:10px;text-transform:none}.wait.live .b{margin-top:2px}.wait.live .s{margin-top:4px;opacity:.92}
 .wfoot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap}.wacts{display:flex;gap:8px;flex-wrap:wrap}
 .wbtn{display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border-radius:999px;border:2px solid #fff;background:#fff;color:#c4211a;font:600 15px/1 inherit;font-family:inherit;text-decoration:none;cursor:pointer}.wbtn.ghost{background:none;color:#fff}.wbtn:disabled{opacity:.6}
-.wait.live .k2:first-child{margin-top:0}.wait.live{display:flex!important;align-items:flex-end;gap:16px}.wait.live .wtext{flex:1;min-width:0;align-self:center}.wait.live .wside{flex:none;display:flex;flex-direction:column;align-items:center;gap:8px}.wait.live .wacts{display:flex;gap:8px;margin:0}.wic{width:44px;height:44px;border-radius:50%;border:2px solid #fff;background:#fff;color:#c4211a;display:grid;place-items:center;cursor:pointer;padding:0}.wic svg{width:22px;height:22px}.wic.ghost{background:transparent;color:#fff}.wic.ok{background:#1f9d45;border-color:#1f9d45;color:#fff}.wic:disabled{opacity:.6}.wait.live .wfoot{display:flex;justify-content:flex-end;margin:0}
+.wait.live .k2:first-child{margin-top:0}.wait.live .k2{font-size:12px;font-weight:700;letter-spacing:.08em;opacity:.85}.wait.live{display:flex!important;align-items:flex-end;gap:16px}.wait.live .wtext{flex:1;min-width:0;align-self:center}.wait.live .wside{flex:none;display:flex;flex-direction:column;align-items:center;gap:8px}.wait.live .wacts{display:flex;gap:8px;margin:0}.wic{width:44px;height:44px;border-radius:50%;border:2px solid #fff;background:#fff;color:#c4211a;display:grid;place-items:center;cursor:pointer;padding:0}.wic svg{width:22px;height:22px}.wic.ghost{background:transparent;color:#fff}.wic.ok{background:#1f9d45;border-color:#1f9d45;color:#fff}.wic:disabled{opacity:.6}.wait.live .wfoot{display:flex;justify-content:flex-end;margin:0}
 .wnav{display:flex;align-items:center;gap:6px;margin-left:auto}.wch{width:36px;height:36px;border:0;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;cursor:pointer}.wch svg{width:18px;height:18px}.wch:disabled{opacity:.35;cursor:default}
 .wdots{display:flex;gap:6px;padding:0 2px}.wdots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.45)}.wdots i.on{background:#fff}.wcount{font-size:13px;font-weight:600;padding:0 4px}
 .wait.calm{background:var(--card);color:var(--ink);cursor:default}
@@ -646,29 +646,41 @@ function signBannerClick(t){
   signOpen(x.title, x.dates, x.reopen, function(){ if(confirm('Did the '+x.title+' sign get printed and hung on the door?')) save('sched_sign_done'); }); }
 // "Waiting on you": the task itself, one at a time, with its action right in the card.
 // More than one: ‹ • • • › at the bottom right steps through them (or swipe).
+var W_ACT={ onboard:'Enter new hire', term:'Finish termination', enroll:'Set up enrollment', termcare:'Process care termination', careplan:'Finish care plan', vacation:'Process vacation', overtime:'Review overtime' };
+// "Thu, Dec 3 at 10:00 AM" → "12/3 at 10 AM"; leaves anything else alone.
+function wShort(str){ var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], y=String(new Date().getFullYear());
+  return String(str||'').replace(/\b(?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,? )?(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* (\d{1,2})(?:, (\d{4}))?/g, function(m,mo,d,yy){ return (M.indexOf(mo)+1)+'/'+d+(yy&&yy!==y?'/'+yy.slice(2):''); })
+    .replace(/:00 ?([AP]M)/gi,' $1').replace(/(\d)([AP]M)\b/g,'$1 $2').replace(/ → back /g,' → back '); }
 function waitTasks(needs){
   var ctr=function(c){ return c==='SF'?'Sioux Falls':'Brandon'; }, both=S.data && S.data.role==='ALL';
-  var t=signList(true).map(function(x){ var wd=x.dates.length>1?toNice(x.dates[0])+' – '+toNice(x.dates[x.dates.length-1]):toNice(x.start);
-    var soon=x.days<=0?'today':x.days===1?'tomorrow':'in '+x.days+' days';
-    return { key:'sign:'+x.center+'|'+x.start, k:'Closed sign · '+x.title+' is '+soon, b:'Print and hang the '+x.title+' sign', s:'Closed '+wd+(both?' · '+ctr(x.center)+' door':''),
+  var allV=both && (!S.center || S.center==='all'), at=function(c){ return allV ? ' · '+ctr(c) : ''; };
+  var md=function(iso){ return (+iso.slice(5,7))+'/'+(+iso.slice(8,10)); };
+  var t=signList(true).map(function(x){ var wd=x.dates.length>1?md(x.dates[0])+'–'+md(x.dates[x.dates.length-1]):md(x.start);
+    return { key:'sign:'+x.center+'|'+x.start, k:'SCHEDULE', b:x.title, s:'Print the door sign · closed '+wd+at(x.center),
       acts:'<button type="button" class="wic" data-sign="'+x.center+'|'+x.start+'" aria-label="Print the sign" title="Print the sign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>' }; });
   var SEND='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>';
   (S.stasks||[]).filter(function(x){ return !S.center || S.center==='all' || x.center===S.center; }).forEach(function(x){
     var k=esc(x.key), acts = x.type==='toff'||x.type==='req' ? '<button type="button" class="wic ghost" data-stask="deny" data-key="'+k+'" aria-label="Deny" title="Deny">'+svg('x')+'</button><button type="button" class="wic ok" data-stask="approve" data-key="'+k+'" aria-label="Approve" title="Approve">'+svg('check')+'</button>'
       : x.type==='nudge' ? '<button type="button" class="wic" data-stask="nudge" data-key="'+k+'" aria-label="Send them a reminder" title="Send them a reminder">'+SEND+'</button>'
       : '<button type="button" class="wic" data-stask="go" data-key="'+k+'" aria-label="Open the schedule" title="Open the schedule">'+svg('chev')+'</button>';
-    t.push({ key:x.key, k:x.k, b:x.b, s:x.s, acts:acts }); });
+    t.push({ key:x.key, k:x.k, b:x.b, s:x.s+at(x.center), acts:acts }); });
   needs.forEach(function(x){ var kn=(KIND[x.kind]||{}).name||'';
     var go=svg('chev');
     var acts = x.pto ? '<button type="button" class="wic ghost" data-pto="deny" data-id="'+esc(x.pto)+'" aria-label="Deny" title="Deny">'+svg('x')+'</button><button type="button" class="wic ok" data-pto="approve" data-id="'+esc(x.pto)+'" aria-label="Approve" title="Approve">'+svg('check')+'</button>'
       : x.link ? '<a class="wic" href="'+esc(x.link)+'" target="_blank" rel="noopener" data-read="'+esc(x.id)+'" aria-label="'+esc(x.linkLabel||'Open')+'" title="'+esc(x.linkLabel||'Open')+'">'+go+'</a>'
       : x.open ? '<button type="button" class="wic" data-go="'+esc(x.open)+'" data-read="'+esc(x.id)+'" aria-label="Open" title="Open">'+go+'</button>'
       : KIND[x.kind] ? '<button type="button" class="wic" data-go="'+esc(x.kind)+'" aria-label="Open '+esc(kn)+'" title="Open '+esc(kn)+'">'+go+'</button>' : '';
-    t.push({ key:x.id, k:kn||'Needs you', b:x.title, s:x.sub+(x.note?' · “'+x.note+'”':''), acts:acts }); });
+    var parts=String(x.title||'').split(' · '), name=parts.length>1?parts.slice(1).join(' · '):x.title;
+    var bits=wShort(x.sub).split(' · ').filter(function(b){ return b && !/^(Sioux Falls|Brandon|SF|BV|Either center|confirm it)$/i.test(b); });
+    var hrsB=''; if(x.kind==='pto') bits=bits.filter(function(b){ if(/^\d+(\.\d+)? hrs?$/.test(b)){ hrsB=b.replace(/hrs?$/, b==='1 hr'?'hour':'hours'); return false; } return true; });
+    var verb=x.kind==='pto'?'Approve'+(hrsB?' '+hrsB:' PTO'):x.kind==='hiring'&&x.needs?'Confirm interview':W_ACT[x.kind]||'';
+    if(x.steps && x.progress) bits.push(x.progress+' done');
+    if(x.note) bits.push('“'+x.note+'”');
+    t.push({ key:x.id, k:(kn||'Needs you').toUpperCase(), b:name, s:[verb].concat(bits).filter(Boolean).join(' · ')+at(x.center), acts:acts }); });
   return t; }
 function waitCard(needs){
   var t=waitTasks(needs);
-  if(!t.length) return '<div class="wait calm"><span><div class="k">Waiting on you</div><div class="b">Nothing right now</div></span></div>';
+  if(!t.length) return '';
   var i=Math.max(0, Math.min(S.wIdx||0, t.length-1)); S.wIdx=i; var x=t[i];
   var dots=t.length>1 ? '<div class="wnav"><button type="button" class="wch" data-wnav="-1" aria-label="Previous"'+(i?'':' disabled')+'>'+svg('back','#fff')+'</button>'
     +(t.length<=7 ? '<span class="wdots" aria-label="'+(i+1)+' of '+t.length+'">'+t.map(function(_,j){ return '<i'+(j===i?' class="on"':'')+'></i>'; }).join('')+'</span>' : '<span class="wcount">'+(i+1)+' of '+t.length+'</span>')
