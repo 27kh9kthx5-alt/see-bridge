@@ -1321,7 +1321,7 @@ function scPos(k){ return ((S.sc.data&&S.sc.data.positions)||[]).find(function(p
 // Someone with nothing this week yet gets an empty row added, so a shift given to them sticks (before, the first one was lost).
 function scRow(id){ var d=S.sc.data, r=((d&&d.rows)||[]).find(function(x){ return x.staffId===id; }); if(r) return r;
   r={ staffId:id, days:{}, published:null, rev:0 }; if(d){ d.rows=d.rows||[]; d.rows.push(r); } return r; }
-function scInit(){ if(!S.sc){ var nw=scMonday(new Date()); nw.setDate(nw.getDate()+7); S.sc={ center:'SF', week:scIso(nw), data:null, busy:false, edit:null }; } }
+function scInit(){ if(!S.sc){ var nw=scMonday(new Date()); nw.setDate(nw.getDate()+7); var sv=''; try{ sv=localStorage.getItem('seeSchedView')||''; }catch(err){} S.sc={ center:'SF', week:scIso(nw), data:null, busy:false, edit:null, view:['people','rooms','duties','day'].indexOf(sv)>=0?sv:undefined }; } }
 function scPost(o){
   if(o.action==='sched_save' && S.sc && S.sc.ovr){ o.override=true; S.sc.ovr=false; }
   o.form='sched'; if(me&&me.session) o.session=me.session;
@@ -1366,7 +1366,9 @@ function scMenu(){
   return '<div class="sc-dd" role="menu" aria-label="This week">'+h+'</div>';
 }
 // ---- other views: by room, by duty, one day as a timeline ----
-function scShortName(p){ if(!p||p.id==='open') return 'Open'; var nm=String(p.name||'').trim().split(/\s+/); return nm[0]+(nm.length>1?' '+nm[nm.length-1].charAt(0)+'.':''); }
+function scShortName(p){ if(!p||p.id==='open') return 'Open'; var sh=function(n){ var w=String(n||'').trim().split(/\s+/); return w[0]+(w.length>1?' '+w[w.length-1].charAt(0)+'.':''); }, me=sh(p.name);
+  var twin=((S.sc&&S.sc.data&&S.sc.data.staff)||[]).some(function(x){ return x.id!==p.id && sh(x.name)===me; });
+  return twin ? String(p.name||'').trim() : me; }
 function scAllShifts(dayKey){ // every shift this day at this center: {who, id, b, i, chg}
   var d=S.sc.data, out=[];
   ((d&&d.rows)||[]).forEach(function(r){ var list=(r.days||{})[dayKey]||[], pub=((r.published||{})[dayKey])||[], chg=JSON.stringify(list)!==JSON.stringify(pub) && !(list.length===0&&!pub.length);
@@ -2028,7 +2030,7 @@ function schedClick(t){
   if(a==='asgclose'){ S.sc.asg=null; render(); return; }
   if(a==='asgto'){ var ag=S.sc.asg, to=t.getAttribute('data-id'); S.sc.asg=null; scMove({ id:'open', day:ag.day, i:ag.i }, to, ag.day); return; }
   if(a==='vmenu'){ S.sc.vmenu=!S.sc.vmenu; S.sc.menu=false; S.sc.gear=false; render(); return; }
-  if(a==='view'){ S.sc.view=t.getAttribute('data-v'); S.sc.menu=false; S.sc.vmenu=false; render(); return; }
+  if(a==='view'){ S.sc.view=t.getAttribute('data-v'); try{ localStorage.setItem('seeSchedView', S.sc.view); }catch(err){} S.sc.menu=false; S.sc.vmenu=false; render(); return; }
   if(a==='dpick'){ S.sc.dayPick=t.getAttribute('data-v'); render(); return; }
   if(a==='gear'){ S.sc.gear=!S.sc.gear; S.sc.menu=false; render(); return; }
   if(a==='setup'){ S.sc.bld=null; S.sc.menu=false; S.sc.gear=false; suOpen(t.getAttribute('data-v')); return; }
