@@ -1304,7 +1304,10 @@ function scGaps(){
     var ob=(openRow[k]||[]).slice();
     out[k]=slots.filter(function(sl){ return !sl.ok; }).sort(function(a,b){ return a.s-b.s; }).map(function(sl){
       var oi=ob.findIndex(function(b){ return b.p===sl.p && b.s===sl.S && b.e===sl.E; }); if(oi>=0) ob.splice(oi,1);
-      return { s:sl.S, e:sl.E, p:sl.p, open:oi>=0 }; }); });
+      return { s:sl.S, e:sl.E, p:sl.p, open:oi>=0 }; });
+    // Open shifts left over that someone already works (same room and times that day): a duplicate to clean up.
+    ob.forEach(function(b){ var dup=(d.rows||[]).some(function(r){ return r.staffId!=='open' && ((r.days||{})[k]||[]).some(function(x){ return x.p===b.p && x.s===b.s && x.e===b.e; }); });
+      if(dup) (out._dup=out._dup||[]).push({ k:k, s:b.s, e:b.e, p:b.p }); }); });
   return out; }
 function scGapList(g){ var out=[]; SC_DAYS.forEach(function(dd){ var seen={}, order=[];
   (g[dd[0]]||[]).forEach(function(x){ var t=dd[1]+' '+String(scPos(x.p).name||x.p).replace(/ Room$/,'')+' '+scT(x.s)+'–'+scT(x.e)+(x.open?' (open shift)':''); if(!seen[t]){ seen[t]=0; order.push(t); } seen[t]++; });
@@ -1471,6 +1474,8 @@ function schedView(){
   var closed={}; (d.closed||[]).forEach(function(c){ closed[c.date]=c.title||'Closed'; });
   // Coverage warnings only once the week has a schedule in it (after Generate, a copy or a template).
   var gaps=scShiftCount()?scGaps():{}, gl=scGapList(gaps);
+  if(gaps._dup){ var dl=gaps._dup.map(function(x){ return SC_DAYS.find(function(dd){ return dd[0]===x.k; })[1]+' '+String(scPos(x.p).name||x.p).replace(/ Room$/,'')+' '+scT(x.s)+'–'+scT(x.e); });
+    h+='<div class="note sc-gapnote" role="status"><b>Duplicate open '+(dl.length===1?'shift':'shifts')+':</b> '+esc(dl.join(' · '))+'. Someone already works '+(dl.length===1?'it':'them')+'. <button type="button" class="link" data-sc="dedupe">Remove '+(dl.length===1?'it':'them')+'</button></div>'; }
   if(gl.length) h+='<div class="note sc-gapnote" role="status"><b>Short on coverage ('+gl.length+'):</b> '+esc(gl.slice(0,6).join(' · '))+(gl.length>6?' · +'+(gl.length-6)+' more':'')+'</div>';
   var cols=SC_DAYS.map(function(dd,i){ return { key:dd[0], label:dd[1], date:scIso(scDate(S.sc.week,i)) }; });
   if(vw!=='people'){ h+=vw==='day'?scDayView(cols,closed):scGroupView(vw,cols,closed);
@@ -1896,6 +1901,9 @@ function schedClick(t){
     if(!blocks.length) blocks=[{ s:'07:00', e:'17:00', p:firstRoom||(st&&st.positions[0])||'infant' }];
     S.sc.edit={ id:id, day:day, blocks:blocks, rev:r.rev||0, fresh:!((r.days||{})[day]||[]).length }; render(); return; }
   if(a==='info'){ toast(t.getAttribute('data-msg')); return; }
+  if(a==='dedupe'){ var dg=scGaps()._dup||[], orow=scRow('open'); orow.days=JSON.parse(JSON.stringify(orow.days||{}));
+    dg.forEach(function(x){ var L=orow.days[x.k]||[], i=L.findIndex(function(b){ return b.p===x.p && b.s===x.s && b.e===x.e; }); if(i>=0) L.splice(i,1); });
+    render(); scQueue('open', false); toast('Removed '+plural(dg.length,'duplicate open shift','duplicate open shifts')+'.'); return; }
   if(a==='preset'){ scGrab(); var ed0=S.sc.edit, nb={ s:t.getAttribute('data-s'), e:t.getAttribute('data-e'), p:t.getAttribute('data-p') };
     if(ed0.fresh){ ed0.blocks=[nb]; ed0.fresh=false; } else ed0.blocks.push(nb);
     ed0.blocks.sort(function(x,y){ return x.s<y.s?-1:1; }); render(); return; }
