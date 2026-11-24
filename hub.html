@@ -1805,7 +1805,11 @@ document.addEventListener('contextmenu',function(e){ if(e.target.closest&&e.targ
 // ---- press, hold and drag a shift block onto another person or day ----
 var SCD={ t:null, on:false, src:null, ghost:null, over:null, x0:0, y0:0, skipClick:false };
 function scDragEnd(){ clearTimeout(SCD.t); SCD.t=null; SCD.lift=null; Array.prototype.forEach.call(document.querySelectorAll('.sc-nodrop'),function(c){ c.classList.remove('sc-nodrop'); }); if(SCD.ghost){ SCD.ghost.remove(); SCD.ghost=null; } if(SCD.over){ SCD.over.classList.remove('sc-drop'); SCD.over=null; } if(SCD.src&&SCD.src.el) SCD.src.el.classList.remove('sc-lift'); document.body.classList.remove('sc-dragging'); SCD.on=false; SCD.src=null; }
-function scTargetAt(x,y){ if(SCD.ghost) SCD.ghost.style.display='none'; var el=document.elementFromPoint(x,y); if(SCD.ghost) SCD.ghost.style.display=''; var c=el && el.closest('.sc-hit[data-sc=edit]'); return c && SCD.src && c.getAttribute('data-day')===SCD.src.day ? c : null; }
+function scTargetAt(x,y){ if(SCD.ghost) SCD.ghost.style.display='none'; var el=document.elementFromPoint(x,y); if(SCD.ghost) SCD.ghost.style.display=''; var c=el && el.closest('.sc-hit[data-sc=edit]');
+  // Anywhere in a cell counts, not just the button in it; and anywhere in the Open shifts row drops into Open shifts for that day.
+  if(!c && el){ var td=el.closest('td.sc-cell'); if(td) c=td.querySelector('.sc-hit[data-sc=edit]'); }
+  if(SCD.src && el && el.closest('tr.sc-open')) c=document.querySelector('tr.sc-open .sc-hit[data-sc=edit][data-day="'+SCD.src.day+'"]')||c;
+  return c && SCD.src && c.getAttribute('data-day')===SCD.src.day ? c : null; }
 document.addEventListener('pointerdown',function(e){
   var ch=e.target.closest && e.target.closest('.sc-drag'); if(!ch || S.view!=='sched' || S.sc.edit || S.sc.tpl || S.sc.bld || S.sc.su || S.sc.menu || S.sc.gear || S.sc.vmenu || S.sc.asg || S.sc.radd || S.sc.toOpen) return;
   if(e.pointerType==='mouse' && e.button!==0) return;
