@@ -320,6 +320,21 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-rep{display:flex;align-items:center;gap:8px;font-size:14px;margin:4px 0 8px}
 .sc-rep input{width:20px;height:20px}
 .sc-rpt{flex:none;width:44px;height:44px;border-radius:12px;border:0;background:#f2f2f7;color:#8e8e93;display:grid;place-items:center;cursor:pointer;margin-right:8px}.sc-rpt.on{background:#e8f0fe;color:#0B6BEB}
+.sc-signb{display:inline-grid;place-items:center;width:28px;height:28px;margin:-6px 0 -8px 2px;border:0;border-radius:8px;background:none;color:#48484a;cursor:pointer;vertical-align:middle}.sc-signb:hover{background:#f2f2f7}
+#sg-wrap{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.72);display:flex;flex-direction:column;align-items:center;overflow:auto}
+#sg-wrap .sg-bar{width:100%;max-width:640px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;color:#fff}#sg-wrap .sg-bar .link{color:#fff}#sg-wrap .sg-bar .btn{width:auto;padding:8px 20px}
+.sg-stage{position:relative;margin-bottom:24px}.sg-page{position:absolute;top:0;left:0;transform-origin:0 0}
+.sg-page{width:816px;height:1056px;box-sizing:border-box;background:#fff;display:flex;flex-direction:column;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1c1c1e;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sg-stripe{display:flex;height:18px}.sg-stripe i{flex:1}
+.sg-body{flex:1;display:flex;flex-direction:column;padding:64px 80px 56px}
+.sg-org,.sg-lbl{font-size:16px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#48484a}.sg-lbl{font-size:18px;letter-spacing:.14em}
+.sg-mid{flex:1;display:flex;flex-direction:column;justify-content:center;gap:28px}
+.sg-closed{font-size:190px;font-weight:800;letter-spacing:-.04em;line-height:.9}
+.sg-name{font-size:52px;font-weight:700;line-height:1.1}
+.sg-dates{display:flex;flex-direction:column;gap:6px;font-size:38px;font-weight:600;line-height:1.25;margin-top:8px}
+.sg-box{margin-top:24px;border:3px solid #1c1c1e;border-radius:20px;padding:24px 32px;display:flex;flex-direction:column;gap:6px}.sg-re{font-size:34px;font-weight:700;line-height:1.2}
+.sg-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;border-top:2px solid #d1d1d6;padding-top:24px;font-size:24px}.sg-foot span{font-weight:500;line-height:1.4;color:#3a3a3c;max-width:460px}
+@media print{@page{size:letter;margin:0}body.sg-on>*:not(#sg-wrap){display:none!important}body.sg-on #sg-wrap{position:static;background:none;display:block;overflow:visible}body.sg-on #sg-wrap .sg-bar{display:none}html,body.sg-on{margin:0!important;padding:0!important;background:#fff!important}body.sg-on .sg-stage{width:auto!important;height:auto!important;margin:0}body.sg-on .sg-page{position:static;transform:none!important;width:8.5in;height:11in}}
 .sc-rpi{vertical-align:-2px;margin-left:2px}
 .sc-li{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:11px 0;font:inherit;color:inherit;cursor:pointer}
 .sc-li .grow{flex:1;min-width:0;display:flex;flex-direction:column}.sc-li .sm{font-size:12px;color:var(--sub);margin-top:2px}
@@ -1494,7 +1509,7 @@ function suSettings(){
   h+='<div class="sc-pres-h" style="margin-top:18px">Days we’re closed</div>';
   var cl=suClosedGroups(d.closedDays||[]), rpi='<svg class="sc-rpi" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#0B6BEB" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Every year"><title>Every year</title><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>';
   h+='<div class="sc-list">'+(cl.length?cl.map(function(g){ var ds=g.dates.join(','), cs=g.centers.join(','), when=g.dates.length>1?toNice(g.dates[0])+' – '+toNice(g.dates[g.dates.length-1]):toNice(g.dates[0]);
-    return '<div class="sc-li" style="cursor:default"><span class="grow"><b>'+esc(when)+'</b><span class="sm">'+esc(g.title)+(g.rule?' '+rpi:'')+'</span></span><button type="button" class="sc-x" data-su="cdel" data-rep="'+(g.rule?'1':'')+'" data-dates="'+ds+'" data-c="'+cs+'" aria-label="Open again on '+esc(when)+'">×</button></div>'
+    return '<div class="sc-li" style="cursor:default"><span class="grow"><b>'+esc(when)+'</b><span class="sm">'+esc(g.title)+(g.rule?' '+rpi:'')+' <button type="button" class="sc-signb" data-su="csign" data-dates="'+ds+'" data-t="'+esc(g.title)+'" aria-label="Print a Closed sign for '+esc(g.title)+'" title="Print a Closed sign"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button></span></span><button type="button" class="sc-x" data-su="cdel" data-rep="'+(g.rule?'1':'')+'" data-dates="'+ds+'" data-c="'+cs+'" aria-label="Open again on '+esc(when)+'">×</button></div>'
       ; }).join(''):'<div class="sc-li" style="cursor:default"><span class="grow sm">No closed days coming up.</span></div>')+'</div>';
   if(!S.sc.su.cform){ h+='<button type="button" class="pill" data-su="cform" style="margin-top:12px;background:#0B6BEB;color:#fff;border-color:#0B6BEB">+ Add holiday</button>'; return h; }
   var td=scIso(new Date());
@@ -1609,6 +1624,7 @@ function suClick(t){
   if(a==='crep'){ var on=!t.getAttribute('data-on'), rd=t.getAttribute('data-date');
     if(!on && !confirm('Stop closing on this day every year? '+toNice(rd)+' stays closed, and later years open back up.')) return;
     t.disabled=true; scPost({ action:'sched_closed_repeat', center:S.sc.center, week:S.sc.week, date:rd, on:on, centers:t.getAttribute('data-c').split(',') }).then(suApply); return; }
+  if(a==='csign'){ signOpen(t.getAttribute('data-t'), t.getAttribute('data-dates').split(',')); return; }
   if(a==='cform'){ su.cform=!su.cform; render(); if(su.cform){ var ci=$('su-cdate'); if(ci) ci.focus(); } return; }
   if(a==='cdelno'){ su.cdel=null; render(); return; }
   if(a==='cdelgo'){ var all=!!t.getAttribute('data-all'), gd=t.getAttribute('data-dates').split(','); su.cdel=null; t.disabled=true;
@@ -1852,6 +1868,30 @@ function schedClick(t){
 
 // ---------- time off: staff request it, managers approve it ----------
 var TO_TYPE={ pto:'Paid PTO', unpaid:'Day off', partial:'Partial day' };
+// ---------- printable "Closed" door sign for a holiday ----------
+function signLong(iso){ return scDate(iso).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}); }
+function signReopen(dates, closed){
+  var shut={}; (closed||[]).forEach(function(c){ shut[c.date]=1; }); dates.forEach(function(d){ shut[d]=1; });
+  var x=scIso(scDate(dates[dates.length-1],1));
+  for(var i=0;i<30;i++){ var g=scDate(x).getDay(); if(g!==0&&g!==6&&!shut[x]) break; x=scIso(scDate(x,1)); }
+  return x; }
+function signHtml(title, dates, reopen){
+  var stripe='<div class="sg-stripe">'+['#ef3930','#f58c1f','#FFD60A','#40b549','#0B6BEB'].map(function(c){ return '<i style="background:'+c+'"></i>'; }).join('')+'</div>';
+  return stripe+'<div class="sg-body"><div class="sg-org">School of Early Childhood Education</div><div class="sg-mid"><div class="sg-closed">Closed</div><div class="sg-name">'+esc(title)+'</div><div class="sg-dates">'
+    +dates.map(function(d){ return '<div>'+esc(signLong(d))+'</div>'; }).join('')+'</div><div class="sg-box"><div class="sg-lbl">We reopen</div><div class="sg-re">'+esc(signLong(reopen))+' at 7:00 AM</div></div></div>'
+    +'<div class="sg-foot"><span>Thank you, and enjoy the holiday with your family!</span><b>see.school</b></div></div>'+stripe; }
+function signOpen(title, dates){
+  signClose();
+  if(!document.getElementById('sg-font')){ var l=document.createElement('link'); l.id='sg-font'; l.rel='stylesheet'; l.href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap'; document.head.appendChild(l); }
+  var wrap=document.createElement('div'); wrap.id='sg-wrap'; wrap.setAttribute('role','dialog'); wrap.setAttribute('aria-label','Closed sign for '+title);
+  wrap.innerHTML='<div class="sg-bar"><button type="button" class="link" id="sg-x">Close</button><b>'+esc(title)+' sign</b><button type="button" class="btn" id="sg-print">Print</button></div><div class="sg-stage"><div class="sg-page" id="sg-page">'+signHtml(title, dates, signReopen(dates, ((S.sc&&S.sc.su&&S.sc.su.data)||{}).closedDays))+'</div></div>';
+  document.body.appendChild(wrap); document.body.classList.add('sg-on');
+  var fit=function(){ var p=document.getElementById('sg-page'); if(!p) return; var k=Math.min((window.innerWidth-32)/816,(window.innerHeight-96)/1056,1); p.style.transform='scale('+k+')'; p.parentNode.style.height=(1056*k)+'px'; p.parentNode.style.width=(816*k)+'px'; };
+  fit(); window.addEventListener('resize', fit); wrap._fit=fit;
+  document.getElementById('sg-x').onclick=signClose;
+  document.getElementById('sg-print').onclick=function(){ window.print(); };
+}
+function signClose(){ var w=document.getElementById('sg-wrap'); if(w){ window.removeEventListener('resize', w._fit); w.remove(); } document.body.classList.remove('sg-on'); }
 function toNice(iso){ return scDate(iso).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
 function toWhen(t){ return t.type==='partial'||t.kind==='partial' ? toNice(t.start)+' · '+scT(t.from)+'–'+scT(t.to) : t.start===t.end ? toNice(t.start) : toNice(t.start)+' – '+toNice(t.end); }
 function toStatus(s){ return '<span class="to-st to-'+String(s).toLowerCase()+'">'+(s==='Pending'?'Waiting':s)+'</span>'; }
