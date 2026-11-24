@@ -612,8 +612,10 @@ function centerSeg(){
   return '<div class="seg" role="group" aria-label="Center">'+[['SF','Sioux Falls'],['all','SEE'],['BV','Brandon']].map(function(c){ return '<button type="button" data-center="'+c[0]+'" aria-pressed="'+(S.center===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>';
 }
 // A week before a closed holiday: a reminder to print and hang the Closed sign at each center's door.
-function signBanners(){
-  var list=(S.signs||[]).filter(function(x){ return !S.center || S.center==='all' || x.center===S.center; });
+function signList(todo){ return (S.signs||[]).filter(function(x){ return (!S.center || S.center==='all' || x.center===S.center) && (todo ? !x.by : !!x.by); }); }
+// done=false: the 'print the sign' cards (in Waiting on you's list); done=true: the green 'printed and hung' notes on Home.
+function signBanners(done){
+  var list=signList(!done);
   if(!list.length) return ''; signPrep();
   var ctr=function(c){ return c==='SF'?'Sioux Falls':'Brandon'; }, both=S.data && S.data.role==='ALL';
   var ico='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>';
@@ -622,7 +624,7 @@ function signBanners(){
     var soon=x.days<=0?'is today':x.days===1?'is tomorrow':'is in '+x.days+' days';
     return '<div class="sgb"><span class="sgb-i">'+ico+'</span><span class="grow"><b>'+esc(x.title)+' '+soon+'</b><span class="sm">Closed '+esc(wd)+'. Print the sign for the '+(both?esc(ctr(x.center))+' ':'')+'door.</span></span><button type="button" class="pill sgb-p" data-sign="'+key+'">Print sign</button></div>'; }).join(''); }
 var signAt=0;
-function signFetch(){ if(!me || !S.data || S.data.staff || Date.now()-signAt<60000) return; signAt=Date.now(); scPost({ action:'sched_signs' }).then(function(r){ if(r&&r.ok){ S.signs=r.signs||[]; if(S.view==='home') render(); } }); }
+function signFetch(){ if(!me || !S.data || S.data.staff || Date.now()-signAt<60000) return; signAt=Date.now(); scPost({ action:'sched_signs' }).then(function(r){ if(r&&r.ok){ S.signs=r.signs||[]; if(S.view==='home'||S.view==='inbox') render(); } }); }
 function signBannerClick(t){
   var k=(t.getAttribute('data-sign')||t.getAttribute('data-signx')).split('|'), x=(S.signs||[]).find(function(y){ return y.center===k[0] && y.start===k[1]; }); if(!x) return;
   var save=function(action){ scPost({ action:action, center:x.center, date:x.start }).then(function(r){ if(r&&r.ok){ S.signs=r.signs||[]; render(); } else toast((r&&r.error)||'That didn’t save.'); }); };
@@ -641,8 +643,10 @@ function home(){
   var d=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
   var n=f.filter(function(x){ return x.unread||x.needs; }).length;
   var h='<div class="top"><div><div class="eyebrow">'+esc(d)+'</div><h1>'+esc(S.data.role==='ALL'?'SEE Bridge':'Bridge · '+S.data.label)+'</h1></div>'+
-    '<button type="button" class="round" data-go="inbox" aria-label="Inbox, '+n+' new">'+svg('bell')+(n?'<span class="badge">'+(n>99?'99+':n)+'</span>':'')+'</button></div>'+centerSeg()+signBanners();
-  h+= needs.length ? '<button type="button" class="wait" data-go="needs"><span style="flex:1"><div class="k">Waiting on you</div><div class="b">'+plural(needs.length,'thing needs','things need')+' you</div><div class="s">'+esc(parts.join(' · '))+'</div></span>'+svg('chev','#fff')+'</button>'
+    '<button type="button" class="round" data-go="inbox" aria-label="Inbox, '+n+' new">'+svg('bell')+(n?'<span class="badge">'+(n>99?'99+':n)+'</span>':'')+'</button></div>'+centerSeg()+signBanners(true);
+  var sTodo=signList(true); if(sTodo.length) parts.unshift(sTodo.length===1?sTodo[0].title+' sign to hang':sTodo.length+' closed signs to hang');
+  var nAll=needs.length+sTodo.length;
+  h+= nAll ? '<button type="button" class="wait" data-go="needs"><span style="flex:1"><div class="k">Waiting on you</div><div class="b">'+plural(nAll,'thing needs','things need')+' you</div><div class="s">'+esc(parts.join(' · '))+'</div></span>'+svg('chev','#fff')+'</button>'
     : '<div class="wait calm"><span><div class="k">Waiting on you</div><div class="b">Nothing right now</div></span></div>';
   var team=[
     ['pto', ptoN, ptoN? plural(ptoN,'request','requests')+(isOffice()?' to approve':' waiting') : 'Nothing waiting'],
@@ -813,7 +817,8 @@ function inbox(){
   var anyUnread=feed().some(function(x){ return x.unread; });
   return '<div class="top"><h1>Inbox</h1>'+(anyUnread?'<button type="button" class="link" data-readall="1">Mark all read</button>':'')+'</div>'+centerSeg()+
     '<div class="chips" role="group" aria-label="Show">'+FILTERS.map(function(c){ return '<button type="button" data-filter="'+c[0]+'" aria-pressed="'+(S.filter===c[0])+'">'+c[1]+'</button>'; }).join('')+'</div>'+
-    listHtml(f, S.filter==='needs'?'Nothing is waiting on you.':'Nothing here from the last 45 days.');
+    (S.filter==='needs'||S.filter==='all'?signBanners(false):'')+
+    (f.length || !signList(true).length || S.filter!=='needs' ? listHtml(f, S.filter==='needs'?'Nothing is waiting on you.':'Nothing here from the last 45 days.') : '');
 }
 // On Board has no "SEE" tab: every new hire belongs to one center.
 function obCenter(){ return S.center!=='all' ? S.center : (S.obCenter||'SF'); }
