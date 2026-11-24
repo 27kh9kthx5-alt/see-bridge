@@ -1447,7 +1447,8 @@ function suOpen(tab){ S.sc.su={ tab:tab||'staff', data:null, edit:null, room:nul
 function suLoad(){ return scPost({ action:'sched_setup', center:S.sc.center, week:S.sc.week }).then(suApply); }
 function suApply(r){
   if(!S.sc.su) return;
-  if(!r || !r.ok){ toast((r&&r.error)||'Something went wrong.'); var e=$('su-err'); if(e) e.textContent=(r&&r.error)||''; return; }
+  if(!r || !r.ok){ toast((r&&r.error)||'Something went wrong.'); var e=$('su-err'); if(e) e.textContent=(r&&r.error)||'';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-su][disabled]'),function(b){ if(['cadd','cdel'].indexOf(b.getAttribute('data-su'))>=0) b.disabled=false; }); return; }
   if(r.message) toast(r.message);
   S.sc.su.data=r; S.sc.su.edit=null; S.sc.su.room=null; render();
 }
@@ -1585,6 +1586,7 @@ function suClick(t){
   if(a==='cadd'){ var cd=($('su-cdate')||{}).value, ct=(($('su-ctitle')||{}).value||'').trim(), cb=($('su-cboth')||{}).checked;
     if(!cd){ $('su-err').textContent='Pick the date.'; return; }
     if(!ct){ $('su-err').textContent='Say what it’s for, like Christmas Day.'; return; }
+    var cg=scDate(cd).getDay(); if(cg===0||cg===6){ $('su-err').textContent='That’s a '+(cg===0?'Sunday':'Saturday')+', and the centers are already closed on weekends. If the holiday is observed on a weekday, pick that day.'; return; }
     t.disabled=true; scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, date:cd, title:ct, centers:cb?['SF','BV']:[S.sc.center] }).then(suApply); return; }
   if(a==='cdel'){ var dd=t.getAttribute('data-date'); if(!confirm('Open again on '+toNice(dd)+'? It’ll show as a normal day on the schedule.')) return;
     t.disabled=true; scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, date:dd, on:false, centers:t.getAttribute('data-c').split(',') }).then(suApply); return; }
