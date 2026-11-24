@@ -251,6 +251,7 @@ nav .badge{top:-2px;right:14px}
 .sc-open th,.sc-open td{background:#fff}.sc-open td,.sc-open th{border-bottom:1px solid #d1d1d6}
 .sc-foot th,.sc-foot td{border-top:1px solid #d8d8dd;padding:8px 6px;font-size:12px;color:var(--sub);font-weight:600;font-variant-numeric:tabular-nums}
 .sc-foot th{padding-left:14px;text-align:left}
+.sc-slot{display:flex;flex-direction:column;align-items:flex-start;width:100%;border:2px dashed var(--c);background:#fff;border-radius:8px;padding:5px 8px;margin-bottom:4px;cursor:pointer;font:inherit;color:#1d1d1f;text-align:left}.sc-slot b{font-size:13px;color:#8a1c14}.sc-slot span{font-size:13px}.sc-unl{display:flex;flex-wrap:wrap;gap:4px}.sc-un{border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 9px;font:inherit;font-size:13px;cursor:pointer;color:#1d1d1f}.sc-un small{color:#8e8e93}.sc-un-na{color:#8e8e93;background:#f2f2f7}.sc-unsch th,.sc-unsch td{background:#fafafa}
 .sc-gapnote{background:#fde8e7!important;color:#8a1c14!important;border-color:#f5b5b0!important}.sc-gapb{display:block;margin:6px auto 0;border:0;border-radius:999px;background:#e5261b;color:#fff;font:600 12px/1 inherit;font-family:inherit;padding:5px 10px;cursor:pointer}
 .sc-dh{vertical-align:bottom;padding:8px 8px 8px!important}
 .sc-dh .sc-sub,.sc-wk .sc-sub{font-weight:400;margin-top:4px;line-height:1.3}
@@ -1371,6 +1372,7 @@ function scAllShifts(dayKey){ // every shift this day at this center: {who, id, 
   return out.sort(function(a,b){ return a.b.s<b.b.s?-1:a.b.s>b.b.s?1:0; });
 }
 function scGroupView(vw,cols,closed){
+  if(vw==='rooms') return scRoomsView(cols,closed);
   var d=S.sc.data, c=S.sc.center;
   var groups=(d.positions||[]).filter(function(p){ return p.active && p.centers.indexOf(c)>=0 && (vw==='rooms'?p.kind==='room':p.kind==='duty'); });
   var match=function(x,g){ return vw==='rooms'? x.b.p===g.key : (x.b.p===g.key || (x.b.d||[]).indexOf(g.key)>=0); };
@@ -1388,6 +1390,45 @@ function scGroupView(vw,cols,closed){
     return '<tr><th scope="row"><span class="sc-gname">'+lab+'<span>'+esc(g.name)+(g.ratio&&vw==='rooms'?'<small>1:'+g.ratio+'</small>':'')+'</span></span></th>'+cells+'</tr>'; }).join('');
   return '<div class="sc-wrap"><table class="sc-t sc-gt"><thead>'+head+'</thead><tbody>'+(rows||'<tr><td class="sc-cell" colspan="6">Nothing set up yet.</td></tr>')+'</tbody></table></div>'+
     '<p class="help">'+(vw==='rooms'?'Who’s in each room each day. Tap a name to change that person’s day.':'Who has each duty each day, as a tag on their shift or its own block. Tap a name to change it.')+' Outlined shifts aren’t published yet.</p>';
+}
+// By room: each room's standard shifts (Rooms › Shifts › Needed) are slots, filled with who works them or left empty
+// to assign; anyone else in the room is listed after. The top row lists who isn't working that day.
+function scRoomSlots(dayKey, g, per){
+  var d=S.sc.data, m=scMins, need=[];
+  (d.presets||[]).filter(function(x){ return x.p===g.key && x.need>0; }).forEach(function(x){ for(var i=0;i<x.need;i++) need.push({ s:x.s, e:x.e, x:null }); });
+  need.sort(function(a,b){ return a.s<b.s?-1:a.s>b.s?1:(a.e<b.e?-1:1); });
+  var list=per.filter(function(x){ return x.b.p===g.key; }), used=[];
+  var take=function(sl, ok){ for(var i=0;i<list.length;i++){ if(used.indexOf(i)<0 && ok(list[i])){ used.push(i); sl.x=list[i]; return; } } };
+  need.forEach(function(sl){ take(sl, function(x){ return x.id!=='open' && x.b.s===sl.s && x.b.e===sl.e; }); });
+  need.forEach(function(sl){ if(!sl.x) take(sl, function(x){ return x.id!=='open' && (Math.min(m(x.b.e),m(sl.e))-Math.max(m(x.b.s),m(sl.s)))>=0.75*(m(sl.e)-m(sl.s)); }); });
+  need.forEach(function(sl){ if(!sl.x) take(sl, function(x){ return x.id==='open' && x.b.s===sl.s && x.b.e===sl.e; }); });
+  return { slots:need, extra:list.filter(function(x,i){ return used.indexOf(i)<0; }) };
+}
+function scRoomsView(cols, closed){
+  var d=S.sc.data, c=S.sc.center;
+  var rooms=(d.positions||[]).filter(function(p){ return p.active && p.kind==='room' && p.centers.indexOf(c)>=0; });
+  var head='<tr><th class="sc-wk"><span class="sc-nm">Room</span></th>'+cols.map(function(cc){ var dt=scDate(cc.date); return '<th class="sc-dh">'+cc.label+' '+dt.getDate()+(closed[cc.date]?'<small>'+esc(closed[cc.date])+'</small>':'')+'</th>'; }).join('')+'</tr>';
+  var per={}; cols.forEach(function(cc){ per[cc.key]=scAllShifts(cc.key); });
+  var staff=(d.staff||[]).filter(function(p){ return p.center===c && p.active!==false; });
+  var chip=function(x, cc){ var ps=scPos(x.b.p), op=x.id==='open';
+    return '<button type="button" class="sc-chip sc-gchip'+(x.chg?' sc-ichg':'')+(op?' sc-gopen'+(x.chg?' sc-ochg':''):'')+'" data-sc="'+(op?'asg':'edit')+'" data-i="'+x.i+'" data-id="'+esc(x.id)+'" data-day="'+cc.key+'" style="--c:'+ps.color+';--on:'+scOn(ps.color)+';background-color:'+ps.color+'1f;border-left:3px solid '+ps.color+'"><b>'+(op?'Open · Assign':esc(scShortName(x.who)))+(x.b.d&&x.b.d.length?'<span class="sc-di">'+scDutyIcons(x.b)+'</span>':'')+'</b><span>'+scT(x.b.s)+'–'+scT(x.b.e)+'</span></button>'; };
+  // who isn't working each day
+  var un='<tr class="sc-unsch"><th scope="row"><span class="sc-gname"><span class="sc-dot" style="background:#c7c7cc"></span><span>Unscheduled<small>Not working that day</small></span></span></th>'+cols.map(function(cc){
+    if(closed[cc.date]) return '<td class="sc-cell sc-closed"></td>';
+    var free=staff.filter(function(p){ return !((scRow(p.id).days||{})[cc.key]||[]).length; });
+    if(!free.length) return '<td class="sc-cell"><span class="sc-none">Everyone’s working</span></td>';
+    return '<td class="sc-cell"><div class="sc-unl">'+free.map(function(p){ var ua=(p.unavail||[]).indexOf(cc.key)>=0, off=scOffFull(p.id,cc.key);
+      return '<button type="button" class="sc-un'+(ua||off?' sc-un-na':'')+'" data-sc="edit" data-id="'+esc(p.id)+'" data-day="'+cc.key+'" title="'+esc(p.name+(ua?' · unavailable':off?' · off':''))+'">'+esc(scShortName(p))+(ua?' <small>unavail.</small>':off?' <small>off</small>':'')+'</button>'; }).join('')+'</div></td>'; }).join('')+'</tr>';
+  var rows=rooms.map(function(g){
+    var cells=cols.map(function(cc){
+      if(closed[cc.date]) return '<td class="sc-cell sc-closed"></td>';
+      var R=scRoomSlots(cc.key, g, per[cc.key]);
+      var h=R.slots.map(function(sl){ if(sl.x) return chip(sl.x, cc);
+        return '<button type="button" class="sc-slot" data-sc="rslot" data-key="'+g.key+'" data-day="'+cc.key+'" data-s="'+sl.s+'" data-e="'+sl.e+'" style="--c:'+g.color+'" aria-label="Fill '+esc(g.name)+' '+scT(sl.s)+' to '+scT(sl.e)+', '+cc.label+'"><b>Unfilled</b><span>'+scT(sl.s)+'–'+scT(sl.e)+'</span></button>'; }).join('')+R.extra.map(function(x){ return chip(x, cc); }).join('');
+      return '<td class="sc-cell">'+h+'<button type="button" class="sc-radd" data-sc="radd" data-key="'+g.key+'" data-day="'+cc.key+'" aria-label="Add a shift to '+esc(g.name)+', '+cc.label+'">+</button></td>'; }).join('');
+    return '<tr><th scope="row"><span class="sc-gname"><span class="sc-dot" style="background:'+g.color+'"></span><span>'+esc(g.name)+(g.ratio?'<small>1:'+g.ratio+'</small>':'')+'</span></span></th>'+cells+'</tr>'; }).join('');
+  return '<div class="sc-wrap"><table class="sc-t sc-gt"><thead>'+head+'</thead><tbody>'+un+(rows||'<tr><td class="sc-cell" colspan="6">Nothing set up yet.</td></tr>')+'</tbody></table></div>'+
+    '<p class="help">Each room shows the shifts it needs (set in Rooms › Shifts). Tap an unfilled shift to pick someone, a name to change their day, or + to add another shift. Outlined shifts aren’t published yet.</p>';
 }
 var SC_DAYS_PL={ mon:'Mondays', tue:'Tuesdays', wed:'Wednesdays', thu:'Thursdays', fri:'Fridays', sat:'Saturdays', sun:'Sundays' };
 function scOverlap(list){ // first pair of blocks that overlap in time (a person in two places at once)
@@ -1946,6 +1987,7 @@ function schedClick(t){
     scPost({ action:'sched_req_decide', center:S.sc.center, week:S.sc.week, id:t.getAttribute('data-id'), decision:a==='rqok'?'approve':'deny' }).then(function(r){ if(r&&r.shifts){ S.sc.toa=r; } if(r&&r.ok) toast(r.message); else toast((r&&r.error)||'That didn’t work.'); render(); }); return; }
   if(a==='took'||a==='todeny'){ if(a==='todeny' && !confirm('Deny this request? They’ll get an alert and an email.')) return; t.disabled=true;
     scPost({ action:'sched_toff_decide', center:S.sc.center, week:S.sc.week, id:t.getAttribute('data-id'), decision:a==='took'?'approve':'deny' }).then(function(r){ if(r&&r.ok){ S.sc.toa=r; toast(r.message); } else toast((r&&r.error)||'That didn’t work.'); render(); }); return; }
+  if(a==='rslot'){ S.sc.radd={ room:t.getAttribute('data-key'), day:t.getAttribute('data-day'), s:t.getAttribute('data-s'), e:t.getAttribute('data-e'), custom:false, d:[] }; render(); return; }
   if(a==='radd'){ var rk=t.getAttribute('data-key'), first=(S.sc.data.presets||[]).find(function(x){ return x.p===rk; });
     S.sc.radd={ room:rk, day:t.getAttribute('data-day'), s:first?first.s:'07:00', e:first?first.e:'17:00', custom:!first, d:[] }; render(); return; }
   if(S.sc.radd && a!=='raddclose'){ var ra=S.sc.radd; if($('sc-rs')){ ra.s=$('sc-rs').value; ra.e=$('sc-re').value; } }
