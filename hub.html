@@ -319,6 +319,7 @@ body.sc-dragging,body.sc-dragging *{cursor:grabbing!important}
 .sc-acts{display:flex;gap:8px;margin:12px 0}
 .sc-rep{display:flex;align-items:center;gap:8px;font-size:14px;margin:4px 0 8px}
 .sc-rep input{width:20px;height:20px}
+.sc-rpt{flex:none;width:44px;height:44px;border-radius:12px;border:0;background:#f2f2f7;color:#8e8e93;display:grid;place-items:center;cursor:pointer;margin-right:8px}.sc-rpt.on{background:#e8f0fe;color:#0B6BEB}
 .sc-li{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:11px 0;font:inherit;color:inherit;cursor:pointer}
 .sc-li .grow{flex:1;min-width:0;display:flex;flex-direction:column}.sc-li .sm{font-size:12px;color:var(--sub);margin-top:2px}
 .sc-li svg{width:16px;height:16px;color:#c7c7cc}.sc-li.sc-off{opacity:.55}
@@ -1448,7 +1449,7 @@ function suLoad(){ return scPost({ action:'sched_setup', center:S.sc.center, wee
 function suApply(r){
   if(!S.sc.su) return;
   if(!r || !r.ok){ toast((r&&r.error)||'Something went wrong.'); var e=$('su-err'); if(e) e.textContent=(r&&r.error)||'';
-    Array.prototype.forEach.call(document.querySelectorAll('[data-su][disabled]'),function(b){ if(['cadd','cdel'].indexOf(b.getAttribute('data-su'))>=0) b.disabled=false; }); return; }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-su][disabled]'),function(b){ if(['cadd','cdel','crep'].indexOf(b.getAttribute('data-su'))>=0) b.disabled=false; }); return; }
   if(r.message) toast(r.message);
   S.sc.su.data=r; S.sc.su.edit=null; S.sc.su.room=null; render();
 }
@@ -1490,11 +1491,12 @@ function suSettings(){
   h+=suStep('maxOff',x,20,'Daily limit', x?[x,'max']:['—','no limit'], x?'Up to '+plural(x,'person','people')+' off on a day. Staff can’t request a full day.':'No limit. Every request comes to you.');
   h+='</div><p class="help">These are for '+(S.sc.center==='SF'?'Sioux Falls':'Brandon')+'. You can still put anyone’s time off on the schedule yourself, any day.</p>';
   h+='<div class="sc-pres-h" style="margin-top:18px">Days we’re closed</div><div class="help" style="margin:0 0 6px">Closed days show on the schedule, Generate skips them, and staff don’t need to ask for them off.</div>';
+  h+='<p class="help" style="margin:0 0 6px">Tap the repeat button on a day to close it every year. Thanksgiving, Memorial Day, Labor Day and Easter Monday follow their real dates. The 4th of July, Christmas and New Year’s move to the nearest weekday when they land on a weekend.</p>';
   var cl=d.closedDays||[];
   h+='<div class="sc-list">'+(cl.length?cl.map(function(c){ var both=c.centers.length>1||c.centers.indexOf('ALL')>=0;
-    return '<div class="sc-li" style="cursor:default"><span class="grow"><b>'+esc(toNice(c.date))+'</b><span class="sm">'+esc(c.title)+' · '+(both?'Both centers':c.centers[0]==='SF'?'Sioux Falls':'Brandon')+'</span></span><button type="button" class="sc-x" data-su="cdel" data-date="'+c.date+'" data-c="'+c.centers.join(',')+'" aria-label="Open again on '+esc(toNice(c.date))+'">×</button></div>'; }).join(''):'<div class="sc-li" style="cursor:default"><span class="grow sm">No closed days coming up.</span></div>')+'</div>';
+    return '<div class="sc-li" style="cursor:default"><span class="grow"><b>'+esc(toNice(c.date))+'</b><span class="sm">'+esc(c.title)+' · '+(both?'Both centers':c.centers[0]==='SF'?'Sioux Falls':'Brandon')+(c.rule?' · Every year':'')+'</span></span><button type="button" class="sc-rpt'+(c.rule?' on':'')+'" style="'+(c.rule?'background:#0B6BEB;color:#fff':'background:#f2f2f7;color:#8e8e93')+';opacity:1" data-su="crep" data-date="'+c.date+'" data-c="'+c.centers.join(',')+'" data-on="'+(c.rule?'1':'')+'" aria-pressed="'+!!c.rule+'" aria-label="Repeat every year" title="Repeat every year"><svg style="opacity:1" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="'+(c.rule?'#fff':'#8e8e93')+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></button><button type="button" class="sc-x" data-su="cdel" data-rep="'+(c.rule?'1':'')+'" data-date="'+c.date+'" data-c="'+c.centers.join(',')+'" aria-label="Open again on '+esc(toNice(c.date))+'">×</button></div>'; }).join(''):'<div class="sc-li" style="cursor:default"><span class="grow sm">No closed days coming up.</span></div>')+'</div>';
   h+='<div class="sc-two" style="margin-top:12px"><div class="uform" style="padding:0"><label>Date<input type="date" id="su-cdate" min="'+scIso(new Date())+'"></label></div><div class="uform" style="padding:0"><label>What for<input id="su-ctitle" maxlength="60" placeholder="Christmas Day"></label></div></div>';
-  h+='<label class="sc-rep" style="margin-top:10px"><input type="checkbox" id="su-cboth" checked> Both centers</label>';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px"><label class="sc-rep"><input type="checkbox" id="su-cboth" checked> Both centers</label><label class="sc-rep"><input type="checkbox" id="su-cyear" checked> Repeat every year</label></div>';
   h+='<div class="err" id="su-err" role="alert"></div><button type="button" class="btn" data-su="cadd" style="width:100%;margin-top:8px">Add closed day</button>';
   return h;
 }
@@ -1587,9 +1589,12 @@ function suClick(t){
     if(!cd){ $('su-err').textContent='Pick the date.'; return; }
     if(!ct){ $('su-err').textContent='Say what it’s for, like Christmas Day.'; return; }
     var cg=scDate(cd).getDay(); if(cg===0||cg===6){ $('su-err').textContent='That’s a '+(cg===0?'Sunday':'Saturday')+', and the centers are already closed on weekends. If the holiday is observed on a weekday, pick that day.'; return; }
-    t.disabled=true; scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, date:cd, title:ct, centers:cb?['SF','BV']:[S.sc.center] }).then(suApply); return; }
-  if(a==='cdel'){ var dd=t.getAttribute('data-date'); if(!confirm('Open again on '+toNice(dd)+'? It’ll show as a normal day on the schedule.')) return;
-    t.disabled=true; scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, date:dd, on:false, centers:t.getAttribute('data-c').split(',') }).then(suApply); return; }
+    t.disabled=true; scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, date:cd, title:ct, centers:cb?['SF','BV']:[S.sc.center], repeat:!!($('su-cyear')||{}).checked }).then(suApply); return; }
+  if(a==='crep'){ var on=!t.getAttribute('data-on'), rd=t.getAttribute('data-date');
+    if(!on && !confirm('Stop closing on this day every year? '+toNice(rd)+' stays closed, and later years open back up.')) return;
+    t.disabled=true; scPost({ action:'sched_closed_repeat', center:S.sc.center, week:S.sc.week, date:rd, on:on, centers:t.getAttribute('data-c').split(',') }).then(suApply); return; }
+  if(a==='cdel'){ var dd=t.getAttribute('data-date'), wr=!!t.getAttribute('data-rep'); if(!confirm(wr?'Open on '+toNice(dd)+' this year only? It will still be closed in later years. To stop it every year, tap the repeat button instead.':'Open again on '+toNice(dd)+'? It’ll show as a normal day on the schedule.')) return;
+    t.disabled=true; scPost({ action:'sched_closed_set', center:S.sc.center, week:S.sc.week, date:dd, on:false, wasRepeat:wr, centers:t.getAttribute('data-c').split(',') }).then(suApply); return; }
   if(a==='back'){ su.edit=null; su.room=null; render(); return; }
   if(a==='staff'){ var id=t.getAttribute('data-id'), src=(su.data.staff||[]).find(function(x){ return x.id===id; });
     su.edit=src?JSON.parse(JSON.stringify(src)):{ id:'', name:'', center:S.sc.center, centers:[S.sc.center], positions:[], payType:'hourly', rate:null, active:true, typical:{} };
