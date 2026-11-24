@@ -1860,6 +1860,16 @@ function scMove(src, toId, toDay){
   var ovr=!!S.sc.ovr; S.sc.ovr=false;
   scQueue(toId, ovr); if(to) scQueue(src.id, false);
 }
+// Giving someone a shift that is sitting in Open shifts that day (same room and times) fills that open shift:
+// it comes off Open shifts, so the same shift can never be on the schedule twice. Returns how many were filled.
+function scFillOpen(id, before, after){
+  if(id==='open') return 0; var orow=scRow('open'), od=JSON.parse(JSON.stringify(orow.days||{})), n=0;
+  var same=function(a,b){ return a.p===b.p && a.s===b.s && a.e===b.e; };
+  SC_ALL_DAYS.forEach(function(k){ var was=((before||{})[k]||[]).slice();
+    ((after||{})[k]||[]).forEach(function(b){ var wi=was.findIndex(function(x){ return same(x,b); }); if(wi>=0){ was.splice(wi,1); return; }
+      var L=od[k]||[], oi=L.findIndex(function(x){ return same(x,b); }); if(oi>=0){ L.splice(oi,1); n++; } }); });
+  if(n){ orow.days=od; scQueue('open', false); }
+  return n; }
 function scQueue(id, ovr){
   var sc=S.sc, wk=sc.week, ctr=sc.center; sc.qn=(sc.qn||0)+1;
   sc.q=(sc.q||Promise.resolve()).then(function(){
@@ -1937,7 +1947,8 @@ function schedClick(t){
     days[A.day]=(days[A.day]||[]).concat([blk]).sort(function(x,y){ return x.s<y.s?-1:1; });
     var who=toId==='open'?'Open shifts':((S.sc.data.staff||[]).find(function(x){ return x.id===toId; })||{}).name;
     t.disabled=true; S.sc.radd=null;
-    scPost({ action:'sched_save', center:S.sc.center, week:S.sc.week, staffId:toId, rev:row.rev||0, days:days }).then(function(r){ scApply(r); if(r&&r.ok) toast('Added to '+who+'.'); }); return; }
+    var before=JSON.parse(JSON.stringify(row.days||{}));
+    scPost({ action:'sched_save', center:S.sc.center, week:S.sc.week, staffId:toId, rev:row.rev||0, days:days }).then(function(r){ scApply(r); if(r&&r.ok){ var nf=scFillOpen(toId, before, days); if(nf) render(); toast(nf?'Added to '+who+' and filled the open shift.':'Added to '+who+'.'); } }); return; }
   if(a==='asg'){ S.sc.asg={ day:t.getAttribute('data-day'), i:+t.getAttribute('data-i') }; render(); return; }
   if(a==='asgclose'){ S.sc.asg=null; render(); return; }
   if(a==='asgto'){ var ag=S.sc.asg, to=t.getAttribute('data-id'); S.sc.asg=null; scMove({ id:'open', day:ag.day, i:ag.i }, to, ag.day); return; }
@@ -1977,7 +1988,8 @@ function schedClick(t){
     var row=scRow(ed.id), days=JSON.parse(JSON.stringify(row.days||{})), clean=ed.blocks.map(function(b){ var o={ s:b.s, e:b.e, p:b.p }; if(b.n) o.n=b.n; if(b.d&&b.d.length) o.d=b.d.slice(); return o; }).sort(function(x,y){ return x.s<y.s?-1:1; });
     if(ed.rep) SC_DAYS.forEach(function(dd){ days[dd[0]]=JSON.parse(JSON.stringify(clean)); }); else days[ed.day]=clean;
     t.disabled=true; t.textContent='Saving…';
-    scPost({ action:'sched_save', center:S.sc.center, week:S.sc.week, staffId:ed.id, rev:row.rev||0, days:days }).then(function(r){ if(r&&r.ok) S.sc.edit=null; else if(r&&r.conflict) S.sc.edit=null; scApply(r); if(r&&!r.ok&&!r.conflict&&$('sc-err')){ $('sc-err').textContent=r.error||'That didn’t save.'; t.disabled=false; t.textContent='Save'; } });
+    var before=JSON.parse(JSON.stringify(row.days||{}));
+    scPost({ action:'sched_save', center:S.sc.center, week:S.sc.week, staffId:ed.id, rev:row.rev||0, days:days }).then(function(r){ if(r&&r.ok){ S.sc.edit=null; scApply(r); var nf=scFillOpen(ed.id, before, days); if(nf){ render(); toast('Filled '+plural(nf,'open shift','open shifts')+'.'); } return; } else if(r&&r.conflict) S.sc.edit=null; scApply(r); if(r&&!r.ok&&!r.conflict&&$('sc-err')){ $('sc-err').textContent=r.error||'That didn’t save.'; t.disabled=false; t.textContent='Save'; } });
     return; }
 }
 
