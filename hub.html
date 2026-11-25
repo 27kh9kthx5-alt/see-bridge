@@ -1313,9 +1313,11 @@ function scGaps(){
     ob.forEach(function(b){ var dup=(d.rows||[]).some(function(r){ return r.staffId!=='open' && ((r.days||{})[k]||[]).some(function(x){ return x.p===b.p && x.s===b.s && x.e===b.e; }); });
       if(dup) (out._dup=out._dup||[]).push({ k:k, s:b.s, e:b.e, p:b.p }); }); });
   return out; }
-function scDedupe(){ var dg=scGaps()._dup||[], orow=scRow('open'); if(!dg.length) return; orow.days=JSON.parse(JSON.stringify(orow.days||{}));
-  dg.forEach(function(x){ var L=orow.days[x.k]||[], i=L.findIndex(function(b){ return b.p===x.p && b.s===x.s && b.e===x.e; }); if(i>=0) L.splice(i,1); });
-  scQueue('open', false); }
+function scDedupe(){ var orow=scRow('open'), pub=orow.published||{}, same=function(a,b){ return a.p===b.p && a.s===b.s && a.e===b.e; };
+  var dg=(scGaps()._dup||[]).filter(function(x){ return !(pub[x.k]||[]).some(function(b){ return same(b,x); }); }); if(!dg.length) return 0;
+  orow.days=JSON.parse(JSON.stringify(orow.days||{}));
+  dg.forEach(function(x){ var L=orow.days[x.k]||[], i=L.findIndex(function(b){ return same(b,x); }); if(i>=0) L.splice(i,1); });
+  scQueue('open', false); return dg.length; }
 function scGapList(g){ var out=[]; SC_DAYS.forEach(function(dd){ var seen={}, order=[];
   (g[dd[0]]||[]).forEach(function(x){ var t=dd[1]+' '+String(scPos(x.p).name||x.p).replace(/ Room$/,'')+' '+scT(x.s)+'–'+scT(x.e)+(x.open?' (open shift)':''); if(!seen[t]){ seen[t]=0; order.push(t); } seen[t]++; });
   order.forEach(function(t){ out.push(t+(seen[t]>1?' ×'+seen[t]:'')); }); }); return out; }
@@ -1353,7 +1355,8 @@ function scApply(r){
   if(r.message) toast(r.message);
   S.sc.data=r; scSortOpen();
   // A leftover duplicate (an open shift someone already works that day) is removed on load.
-  var dupN=(scGaps()._dup||[]).length; if(dupN && (S.sc.qn||0)===0){ scDedupe(); toast('Removed '+plural(dupN,'duplicate open shift','duplicate open shifts')+'.'); }
+  // Only one that isn't published yet: a published week is never changed just by opening it (and not while someone else has it).
+  var dupN=(scGaps()._dup||[]).length; if(dupN && (S.sc.qn||0)===0 && !scRO()){ dupN=scDedupe(); if(dupN) toast('Removed '+plural(dupN,'duplicate open shift','duplicate open shifts')+'.'); }
   if(S.view==='sched') render();
 }
 function scHasPub(){ return ((S.sc.data&&S.sc.data.rows)||[]).some(function(r){ return r.published && SC_ALL_DAYS.some(function(k){ return ((r.published||{})[k]||[]).length; }); }); }
